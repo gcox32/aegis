@@ -57,7 +57,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="overscroll-contain">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased overscroll-contain`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased overscroll-contain mt-8`}
       >
         <ClientLayout>
           {children}
