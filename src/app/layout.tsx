@@ -23,6 +23,11 @@ export const metadata: Metadata = {
     siteName: 'Super Solider Program',
     images: [{ url: 'https://super-soldier-app.vercel.app/opengraph-evans.png' }]
   },
+  icons: {
+    icon: '/apple-icon.png',
+    shortcut: '/apple-icon.png',
+    apple: '/apple-icon.png',
+  },
 };
 
 export default function RootLayout({
