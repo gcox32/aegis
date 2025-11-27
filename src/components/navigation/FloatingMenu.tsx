@@ -50,7 +50,7 @@ export default function FloatingMenu() {
       {/* Overlay */}
       {isOpen && (
         <div
-          className="z-30 fixed inset-0 bg-black/50 backdrop-blur-sm z-20 animate-in fade-in duration-200"
+          className="z-30 fixed inset-0 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
           onClick={() => setIsOpen(false)}
           aria-hidden="true"
         />
