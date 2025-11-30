@@ -27,10 +27,10 @@ type WorkoutType = 'strength' | 'hypertrophy' | 'endurance' | 'power' | 'skill' 
 type WorkoutBlockType = 'warm-up' | 'prep' | 'main' | 'accessory' | 'finisher' | 'cooldown' | 'other'; 
 
 interface WorkPowerConstants {
-    useCalories: boolean;
-    defaultDistance: DistanceMeasurement;
-    armLengthFactor: number; // 0 - 1.0 default is 0
-    legLengthFactor: number; // 0 - 1.0 default is 0
+    useCalories:      boolean;
+    defaultDistance:  DistanceMeasurement;
+    armLengthFactor:  number; // 0 - 1.0 default is 0
+    legLengthFactor:  number; // 0 - 1.0 default is 0
     bodyweightFactor: number; // 0 - 1.0 default is 1
 }
 
@@ -46,52 +46,52 @@ interface ExerciseMeasures {
 
 // `train` schema for supabase
 export interface Protocol {
-    id: string;
-    name: string;
-    objectives: string[];
-    description?: string;
-    workouts?: Workout[];
-    duration: LongTimeMeasurement;
-    daysPerWeek: number;
+    id:             string;
+    name:           string;
+    objectives:     string[];
+    description?:   string;
+    workouts?:      Workout[]; // hydrated on frontend
+    duration:       LongTimeMeasurement;
+    daysPerWeek:    number;
     includes2ADays: boolean;
-    notes?: string;
-    createdAt: Date;
-    updatedAt: Date;
+    notes?:         string;
+    createdAt:      Date;
+    updatedAt:      Date;
 }
 
 export interface Workout {
-    id: string;
-    userId: User['id'];
-    workoutType: WorkoutType;
-    name?: string;
-    objectives: string[];
-    description?: string;
-    blocks: WorkoutBlock[];
+    id:                 string;
+    userId:             User['id'];
+    workoutType:        WorkoutType;
+    name?:              string;
+    objectives?:        string[];
+    description?:       string;
+    blocks?:            WorkoutBlock[]; // hydrated on frontend
     estimatedDuration?: number; // in minutes
-    createdAt: Date;
-    updatedAt: Date;
+    createdAt:          Date;
+    updatedAt:          Date;
 }
 
 export interface WorkoutBlock {
-    id: string;
-    workoutId: Workout['id'];
-    workoutBlockType: WorkoutBlockType;
-    name?: string;
-    description?: string;
-    order: number;
-    exercises: WorkoutBlockExercise[];
-    circuit?: boolean;
+    id:                 string;
+    workoutId:          Workout['id'];
+    workoutBlockType:   WorkoutBlockType;
+    name?:              string;
+    description?:       string;
+    order:              number;
+    exercises?:         WorkoutBlockExercise[]; // hydrated on frontend
+    circuit?:           boolean;
     estimatedDuration?: number; // in minutes
-    createdAt: Date;
-    updatedAt: Date;
+    createdAt:          Date;
+    updatedAt:          Date;
 }
 
 export interface WorkoutBlockExercise {
-    id: string;
-    exercise: Exercise;
-    order: number;
-    sets: number;
-    measures: ExerciseMeasures;
+    id:         string;
+    exercise:   Exercise; // hydrated on frontend
+    order:      number;
+    sets:       number;
+    measures:   ExerciseMeasures;
     tempo?: {
         eccentric:  TimeMeasurement;
         bottom:     TimeMeasurement;
@@ -99,42 +99,42 @@ export interface WorkoutBlockExercise {
         top:        TimeMeasurement;
     };
     restTime?: RestTimer;
-    rpe?: RPE;
-    notes?: string;
+    rpe?:      RPE;
+    notes?:    string;
 }
 
 export interface Exercise {
-    id: string;
-    name: string;
-    description: string;
-    movementPattern: MovementPattern;
+    id:                 string;
+    name:               string;
+    description?:       string;
+    movementPattern?:   MovementPattern;
     muscleGroups: {
-        primary: MuscleGroup;
-        secondary?: MuscleGroup;
-        tertiary?: MuscleGroup;
+        primary:    MuscleGroup['id'];
+        secondary?: MuscleGroup['id'];
+        tertiary?:  MuscleGroup['id'];
     };
-    planeOfMotion?: PlaneOfMotion;
-    bilateral?: boolean;
-    equipment?: Equipment;
-    imageUrl?: string;
-    videoUrl?: string;
+    planeOfMotion?:     PlaneOfMotion;
+    bilateral?:         boolean;
+    equipment?:         Equipment;
+    imageUrl?:          string;
+    videoUrl?:          string;
     workPowerConstants: WorkPowerConstants;
-    createdAt: Date;
-    updatedAt: Date;
-    difficulty?: Difficulty;
+    createdAt:          Date;
+    updatedAt:          Date;
+    difficulty?:        Difficulty;
 }
 
 // specific instances
 export interface ProtocolInstance {
-    id: string;
-    userId: User['id'];
+    id:         string;
+    userId:     User['id'];
     protocolId: Protocol['id'];
-    active: boolean;
-    startDate: Date;
-    endDate?: Date | null;
-    complete: boolean;
-    duration?: LongTimeMeasurement; // in minutes
-    notes?: string;
+    active:     boolean;
+    startDate:  Date;
+    endDate?:   Date | null;
+    complete:   boolean;
+    duration?:  LongTimeMeasurement; // in minutes
+    notes?:     string;
 
 }
 
@@ -199,7 +199,7 @@ export interface Performance {
 export interface Projected1RMLog {
     id:            string;
     userId:        User['id'];
-    projected1RMs: Projected1RM[];
+    projected1RMs: Projected1RM[]; // hydrated on frontend
 }
 
 export interface Projected1RM {

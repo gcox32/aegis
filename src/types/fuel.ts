@@ -156,59 +156,48 @@ export interface WaterIntake {
 
 // supplements
 export interface SupplementSchedule {
-    id: string;
-    userId: User['id'];
-    name: string;
+    id:           string;
+    userId:       User['id'];
+    name:         string;
     scheduleType: ScheduleType;
     description?: string;
-    supplements: SupplementInstance[];
+    supplements:  SupplementInstance[];
 }
 
 export interface SupplementInstance {
-    id: string;
-    userId: User['id'];
+    id:                   string;
+    userId:               User['id'];
     supplementScheduleId: SupplementSchedule['id'];
-    supplementId: Supplement['id'];
-    dosage: DosageMeasurement;
-    date: Date;
-    notes?: string;
+    supplementId:         Supplement['id'];
+    dosage:               DosageMeasurement;
+    date:                 Date;
+    complete?:            boolean | null;
+    notes?:               string;
 }
 
 export interface Supplement {
-    id: string;
-    name: string;
+    id:           string;
+    name:         string;
     description?: string;
-    imageUrl?: string;
+    imageUrl?:    string;
 }
 
 // sleep
 export interface SleepLog {
-    id: string;
+    id:     string;
     userId: User['id'];
-    sleep: SleepInstance[];
+    sleep:  SleepInstance[];
 }
 
-export interface Sleep {
-    id: string;
-    sleepLogId: SleepLog['id'];
-    date: Date;
-    timeAsleep?: TimeMeasurement; // in hours
-    startTime?: Date | null;
-    endTime?: Date | null;
-    sleepScore?: number;
-    wakeCount?: number;
-    timeAwake?: TimeMeasurement; // in minutes
-    notes?: string;
-}
 export interface SleepInstance {
-    id: string;
-    userId: User['id'];
-    date: Date;
+    id:          string;
+    userId:      User['id'];
+    date:        Date;
     timeAsleep?: TimeMeasurement; // in hours
-    startTime?: Date | null;
-    endTime?: Date | null;
+    startTime?:  Date | null;
+    endTime?:    Date | null;
     sleepScore?: number;
-    wakeCount?: number;
-    timeAwake?: TimeMeasurement; // in minutes
-    notes?: string;
+    wakeCount?:  number;
+    timeAwake?:  TimeMeasurement; // in minutes
+    notes?:      string;
 }

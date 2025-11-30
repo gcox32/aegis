@@ -65,42 +65,45 @@ type ScientificName =
 
 
 export interface MuscleGroup {
-    id: string;
-    name: MuscleGroupName;
-    description: string;
-    muscles: Muscle[]; // hydrated with muscle data
+    id:            string;
+    name:          MuscleGroupName;
+    description?:  string;
+    muscles?:      Muscle[]; // hydrated with muscle data
 }
 
 export interface Muscle {
-    id: string;
-    name: MuscleName;
-    description?: string;
-    muscleGroupId: MuscleGroup['id'];
+    id:              string;
+    name:            MuscleName;
+    description?:    string;
+    muscleGroupId:   MuscleGroup['id'];
+    scientificName?: ScientificName;
 }
 
 interface Measurement {
-    id: string;
-    value: number;
-    unit: string;
+    id:      string;
+    value:   number;
+    unit:    string;
     method?: string;
-    site: MeasurementSite; // hydrated with measurement site data
+    siteId:  MeasurementSite['id']; // hydrated with measurement site data
 }
 
 interface MeasurementSite {
-    id: string;
-    name: string;
+    id:           string;
+    name:         string;
     description?: string;
 }
 
-interface MeasurementInstance {
-    id: string;
-    userId: User['id'];
-    measurementId: Measurement['id'];
-    date: Date;
+export interface MeasurementLog {
+    id:           string;
+    userId:       User['id'];
+    measurements: MeasurementInstance[]; // hydrated with measurement data
 }
 
-export interface MeasurementLog {
-    id: string;
-    userId: User['id'];
-    measurements: MeasurementInstance[]; // hydrated with measurement data
+interface MeasurementInstance {
+    id:            string;
+    userId:        User['id'];
+    measurementId: Measurement['id'];
+    date:          Date;
+    complete?:     boolean | null;
+    notes?:        string;
 }
