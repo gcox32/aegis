@@ -15,6 +15,13 @@ export async function withAuth<T>(
     if (error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    // Handle errors with status codes (like 404)
+    if (error.status) {
+      return NextResponse.json(
+        { error: error.message || 'Not found' },
+        { status: error.status }
+      );
+    }
     console.error('API Error:', error);
     return NextResponse.json(
       { error: error.message || 'Internal server error' },

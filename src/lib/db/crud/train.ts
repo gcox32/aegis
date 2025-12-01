@@ -156,6 +156,37 @@ export async function getUserWorkouts(userId: string): Promise<Workout[]> {
   })) as Workout[];
 }
 
+export async function getProtocolWorkouts(protocolId: string): Promise<Workout[]> {
+  // Get workout IDs from protocol_workout junction table, ordered by order field
+  const protocolWorkouts = await db
+    .select()
+    .from(protocolWorkout)
+    .where(eq(protocolWorkout.protocolId, protocolId))
+    .orderBy(protocolWorkout.order);
+
+  if (protocolWorkouts.length === 0) {
+    return [];
+  }
+
+  const workoutIds = protocolWorkouts.map((pw) => pw.workoutId);
+  const workouts = await db
+    .select()
+    .from(workout)
+    .where(inArray(workout.id, workoutIds));
+
+  // Create a map to preserve order from protocol_workout
+  const workoutMap = new Map(workouts.map((w) => [w.id, w]));
+  
+  // Return workouts in the order specified by protocol_workout.order
+  return protocolWorkouts
+    .map((pw) => workoutMap.get(pw.workoutId))
+    .filter((w): w is typeof workouts[0] => w !== undefined)
+    .map((r) => ({
+      ...nullToUndefined(r),
+      blocks: [], // Blocks are loaded separately
+    })) as Workout[];
+}
+
 export async function getWorkoutById(
   workoutId: string,
   userId: string
@@ -617,6 +648,24 @@ export async function getUserWorkoutInstances(
   }
 
   return converted;
+}
+
+export async function getWorkoutInstanceById(
+  instanceId: string,
+  userId: string
+): Promise<WorkoutInstance | null> {
+  const [found] = await db
+    .select()
+    .from(workoutInstance)
+    .where(and(eq(workoutInstance.id, instanceId), eq(workoutInstance.userId, userId)))
+    .limit(1);
+
+  if (!found) return null;
+
+  return {
+    ...found,
+    date: new Date(found.date),
+  } as WorkoutInstance;
 }
 
 export async function updateWorkoutInstance(
