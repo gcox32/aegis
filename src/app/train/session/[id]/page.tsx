@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, use, useRef } from 'react';
+import { useEffect, useState, use, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import Button from '@/components/ui/Button';
@@ -20,7 +20,10 @@ import { SessionProgressBar } from '@/components/train/session/SessionProgressBa
 import { SessionExerciseDisplay } from '@/components/train/session/SessionExerciseDisplay';
 import { SessionInputControls } from '@/components/train/session/SessionInputControls';
 import { SessionFooter } from '@/components/train/session/SessionFooter';
-import { SessionMenu } from '@/components/train/session/SessionMenu';
+import { SessionMenu } from '@/components/train/session/overlays/SessionMenu';
+import { PauseOverlay } from '@/components/train/session/overlays/PauseOverlay';
+import { SettingsOverlay } from '@/components/train/session/overlays/SettingsOverlay';
+import { WorkoutSummaryOverlay } from '@/components/train/session/overlays/WorkoutSummaryOverlay';
 
 // --- Types ---
 // (SessionStep is now in src/types/train.ts)
@@ -85,6 +88,8 @@ export default function ActiveSessionPage({
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isSummaryOpen, setIsSummaryOpen] = useState(false);
   
   // Input State for Current Step
   const [reps, setReps] = useState<string>('');
@@ -97,6 +102,18 @@ export default function ActiveSessionPage({
   // Derived
   const currentStep = steps[currentStepIndex];
   const nextStep = steps[currentStepIndex + 1];
+
+  const totalVolume = useMemo(() => {
+    let total = 0;
+    Object.values(exerciseInstances).forEach((instances) => {
+      instances.forEach((inst) => {
+        const r = inst.measures.reps ?? 0;
+        const l = inst.measures.externalLoad?.value ?? 0;
+        total += r * l;
+      });
+    });
+    return total;
+  }, [exerciseInstances]);
 
   // Load Data
   useEffect(() => {
@@ -334,6 +351,10 @@ export default function ActiveSessionPage({
     }
   };
 
+  const handleEndSession = () => {
+    router.push('/train');
+  };
+
   // Swipe Handlers
   // Removed touch swipe handlers in favor of explicit back button
 
@@ -404,9 +425,10 @@ export default function ActiveSessionPage({
         
         <SessionHeader 
           elapsedSeconds={elapsedSeconds}
-          isPaused={isPaused}
           onPauseToggle={() => setIsPaused(!isPaused)}
           formatClock={formatClock}
+          onSettingsClick={() => setIsSettingsOpen(true)}
+          onOverviewClick={() => setIsSummaryOpen(true)}
         />
 
         <SessionProgressBar 
@@ -445,6 +467,25 @@ export default function ActiveSessionPage({
         isOpen={isMenuOpen}
         onClose={() => setIsMenuOpen(false)}
         onSkip={handleNext}
+      />
+
+      <PauseOverlay 
+        isOpen={isPaused} 
+        onResume={() => setIsPaused(false)} 
+        onEndSession={handleEndSession} 
+      />
+
+      <SettingsOverlay 
+        isOpen={isSettingsOpen} 
+        onClose={() => setIsSettingsOpen(false)} 
+      />
+
+      <WorkoutSummaryOverlay 
+        isOpen={isSummaryOpen} 
+        onClose={() => setIsSummaryOpen(false)} 
+        workoutInstance={workoutInstance}
+        totalVolume={totalVolume}
+        durationSeconds={elapsedSeconds}
       />
     </div>
   );

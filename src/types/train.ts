@@ -124,6 +124,7 @@ export interface Exercise {
     createdAt:          Date;
     updatedAt:          Date;
     difficulty?:        Difficulty;
+    parentExerciseId?:  Exercise['id']; // need to add to db
 }
 
 // specific instances

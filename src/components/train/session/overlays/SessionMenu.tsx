@@ -5,6 +5,7 @@ import {
   StickyNote,
   Repeat,
 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface SessionMenuProps {
   isOpen: boolean;
@@ -13,12 +14,36 @@ interface SessionMenuProps {
 }
 
 export function SessionMenu({ isOpen, onClose, onSkip }: SessionMenuProps) {
-  if (!isOpen) return null;
+  const [shouldRender, setShouldRender] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setShouldRender(true);
+      // Small timeout to ensure DOM element exists and layout is calculated before transition starts
+      const timer = setTimeout(() => setIsVisible(true), 10);
+      return () => clearTimeout(timer);
+    } else {
+      setIsVisible(false);
+      // Wait for transition to finish before removing from DOM
+      const timer = setTimeout(() => setShouldRender(false), 150);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
+
+  if (!shouldRender) return null;
 
   return (
-    <div className="absolute inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
+    <div 
+      className={`absolute inset-0 z-50 flex items-end sm:items-center justify-center transition-all duration-150 ease-out ${
+        isVisible ? 'bg-black/60 backdrop-blur-sm' : 'bg-black/0 backdrop-blur-none'
+      }`}
+      onClick={onClose}
+    >
       <div
-        className="bg-zinc-900 w-full max-w-sm rounded-3xl p-2 space-y-1 shadow-2xl border border-zinc-800 animate-in slide-in-from-bottom-10"
+        className={`bg-zinc-900 w-full max-w-sm rounded-3xl p-2 space-y-1 shadow-2xl border border-zinc-800 transition-all duration-150 ease-out ${
+          isVisible ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
         <MenuButton
