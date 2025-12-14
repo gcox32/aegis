@@ -44,11 +44,11 @@ function ProtectedContent({ children }: { children: React.ReactNode }) {
     }
 
     return (
-        <>
+        <div className={!isSessionView ? "mt-8" : ""}>
             {!isSessionView && <FloatingMenu />}
             {children}
             {!isSessionView && <BottomNav />}
-        </>
+        </div>
     );
 }
 

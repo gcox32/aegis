@@ -110,7 +110,7 @@ export default function ActiveSessionPage({
         const wi = await fetchJson<WorkoutInstanceResponse>(`/api/train/workout-instances/${id}`);
         if (cancelled) return;
         setWorkoutInstance(wi.workoutInstance);
-        
+
         // 2. Get Blocks & Block Instances
         const [biRes, blocksRes] = await Promise.all([
           fetchJson<BlockInstancesResponse>(
@@ -122,31 +122,31 @@ export default function ActiveSessionPage({
               )
             : Promise.resolve({ blocks: [] }),
         ]);
-        
+
         if (cancelled) return;
         setBlocks(blocksRes.blocks || []);
-        
+
         // 3. Get Exercises & Existing Logs
         const exercisesMap: Record<string, WorkoutBlockExercise[]> = {};
         const instancesMap: Record<string, WorkoutBlockExerciseInstance[]> = {};
-        
+
         for (const block of blocksRes.blocks || []) {
           const exRes = await fetchJson<BlockExercisesResponse>(
             `/api/train/workouts/${wi.workoutInstance.workoutId}/blocks/${block.id}/exercises`
           );
           exercisesMap[block.id] = exRes.exercises || [];
-          
+
           const blockInstance = biRes.instances.find(bi => bi.workoutBlockId === block.id);
           if (blockInstance) {
             const instRes = await fetchJson<BlockExerciseInstancesResponse>(
-              `/api/train/workout-block-exercise-instances?workoutBlockInstanceId=${blockInstance.id}`
-            );
+                `/api/train/workout-block-exercise-instances?workoutBlockInstanceId=${blockInstance.id}`
+              );
             instancesMap[block.id] = instRes.instances || [];
           } else {
             instancesMap[block.id] = [];
           }
         }
-        
+
         if (cancelled) return;
         setBlockExercises(exercisesMap);
         setExerciseInstances(instancesMap);
@@ -337,29 +337,7 @@ export default function ActiveSessionPage({
   };
 
   // Swipe Handlers
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartY.current = e.touches[0].clientY;
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartY.current === null) return;
-    
-    const touchEndY = e.changedTouches[0].clientY;
-    const diffY = touchStartY.current - touchEndY;
-    
-    // Threshold for swipe (e.g., 50px)
-    if (Math.abs(diffY) > 50) {
-      if (diffY > 0) {
-        // Swipe Up -> Next
-        handleNext();
-      } else {
-        // Swipe Down -> Previous
-        handlePrevious();
-      }
-    }
-    
-    touchStartY.current = null;
-  };
+  // Removed touch swipe handlers in favor of explicit back button
 
   const finishWorkout = async () => {
     if (!workoutInstance) return;
@@ -400,9 +378,7 @@ export default function ActiveSessionPage({
 
   return (
     <div 
-      className="relative h-screen w-full bg-black text-white overflow-hidden flex flex-col font-sans"
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
+      className="relative h-screen w-full bg-black text-white overflow-hidden flex flex-col font-sans touch-none overscroll-none"
     >
       
       {/* Background Video/Image */}
@@ -423,7 +399,7 @@ export default function ActiveSessionPage({
           </div>
         )}
         <div className="absolute inset-0 bg-linear-to-b from-black/80 via-transparent to-black/90" />
-      </div>
+                </div>
 
       {/* Main Content Layer */}
       <div className="relative z-10 flex flex-col h-full px-5 py-4 safe-area-inset-top">
@@ -461,6 +437,8 @@ export default function ActiveSessionPage({
         <SessionFooter 
           nextStepName={nextStep ? nextStep.exercise.exercise.name : null}
           onNext={handleNext}
+          onPrevious={handlePrevious}
+          canGoBack={currentStepIndex > 0}
         />
 
       </div>

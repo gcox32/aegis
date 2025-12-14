@@ -1,4 +1,4 @@
-import { Play, Pause, Settings, List } from 'lucide-react';
+import { Play, Pause, Settings2, List } from 'lucide-react';
 
 interface SessionHeaderProps {
   elapsedSeconds: number;
@@ -28,7 +28,7 @@ export function SessionHeader({
       </div>
       <div className="flex items-center gap-3">
         <button className="p-2 rounded-full hover:bg-white/10 transition-colors">
-          <Settings className="w-6 h-6 text-white/80" />
+          <Settings2 className="w-6 h-6 text-white/80" />
         </button>
         <button className="p-2 rounded-full hover:bg-white/10 transition-colors">
           <List className="w-6 h-6 text-white/80" />

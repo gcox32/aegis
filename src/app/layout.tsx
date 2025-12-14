@@ -55,9 +55,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="overscroll-contain">
+    <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased overscroll-contain mt-8`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased overscroll-none`}
       >
         <ClientLayout>
           {children}
