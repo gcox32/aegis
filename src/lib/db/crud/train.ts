@@ -604,9 +604,7 @@ export async function createExercise(
 }
 
 export async function getExercises(): Promise<Exercise[]> {
-  console.log('getting all exercises');
   const results = await db.select().from(exercise).orderBy(exercise.name);
-  console.log(results);
   return results.map(nullToUndefined) as Exercise[];
 }
 

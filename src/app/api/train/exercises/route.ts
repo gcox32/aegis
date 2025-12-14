@@ -6,12 +6,10 @@ import { getExercises, createExercise, searchExercises } from '@/lib/db/crud';
 export async function GET(request: NextRequest) {
   try {
     const query = getQueryParam(request.url, 'q');
-    console.log('query', query);
     if (query) {
       const exercises = await searchExercises(query);
       return NextResponse.json({ exercises });
     }
-    console.log('getting all exercises');
     const exercises = await getExercises();
     return NextResponse.json({ exercises });
   } catch (error: any) {

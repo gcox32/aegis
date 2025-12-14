@@ -1,6 +1,6 @@
 import { User } from "./user";
 
-type MuscleGroupName =
+export type MuscleGroupName =
     'chest' | 'anterior delts' | 'lateral delts' | 'posterior delts' |
     'lats' | 'rhomboids' | 'traps' | 'spinal erectors' | 'quadratus lumborum' |
     'biceps' | 'triceps' | 'forearms' |

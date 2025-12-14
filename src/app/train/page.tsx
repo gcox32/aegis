@@ -383,9 +383,11 @@ export default function TrainPage() {
             </div>
           )}
         </section>
+        <section className="px-4 md:px-6 py-6 border-border border-t">
         <button onClick={() => router.push('/train/build')} className="w-[220px] h-[48px] m-auto bg-brand-primary text-white px-4 py-2 rounded-full flex items-center justify-center gap-2 uppercase font-bold text-sm">
           Build
         </button>
+        </section>
       </div>
     </div>
   );

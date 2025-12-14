@@ -8,7 +8,7 @@ import {
   FormInput, FormTextarea, FormSelect, FormError, FormActions 
 } from '@/components/ui/Form';
 import { Exercise, WorkPowerConstants } from '@/types/train';
-import { MuscleGroup } from '@/types/anatomy';
+import { MuscleGroupSelect, MUSCLE_GROUPS } from '@/components/anatomy/MuscleGroupSelect';
 
 type ExerciseFormData = Omit<Exercise, 'id' | 'createdAt' | 'updatedAt'>;
 
@@ -42,7 +42,6 @@ export default function ExerciseForm({ initialData, isEditing = false }: Exercis
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [muscleGroups, setMuscleGroups] = useState<MuscleGroup[]>([]);
   const [exercises, setExercises] = useState<Exercise[]>([]);
 
   const [formData, setFormData] = useState<ExerciseFormData>({
@@ -61,22 +60,12 @@ export default function ExerciseForm({ initialData, isEditing = false }: Exercis
   });
 
   useEffect(() => {
-    async function fetchMuscleGroups() {
-      try {
-        const res = await fetch('/api/anatomy/muscle-groups');
-        if (res.ok) {
-          const data = await res.json();
-          setMuscleGroups(data.muscleGroups);
-          if (!formData.muscleGroups.primary && data.muscleGroups.length > 0) {
-            setFormData(prev => ({
-              ...prev,
-              muscleGroups: { ...prev.muscleGroups, primary: data.muscleGroups[0].id }
-            }));
-          }
-        }
-      } catch (err) {
-        console.error('Failed to fetch muscle groups', err);
-      }
+    // Set default primary muscle group if none selected
+    if (!formData.muscleGroups.primary && MUSCLE_GROUPS.length > 0) {
+      setFormData(prev => ({
+        ...prev,
+        muscleGroups: { ...prev.muscleGroups, primary: MUSCLE_GROUPS[0] }
+      }));
     }
 
     async function fetchExercises() {
@@ -94,7 +83,6 @@ export default function ExerciseForm({ initialData, isEditing = false }: Exercis
       }
     }
     
-    fetchMuscleGroups();
     fetchExercises();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -287,43 +275,30 @@ export default function ExerciseForm({ initialData, isEditing = false }: Exercis
             
             <FormGroup>
               <FormLabel>Primary</FormLabel>
-              <FormSelect
+              <MuscleGroupSelect
                 value={formData.muscleGroups.primary}
                 onChange={(e) => handleMuscleGroupChange('primary', e.target.value)}
                 required
-              >
-                <option value="">Select muscle group</option>
-                {muscleGroups.map(m => (
-                  <option key={m.id} value={m.id}>{m.name}</option>
-                ))}
-              </FormSelect>
+              />
             </FormGroup>
 
             <div className="grid grid-cols-2 gap-4">
               <FormGroup>
                 <FormLabel>Secondary </FormLabel>
-                <FormSelect
+                <MuscleGroupSelect
                   value={formData.muscleGroups.secondary || ''}
                   onChange={(e) => handleMuscleGroupChange('secondary', e.target.value)}
-                >
-                  <option value="">None</option>
-                  {muscleGroups.map(m => (
-                    <option key={m.id} value={m.id}>{m.name}</option>
-                  ))}
-                </FormSelect>
+                  placeholder="None"
+                />
               </FormGroup>
 
               <FormGroup>
                 <FormLabel>Tertiary</FormLabel>
-                <FormSelect
+                <MuscleGroupSelect
                   value={formData.muscleGroups.tertiary || ''}
                   onChange={(e) => handleMuscleGroupChange('tertiary', e.target.value)}
-                >
-                  <option value="">None</option>
-                  {muscleGroups.map(m => (
-                    <option key={m.id} value={m.id}>{m.name}</option>
-                  ))}
-                </FormSelect>
+                  placeholder="None"
+                />
               </FormGroup>
             </div>
           </div>
@@ -375,7 +350,10 @@ export default function ExerciseForm({ initialData, isEditing = false }: Exercis
                     min="0"
                     max="1"
                     value={formData.workPowerConstants.bodyweightFactor}
-                    onChange={(e) => handleConstantChange('bodyweightFactor', parseFloat(e.target.value))}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value);
+                      handleConstantChange('bodyweightFactor', isNaN(val) ? 0 : val);
+                    }}
                     className="px-2 py-1"
                   />
                </FormGroup>
@@ -387,7 +365,10 @@ export default function ExerciseForm({ initialData, isEditing = false }: Exercis
                     min="0"
                     max="1"
                     value={formData.workPowerConstants.armLengthFactor}
-                    onChange={(e) => handleConstantChange('armLengthFactor', parseFloat(e.target.value))}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value);
+                      handleConstantChange('armLengthFactor', isNaN(val) ? 0 : val);
+                    }}
                     className="px-2 py-1"
                   />
                </FormGroup>
@@ -399,7 +380,10 @@ export default function ExerciseForm({ initialData, isEditing = false }: Exercis
                     min="0"
                     max="1"
                     value={formData.workPowerConstants.legLengthFactor}
-                    onChange={(e) => handleConstantChange('legLengthFactor', parseFloat(e.target.value))}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value);
+                      handleConstantChange('legLengthFactor', isNaN(val) ? 0 : val);
+                    }}
                     className="px-2 py-1"
                   />
                </FormGroup>
