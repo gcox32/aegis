@@ -17,10 +17,10 @@ export default function ExerciseList() {
   useEffect(() => {
     async function fetchExercises() {
       try {
-        const url = searchTerm 
-          ? `/api/train/exercises?q=${encodeURIComponent(searchTerm)}` 
+        const url = searchTerm
+          ? `/api/train/exercises?q=${encodeURIComponent(searchTerm)}`
           : '/api/train/exercises';
-        
+
         const res = await fetch(url);
         if (res.ok) {
           const data = await res.json();
@@ -113,42 +113,18 @@ export default function ExerciseList() {
               exercises.map((exercise) => (
                 <li key={exercise.id}>
                   <Link href={`/train/build/exercises/${exercise.id}/edit`} className="block hover:bg-gray-50">
-                    <div className="px-4 py-4 sm:px-6">
-                      <div className="flex items-center justify-between">
-                        <div className="truncate text-sm font-medium text-brand-primary">
-                          {exercise.name}
-                        </div>
-                        <div className="ml-2 shrink-0 flex">
-                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                            ${exercise.difficulty === 'beginner' ? 'bg-green-100 text-green-800' : 
-                              exercise.difficulty === 'intermediate' ? 'bg-yellow-100 text-yellow-800' : 
-                              'bg-red-100 text-red-800'}`}>
-                            {exercise.difficulty}
-                          </span>
-                        </div>
+                    <div className="px-4 py-4 sm:px-6 flex justify-between items-center">
+                      <div className="truncate text-sm font-medium text-brand-primary">
+                        {exercise.name}
                       </div>
-                      <div className="mt-2 sm:flex sm:justify-between">
-                        <div className="sm:flex">
-                          <p className="flex items-center text-sm text-gray-500">
-                            {exercise.movementPattern}
-                          </p>
-                          <p className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0 sm:ml-6">
-                            {exercise.equipment}
-                          </p>
-                        </div>
-                        <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
-                          <Edit2 className="h-4 w-4 text-gray-400 mr-1" />
-                          <span className="hidden sm:inline mr-4">Edit</span>
-                          
-                          <button
-                            onClick={(e) => handleDeleteClick(e, exercise)}
-                            className="flex items-center text-red-500 hover:text-red-700 transition-colors"
-                          >
-                            <Trash2 className="h-4 w-4 mr-1" />
-                            <span className="hidden sm:inline">Delete</span>
-                          </button>
-                        </div>
-                      </div>
+
+                      <button
+                        onClick={(e) => handleDeleteClick(e, exercise)}
+                        className="flex items-center text-red-500 hover:text-red-700 transition-colors"
+                      >
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        <span className="hidden sm:inline">Delete</span>
+                      </button>
                     </div>
                   </Link>
                 </li>
