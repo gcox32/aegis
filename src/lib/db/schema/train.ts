@@ -100,6 +100,7 @@ export const exercise = trainSchema.table('exercise', {
   difficulty: text('difficulty', {
     enum: ['beginner', 'intermediate', 'advanced'],
   }),
+  parentExerciseId: uuid('parent_exercise_id'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
@@ -242,7 +243,15 @@ export const workoutBlockRelations = relations(workoutBlock, ({ one, many }) => 
   instances: many(workoutBlockInstance),
 }));
 
-export const exerciseRelations = relations(exercise, ({ many }) => ({
+export const exerciseRelations = relations(exercise, ({ one, many }) => ({
+  parentExercise: one(exercise, {
+    fields: [exercise.parentExerciseId],
+    references: [exercise.id],
+    relationName: 'parentChild',
+  }),
+  childExercises: many(exercise, {
+    relationName: 'parentChild',
+  }),
   workoutBlockExercises: many(workoutBlockExercise),
   projected1RMs: many(projected1RM),
 }));

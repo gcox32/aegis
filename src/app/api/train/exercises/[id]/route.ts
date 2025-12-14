@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withAuth, parseBody } from '@/lib/api/helpers';
-import { getExerciseById, updateExercise } from '@/lib/db/crud';
+import { getExerciseById, updateExercise, deleteExercise } from '@/lib/db/crud';
 
 // GET /api/train/exercises/[id] - Get a specific exercise (public)
 export async function GET(
@@ -35,6 +35,21 @@ export async function PATCH(
       return { error: 'Exercise not found' };
     }
     return { exercise };
+  });
+}
+
+// DELETE /api/train/exercises/[id] - Delete an exercise (requires auth)
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  return withAuth(async () => {
+    const { id } = await params;
+    const deleted = await deleteExercise(id);
+    if (!deleted) {
+      return { error: 'Exercise not found' };
+    }
+    return { success: true };
   });
 }
 

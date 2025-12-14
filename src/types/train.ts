@@ -22,9 +22,9 @@ type RPE = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
 
 type RestTimer = 0 | 15 | 30 | 45 | 60 | 90 | 120 | 180 | 240 | 300;
 
-type WorkoutType = 'strength' | 'hypertrophy' | 'endurance' | 'power' | 'skill' | 'other';
+export type WorkoutType = 'strength' | 'hypertrophy' | 'endurance' | 'power' | 'skill' | 'other';
 
-type WorkoutBlockType = 'warm-up' | 'prep' | 'main' | 'accessory' | 'finisher' | 'cooldown' | 'other'; 
+export type WorkoutBlockType = 'warm-up' | 'prep' | 'main' | 'accessory' | 'finisher' | 'cooldown' | 'other'; 
 
 interface EffectedMuscleGroups {
     primary:    MuscleGroup['id'];
@@ -32,7 +32,7 @@ interface EffectedMuscleGroups {
     tertiary?:  MuscleGroup['id'];
 }
 
-interface WorkPowerConstants {
+export interface WorkPowerConstants {
     useCalories:      boolean;
     defaultDistance:  DistanceMeasurement;
     armLengthFactor:  number; // 0 - 1.0 default is 0
@@ -124,7 +124,7 @@ export interface Exercise {
     createdAt:          Date;
     updatedAt:          Date;
     difficulty?:        Difficulty;
-    parentExerciseId?:  Exercise['id']; // need to add to db
+    parentExerciseId?:  Exercise['id'];
 }
 
 // specific instances

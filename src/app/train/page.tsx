@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button';
-import { Play, Calendar, Loader2, Trash, Eye } from 'lucide-react';
+import { Play, Calendar, Loader2, Trash, Eye, Hammer } from 'lucide-react';
 import type {
   ProtocolInstance,
   Workout,
@@ -194,11 +194,13 @@ export default function TrainPage() {
     <div className="bg-background pb-20 min-h-screen">
       <div className="md:mx-auto md:max-w-4xl">
         {/* Header */}
-        <section className="px-4 md:px-6 pt-6 pb-4 border-border border-b">
-          <h1 className="mb-1 font-bold text-2xl">Train</h1>
-          <p className="text-muted-foreground text-sm">
-            Your training program, sessions, and performance
-          </p>
+        <section className="px-4 md:px-6 pt-6 pb-4 border-border border-b flex justify-between items-center">
+          <div>
+            <h1 className="mb-1 font-bold text-2xl">Train</h1>
+            <p className="text-muted-foreground text-sm">
+              Your training program, sessions, and performance
+            </p>
+          </div>
         </section>
 
         {/* Active Program */}
@@ -290,14 +292,13 @@ export default function TrainPage() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex justify-evenly gap-2">
+                  <div className="flex justify-evenly gap-4">
                     <Button
                       variant="primary"
                       size="lg"
                       onClick={() => router.push(`/train/workout/${workout.id}`)}
                       className="w-full"
                     >
-                      <Eye className="mr-1 w-4 h-4" />
                       View
                     </Button>
                     <Button
@@ -313,8 +314,7 @@ export default function TrainPage() {
                         </>
                       ) : (
                         <>
-                          <Play className="mr-1 w-4 h-4" />
-                          Start 
+                          Start
                         </>
                       )}
                     </Button>
@@ -358,8 +358,8 @@ export default function TrainPage() {
                       </div>
                       <span
                         className={`px-2 py-1 text-[11px] rounded ${instance.complete
-                            ? 'bg-emerald-500/15 text-emerald-500'
-                            : 'bg-warning/20 text-warning'
+                          ? 'bg-emerald-500/15 text-emerald-500'
+                          : 'bg-warning/20 text-warning'
                           }`}
                       >
                         {instance.complete ? 'Completed' : 'In progress'}
@@ -383,7 +383,9 @@ export default function TrainPage() {
             </div>
           )}
         </section>
-
+        <button onClick={() => router.push('/train/build')} className="w-[220px] h-[48px] m-auto bg-brand-primary text-white px-4 py-2 rounded-full flex items-center justify-center gap-2 uppercase font-bold text-sm">
+          Build
+        </button>
       </div>
     </div>
   );

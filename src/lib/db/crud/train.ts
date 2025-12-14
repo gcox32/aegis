@@ -68,6 +68,29 @@ export async function createProtocol(
   } as Protocol;
 }
 
+export async function setProtocolWorkouts(
+  protocolId: string,
+  workoutIds: string[]
+): Promise<void> {
+  return await db.transaction(async (tx) => {
+    // Remove existing associations
+    await tx
+      .delete(protocolWorkout)
+      .where(eq(protocolWorkout.protocolId, protocolId));
+
+    if (workoutIds.length > 0) {
+      // Create new associations
+      await tx.insert(protocolWorkout).values(
+        workoutIds.map((workoutId, index) => ({
+          protocolId,
+          workoutId,
+          order: index + 1,
+        }))
+      );
+    }
+  });
+}
+
 export async function getProtocols(): Promise<Protocol[]> {
   const results = await db.select().from(protocol).orderBy(desc(protocol.createdAt));
   return results.map((r) => ({
@@ -120,6 +143,100 @@ export async function deleteProtocol(protocolId: string): Promise<boolean> {
 // ============================================================================
 // WORKOUT CRUD
 // ============================================================================
+
+export type CreateWorkoutBlockExerciseInput = Omit<WorkoutBlockExercise, 'id' | 'exercise'> & { exerciseId: string };
+
+export type CreateWorkoutBlockInput = Omit<WorkoutBlock, 'id' | 'workoutId' | 'createdAt' | 'updatedAt' | 'exercises'> & {
+  exercises: CreateWorkoutBlockExerciseInput[];
+};
+
+export type CreateWorkoutInput = Omit<Workout, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'blocks'> & {
+  blocks: CreateWorkoutBlockInput[];
+};
+
+export async function createFullWorkout(
+  userId: string,
+  workoutData: CreateWorkoutInput
+): Promise<Workout> {
+  return await db.transaction(async (tx) => {
+    // 1. Create Workout
+    const [newWorkout] = await tx
+      .insert(workout)
+      .values({
+        userId,
+        workoutType: workoutData.workoutType,
+        name: workoutData.name,
+        objectives: workoutData.objectives,
+        description: workoutData.description,
+        estimatedDuration: workoutData.estimatedDuration,
+      })
+      .returning();
+
+    const createdBlocks: WorkoutBlock[] = [];
+
+    // 2. Create Blocks
+    for (const blockData of workoutData.blocks) {
+      const [newBlock] = await tx
+        .insert(workoutBlock)
+        .values({
+          workoutId: newWorkout.id,
+          workoutBlockType: blockData.workoutBlockType,
+          name: blockData.name,
+          description: blockData.description,
+          order: blockData.order,
+          circuit: blockData.circuit ?? false,
+          estimatedDuration: blockData.estimatedDuration,
+        })
+        .returning();
+
+      const createdExercises: WorkoutBlockExercise[] = [];
+
+      // 3. Create Block Exercises
+      for (const exerciseData of blockData.exercises) {
+        const [newExercise] = await tx
+          .insert(workoutBlockExercise)
+          .values({
+            workoutBlockId: newBlock.id,
+            exerciseId: exerciseData.exerciseId,
+            order: exerciseData.order,
+            sets: exerciseData.sets,
+            measures: exerciseData.measures,
+            tempo: exerciseData.tempo,
+            restTime: exerciseData.restTime,
+            rpe: exerciseData.rpe,
+            notes: exerciseData.notes,
+          })
+          .returning();
+
+        // We need to fetch the full exercise object to match the type
+        const [fullExercise] = await tx
+            .select()
+            .from(exercise)
+            .where(eq(exercise.id, exerciseData.exerciseId))
+            .limit(1);
+            
+        if (!fullExercise) {
+            throw new Error(`Exercise ${exerciseData.exerciseId} not found`);
+        }
+
+        createdExercises.push({
+            ...(newExercise as any),
+            exercise: fullExercise as Exercise,
+        } as WorkoutBlockExercise);
+      }
+
+      createdBlocks.push({
+        ...nullToUndefined(newBlock),
+        exercises: createdExercises,
+      } as WorkoutBlock);
+    }
+
+    return {
+      ...nullToUndefined(newWorkout),
+      blocks: createdBlocks,
+    } as Workout;
+  });
+}
 
 export async function createWorkout(
   userId: string,
@@ -487,7 +604,9 @@ export async function createExercise(
 }
 
 export async function getExercises(): Promise<Exercise[]> {
+  console.log('getting all exercises');
   const results = await db.select().from(exercise).orderBy(exercise.name);
+  console.log(results);
   return results.map(nullToUndefined) as Exercise[];
 }
 
@@ -526,6 +645,11 @@ export async function updateExercise(
   if (!updated) return null;
 
   return nullToUndefined(updated) as Exercise;
+}
+
+export async function deleteExercise(exerciseId: string): Promise<boolean> {
+  await db.delete(exercise).where(eq(exercise.id, exerciseId));
+  return true;
 }
 
 // ============================================================================
@@ -1072,4 +1196,3 @@ export async function getUserProjected1RMs(
     date: new Date(r.date),
   })) as Projected1RM[];
 }
-

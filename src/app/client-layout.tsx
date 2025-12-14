@@ -43,11 +43,11 @@ function ProtectedContent({ children }: { children: React.ReactNode }) {
     }
 
     return (
-        <div>
+        <>
             {!isSessionView && <FloatingMenu />}
             {children}
             {!isSessionView && <BottomNav />}
-        </div>
+        </>
     );
 }
 

@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { withAuth, parseBody } from '@/lib/api/helpers';
-import { getUserWorkouts, createWorkout } from '@/lib/db/crud';
+import { getUserWorkouts, createFullWorkout } from '@/lib/db/crud/train';
 
 // GET /api/train/workouts - Get user's workouts
 export async function GET() {
@@ -10,12 +10,12 @@ export async function GET() {
   });
 }
 
-// POST /api/train/workouts - Create a new workout
+// POST /api/train/workouts - Create a new workout with blocks and exercises
 export async function POST(request: NextRequest) {
   return withAuth(async (userId) => {
     const workoutData = await parseBody(request);
-    const workout = await createWorkout(userId, workoutData);
+    // Ideally we would validate workoutData against CreateWorkoutInput schema here
+    const workout = await createFullWorkout(userId, workoutData);
     return { workout };
   });
 }
-
