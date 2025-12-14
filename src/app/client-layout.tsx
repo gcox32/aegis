@@ -18,7 +18,6 @@ function ProtectedContent({ children }: { children: React.ReactNode }) {
 
     // Routes where navigation should be hidden (SPA mode)
     const isSessionView = pathname.startsWith('/train/session/');
-
     useEffect(() => {
         if (!isLoading && !isAuthenticated && !isPublicRoute) {
             router.push('/signin');
@@ -44,7 +43,7 @@ function ProtectedContent({ children }: { children: React.ReactNode }) {
     }
 
     return (
-        <div className={!isSessionView ? "mt-8" : ""}>
+        <div>
             {!isSessionView && <FloatingMenu />}
             {children}
             {!isSessionView && <BottomNav />}

@@ -62,8 +62,6 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   return res.json();
 }
 
-// --- Main Page ---
-
 export default function ActiveSessionPage({
   params,
 }: {
@@ -378,7 +376,7 @@ export default function ActiveSessionPage({
 
   return (
     <div 
-      className="relative h-screen w-full bg-black text-white overflow-hidden flex flex-col font-sans touch-none overscroll-none"
+      className="relative h-dvh w-full bg-black text-white overflow-hidden flex flex-col font-sans touch-none overscroll-none"
     >
       
       {/* Background Video/Image */}

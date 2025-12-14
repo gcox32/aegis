@@ -14,12 +14,12 @@ export function SessionFooter({
   canGoBack 
 }: SessionFooterProps) {
   return (
-    <div className="flex gap-4 mt-auto">
+    <div className="flex gap-4 mt-auto -mx-5 px-5 bg-zinc-900/90 backdrop-blur-xl border-t border-white/10 -mb-4 pb-8 pt-5">
       {/* Back Button */}
       <button
         onClick={onPrevious}
         disabled={!canGoBack}
-        className={`group relative flex items-center justify-center w-20 bg-zinc-900/90 backdrop-blur-xl border-t border-white/10 pt-5 pb-8 -ml-5 transition-colors ${
+        className={`group relative flex items-center justify-start w-20 transition-colors rounded-xl ${
           canGoBack ? 'active:bg-zinc-800' : 'opacity-30 cursor-not-allowed'
         }`}
       >
@@ -31,7 +31,7 @@ export function SessionFooter({
       {/* Next Button */}
       <button
         onClick={onNext}
-        className="group relative flex-1 bg-zinc-900/90 backdrop-blur-xl border-t border-white/10 pt-5 pb-8 px-6 -mr-5 active:bg-zinc-800 transition-colors"
+        className="group relative flex-1 transition-colors rounded-xl active:bg-zinc-800"
       >
         <div className="flex items-center justify-between">
           <div className="flex flex-col items-start gap-1">
