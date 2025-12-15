@@ -7,12 +7,12 @@ import {
   FormWrapper, FormCard, FormTitle, FormGroup, FormLabel, 
   FormInput, FormTextarea, FormSelect, FormActions 
 } from '@/components/ui/Form';
+import { TogglePill } from '@/components/ui/TogglePill';
+import { ExerciseAutocomplete } from '@/components/train/build/exercises/ExerciseAutocomplete';
 import { Exercise, Workout, WorkoutBlockType, WorkoutType } from '@/types/train';
 import { CreateWorkoutInput, CreateWorkoutBlockInput, CreateWorkoutBlockExerciseInput } from '@/lib/db/crud/train';
 import { Plus, Trash } from 'lucide-react';
-
-const WORKOUT_TYPES: WorkoutType[] = ['strength', 'hypertrophy', 'endurance', 'power', 'skill', 'other'];
-const BLOCK_TYPES: WorkoutBlockType[] = ['warm-up', 'prep', 'main', 'accessory', 'finisher', 'cooldown', 'other'];
+import { WORKOUT_TYPES, BLOCK_TYPES } from './options';
 
 interface WorkoutFormProps {
     workoutId?: string;
@@ -22,7 +22,6 @@ interface WorkoutFormProps {
 export default function WorkoutForm({ workoutId, isEditing = false }: WorkoutFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [exercises, setExercises] = useState<Exercise[]>([]);
   
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -41,16 +40,63 @@ export default function WorkoutForm({ workoutId, isEditing = false }: WorkoutFor
   ]);
 
   useEffect(() => {
-    // Fetch available exercises
-    fetch('/api/train/exercises')
-      .then(res => res.json())
-      .then(data => setExercises(data.exercises))
-      .catch(err => console.error('Failed to fetch exercises', err));
+    // If editing, fetch existing workout details and populate the form
+    if (!isEditing || !workoutId) return;
 
-    // If editing, fetch existing workout (placeholder for now)
-    if (isEditing && workoutId) {
-        // TODO: Implement fetching full workout details
+    let cancelled = false;
+
+    async function loadWorkout() {
+      try {
+        const res = await fetch(`/api/train/workouts/${workoutId}?details=true`, {
+          method: 'GET',
+          cache: 'no-store',
+        });
+        if (!res.ok) {
+          throw new Error('Failed to load workout');
+        }
+        const data = await res.json() as { workout: Workout };
+        if (cancelled || !data.workout) return;
+
+        const w = data.workout;
+
+        setName(w.name ?? '');
+        setDescription(w.description ?? '');
+        setWorkoutType(w.workoutType);
+        setEstimatedDuration(w.estimatedDuration ?? 60);
+        setObjectives(w.objectives ?? []);
+
+        const mappedBlocks: CreateWorkoutBlockInput[] =
+          (w.blocks ?? []).map((b, blockIndex) => ({
+            workoutBlockType: b.workoutBlockType,
+            name: b.name ?? '',
+            order: blockIndex + 1,
+            circuit: b.circuit ?? false,
+            estimatedDuration: b.estimatedDuration,
+            description: b.description,
+            exercises: (b.exercises ?? []).map((ex, exIndex) => ({
+              exerciseId: ex.exercise.id,
+              order: exIndex + 1,
+              sets: ex.sets,
+              measures: ex.measures ?? {},
+              tempo: ex.tempo,
+              restTime: ex.restTime,
+              rpe: ex.rpe,
+              notes: ex.notes,
+            })),
+          }));
+
+        if (mappedBlocks.length > 0) {
+          setBlocks(mappedBlocks);
+        }
+      } catch (err) {
+        console.error(err);
+      }
     }
+
+    loadWorkout();
+    return () => {
+      cancelled = true;
+    };
   }, [isEditing, workoutId]);
 
   const addBlock = () => {
@@ -79,7 +125,7 @@ export default function WorkoutForm({ workoutId, isEditing = false }: WorkoutFor
   const addExercise = (blockIndex: number) => {
     const newBlocks = [...blocks];
     newBlocks[blockIndex].exercises.push({
-      exerciseId: exercises[0]?.id || '',
+      exerciseId: '',
       order: newBlocks[blockIndex].exercises.length + 1,
       sets: 3,
       measures: { reps: 10 },
@@ -147,7 +193,7 @@ export default function WorkoutForm({ workoutId, isEditing = false }: WorkoutFor
       <FormWrapper>
         <FormCard>
           <FormTitle>Workout Details</FormTitle>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
             <FormGroup>
               <FormLabel>Name</FormLabel>
               <FormInput 
@@ -180,7 +226,10 @@ export default function WorkoutForm({ workoutId, isEditing = false }: WorkoutFor
               <FormInput 
                 type="number" 
                 value={estimatedDuration} 
-                onChange={e => setEstimatedDuration(parseInt(e.target.value))}
+                onChange={e => {
+                  const val = parseInt(e.target.value, 10);
+                  setEstimatedDuration(isNaN(val) ? 0 : val);
+                }}
               />
             </FormGroup>
           </div>
@@ -190,12 +239,12 @@ export default function WorkoutForm({ workoutId, isEditing = false }: WorkoutFor
           {blocks.map((block, blockIndex) => (
             <FormCard key={blockIndex}>
               <div className="flex justify-between items-start mb-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1 mr-4">
+                <div className="flex-1 gap-4 grid grid-cols-1 sm:grid-cols-2 mr-4">
                   <FormInput 
                     value={block.name || ''} 
                     onChange={e => updateBlock(blockIndex, { name: e.target.value })}
                     placeholder="Block Name"
-                    className="font-bold text-lg border-transparent focus:border-brand-primary"
+                    className="border-transparent focus:border-brand-primary font-bold text-lg"
                   />
                   <FormSelect
                     value={block.workoutBlockType}
@@ -204,66 +253,94 @@ export default function WorkoutForm({ workoutId, isEditing = false }: WorkoutFor
                     {BLOCK_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                   </FormSelect>
                 </div>
-                <Button type="button" variant="ghost" size="sm" onClick={() => removeBlock(blockIndex)} className="text-red-500 hover:text-red-700 hover:bg-red-500/10">
-                  <Trash className="h-4 w-4" />
+                <Button type="button" variant="ghost" size="sm" onClick={() => removeBlock(blockIndex)} className="hover:bg-red-500/10 text-red-500 hover:text-red-700">
+                  <Trash className="w-4 h-4" />
                 </Button>
               </div>
               
-              <div className="space-y-3 pl-4 border-l-2 border-border">
+              <div className="flex flex-col items-start space-y-1 mb-3 px-1 text-muted-foreground text-xs">
+                <FormLabel>Block Style</FormLabel>
+                <TogglePill
+                  leftLabel="Circuit"
+                  rightLabel="Straight Sets"
+                  value={block.circuit ?? false}
+                  onChange={(val) =>
+                    updateBlock(blockIndex, { circuit: val })
+                  }
+                />
+              </div>
+
+              <div className="space-y-3 pl-4 border-border border-l-2">
                 {block.exercises.map((exercise, exerciseIndex) => (
-                  <div key={exerciseIndex} className="grid grid-cols-12 gap-2 items-center bg-background/50 p-3 rounded border border-border">
-                     <div className="col-span-12 sm:col-span-4">
-                       <FormSelect
-                          value={exercise.exerciseId}
-                          onChange={e => updateExercise(blockIndex, exerciseIndex, { exerciseId: e.target.value })}
-                       >
-                          <option value="">Select Exercise</option>
-                          {exercises.map(ex => <option key={ex.id} value={ex.id}>{ex.name}</option>)}
-                       </FormSelect>
-                     </div>
-                     <div className="col-span-3 sm:col-span-2">
-                        <FormLabel className="text-xs">Sets</FormLabel>
-                        <FormInput 
-                          type="number" 
-                          value={exercise.sets} 
-                          onChange={e => updateExercise(blockIndex, exerciseIndex, { sets: parseInt(e.target.value) })}
-                          className="px-2 py-1"
-                        />
-                     </div>
-                     <div className="col-span-3 sm:col-span-2">
-                        <FormLabel className="text-xs">Reps</FormLabel>
-                        <FormInput 
-                          type="number" 
-                          value={exercise.measures.reps || 0} 
-                          onChange={e => updateExercise(blockIndex, exerciseIndex, { measures: { ...exercise.measures, reps: parseInt(e.target.value) } })}
-                          className="px-2 py-1"
-                        />
-                     </div>
-                     <div className="col-span-3 sm:col-span-2">
-                        <FormLabel className="text-xs">Rest (s)</FormLabel>
-                        <FormInput 
-                          type="number" 
-                          value={exercise.restTime || 0} 
-                          onChange={e => updateExercise(blockIndex, exerciseIndex, { restTime: parseInt(e.target.value) as any })}
-                          className="px-2 py-1"
-                        />
-                     </div>
-                     <div className="col-span-1 flex justify-end pt-4">
+                  <div key={exerciseIndex} className="items-end gap-2 grid grid-cols-12 bg-background/50 p-3 border border-border rounded">
+                    <div className="col-span-12 sm:col-span-4">
+                      <ExerciseAutocomplete
+                        initialExerciseId={exercise.exerciseId || undefined}
+                        onChange={(selected: Exercise | null) =>
+                          updateExercise(blockIndex, exerciseIndex, { exerciseId: selected?.id || '' })
+                        }
+                      />
+                    </div>
+                    <div className="col-span-3 sm:col-span-2">
+                       <FormLabel className="text-xs">Sets</FormLabel>
+                       <FormInput 
+                         type="number" 
+                         value={exercise.sets} 
+                         onChange={e => {
+                           const val = parseInt(e.target.value, 10);
+                           updateExercise(blockIndex, exerciseIndex, { sets: isNaN(val) ? 0 : val });
+                         }}
+                         className="px-2 py-1"
+                       />
+                    </div>
+                    <div className="col-span-3 sm:col-span-2">
+                       <FormLabel className="text-xs">Reps</FormLabel>
+                       <FormInput 
+                         type="number" 
+                         value={exercise.measures.reps || 0} 
+                         onChange={e => {
+                           const val = parseInt(e.target.value, 10);
+                           updateExercise(blockIndex, exerciseIndex, { 
+                             measures: { 
+                               ...exercise.measures, 
+                               reps: isNaN(val) ? 0 : val,
+                             } 
+                           });
+                         }}
+                         className="px-2 py-1"
+                       />
+                    </div>
+                    <div className="col-span-3 sm:col-span-2">
+                       <FormLabel className="text-xs">Rest (s)</FormLabel>
+                       <FormInput 
+                         type="number" 
+                         step={15}
+                         min={0}
+                         max={300}
+                         value={exercise.restTime || 0} 
+                         onChange={e => {
+                           const val = parseInt(e.target.value, 10);
+                           updateExercise(blockIndex, exerciseIndex, { restTime: (isNaN(val) ? 0 : val) as any });
+                         }}
+                         className="px-2 py-1"
+                       />
+                    </div>
+                     <div className="flex justify-end col-span-1 pt-4">
                         <button type="button" onClick={() => removeExercise(blockIndex, exerciseIndex)} className="text-muted-foreground hover:text-red-500">
-                          <Trash className="h-4 w-4" />
+                          <Trash className="w-4 h-4" />
                         </button>
                      </div>
                   </div>
                 ))}
                 <Button type="button" variant="secondary" size="sm" onClick={() => addExercise(blockIndex)} fullWidth>
-                  <Plus className="h-4 w-4 mr-2" /> Add Exercise
+                  <Plus className="mr-2 w-4 h-4" /> Add Exercise
                 </Button>
               </div>
             </FormCard>
           ))}
           
-          <Button type="button" variant="outline" onClick={addBlock} fullWidth className="py-4 border-dashed border-2">
-            <Plus className="h-5 w-5 mr-2" /> Add Workout Block
+          <Button type="button" variant="outline" onClick={addBlock} fullWidth className="py-4 border-2 border-dashed">
+            <Plus className="mr-2 w-5 h-5" /> Add Workout Block
           </Button>
         </div>
 
@@ -271,8 +348,8 @@ export default function WorkoutForm({ workoutId, isEditing = false }: WorkoutFor
           <Button type="button" variant="ghost" onClick={() => router.back()}>
               Cancel
           </Button>
-          <Button type="submit" size="lg" disabled={loading}>
-            {loading ? 'Saving...' : isEditing ? 'Update Workout' : 'Create Workout'}
+          <Button type="submit" size="lg" disabled={loading} className="w-[188px]!">
+            {loading ? 'Saving...' : isEditing ? 'Update' : 'Create'}
           </Button>
         </FormActions>
       </FormWrapper>

@@ -9,10 +9,11 @@ import {
 } from '@/components/ui/Form';
 import { Exercise, WorkPowerConstants } from '@/types/train';
 import { MuscleGroupSelect, MUSCLE_GROUPS } from '@/components/anatomy/MuscleGroupSelect';
-import { ParentExerciseAutocomplete } from './ParentExerciseAutocomplete';
+import { ExerciseAutocomplete } from './ExerciseAutocomplete';
 import { ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
 import { defaultWorkPowerConstants, MOVEMENT_PATTERNS, PLANES_OF_MOTION, EQUIPMENT_TYPES, DIFFICULTY_LEVELS } from './options';
+import { TogglePill } from '@/components/ui/TogglePill';
 
 type ExerciseFormData = Omit<Exercise, 'id' | 'createdAt' | 'updatedAt'>;
 
@@ -200,10 +201,10 @@ export default function ExerciseForm({ initialData, isEditing = false }: Exercis
 
             <FormGroup>
               <FormLabel>Parent Exercise (Optional)</FormLabel>
-              <ParentExerciseAutocomplete
-                initialParentId={initialData?.parentExerciseId}
+              <ExerciseAutocomplete
+                initialExerciseId={initialData?.parentExerciseId}
                 currentExerciseId={isEditing ? initialData?.id : undefined}
-                onChange={(exercise) => {
+                onChange={(exercise: Exercise | null) => {
                   if (!exercise) {
                     applyParentExercise(null, undefined);
                   } else {
@@ -286,40 +287,14 @@ export default function ExerciseForm({ initialData, isEditing = false }: Exercis
           {/* Bilateral / Unilateral toggle */}
           <div className="flex flex-col items-center space-y-2 w-full">
             <FormLabel>Bilateral / Unilateral</FormLabel>
-            <div className="inline-flex relative bg-muted p-1 rounded-full w-full max-w-xs cursor-pointer">
-              {/* Sliding pill */}
-              <div
-                className="top-1 bottom-1 left-1 absolute bg-brand-primary shadow-sm rounded-full w-1/2 transition-transform duration-200 ease-out cursor-pointer"
-                style={{
-                  transform: formData.bilateral ? 'translateX(0%)' : 'translateX(95%)',
-                }}
-              />
-              {/* Labels */}
-              <button
-                type="button"
-                onClick={() =>
-                  setFormData(prev => ({ ...prev, bilateral: true }))
-                }
-                className={`relative z-10 flex-1 px-4 py-1.5 text-xs font-semibold rounded-full transition-colors cursor-pointer ${formData.bilateral
-                    ? 'text-white'
-                    : 'text-muted-foreground hover:text-foreground'
-                  }`}
-              >
-                Bilateral
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  setFormData(prev => ({ ...prev, bilateral: false }))
-                }
-                className={`relative z-10 flex-1 px-4 py-1.5 text-xs font-semibold rounded-full transition-colors cursor-pointer ${!formData.bilateral
-                    ? 'text-white'
-                    : 'text-muted-foreground hover:text-foreground'
-                  }`}
-              >
-                Unilateral
-              </button>
-            </div>
+            <TogglePill
+              leftLabel="Bilateral"
+              rightLabel="Unilateral"
+              value={formData.bilateral || true}
+              onChange={(val) =>
+                setFormData(prev => ({ ...prev, bilateral: val }))
+              }
+            />
           </div>
 
           {/* Muscle Groups */}

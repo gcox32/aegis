@@ -5,18 +5,18 @@ import { Exercise } from '@/types/train';
 import { FormInput } from '@/components/ui/Form';
 import { Loader2 } from 'lucide-react';
 
-interface ParentExerciseAutocompleteProps {
-  initialParentId?: string;
+interface ExerciseAutocompleteProps {
+  initialExerciseId?: string;
   /** The exercise currently being edited/created, used to exclude from results when editing */
   currentExerciseId?: string;
   onChange: (exercise: Exercise | null) => void;
 }
 
-export function ParentExerciseAutocomplete({
-  initialParentId,
+export function ExerciseAutocomplete({
+  initialExerciseId,
   currentExerciseId,
   onChange,
-}: ParentExerciseAutocompleteProps) {
+}: ExerciseAutocompleteProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [options, setOptions] = useState<Exercise[]>([]);
   const [loading, setLoading] = useState(false);
@@ -24,13 +24,13 @@ export function ParentExerciseAutocomplete({
 
   // Load initial parent (when editing)
   useEffect(() => {
-    if (!initialParentId) return;
+    if (!initialExerciseId) return;
 
     let cancelled = false;
 
-    async function fetchParent() {
+    async function fetchExercise() {
       try {
-        const res = await fetch(`/api/train/exercises/${initialParentId}`);
+        const res = await fetch(`/api/train/exercises/${initialExerciseId}`);
         if (!res.ok || cancelled) return;
         const data = await res.json();
         if (data.exercise) {
@@ -44,11 +44,11 @@ export function ParentExerciseAutocomplete({
       }
     }
 
-    fetchParent();
+    fetchExercise();
     return () => {
       cancelled = true;
     };
-  }, [initialParentId, onChange]);
+  }, [initialExerciseId, onChange]);
 
   // Debounced search
   useEffect(() => {
@@ -78,7 +78,7 @@ export function ParentExerciseAutocomplete({
         setOptions(results);
       } catch (err: any) {
         if (err.name !== 'AbortError') {
-          console.error('Failed to search parent exercises', err);
+          console.error('Failed to search exercises', err);
         }
       } finally {
         setLoading(false);
