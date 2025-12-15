@@ -13,18 +13,25 @@ export default function ExerciseList() {
   const [searchTerm, setSearchTerm] = useState('');
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [exerciseToDelete, setExerciseToDelete] = useState<Exercise | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const limit = 10;
 
   useEffect(() => {
     async function fetchExercises() {
       try {
+        setLoading(true);
         const url = searchTerm
-          ? `/api/train/exercises?q=${encodeURIComponent(searchTerm)}`
-          : '/api/train/exercises';
+          ? `/api/train/exercises?q=${encodeURIComponent(searchTerm)}&page=${currentPage}&limit=${limit}`
+          : `/api/train/exercises?page=${currentPage}&limit=${limit}`;
 
         const res = await fetch(url);
         if (res.ok) {
           const data = await res.json();
           setExercises(data.exercises);
+          setTotalCount(data.total);
+          setTotalPages(Math.ceil(data.total / limit));
         }
       } catch (err) {
         console.error('Failed to fetch exercises', err);
@@ -39,7 +46,7 @@ export default function ExerciseList() {
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchTerm]);
+  }, [searchTerm, currentPage]);
 
   const handleDeleteClick = (e: React.MouseEvent, exercise: Exercise) => {
     e.preventDefault(); // Prevent navigation
@@ -67,7 +74,7 @@ export default function ExerciseList() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-20">
       <ConfirmationModal
         isOpen={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
@@ -86,7 +93,10 @@ export default function ExerciseList() {
             type="text"
             placeholder="Search exercises..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1);
+            }}
             className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary sm:text-sm"
           />
         </div>
@@ -131,6 +141,60 @@ export default function ExerciseList() {
               ))
             )}
           </ul>
+          {totalPages > 1 && (
+            <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-between sm:px-6">
+              <div className="flex-1 flex justify-between sm:hidden">
+                <Button
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  variant="ghost"
+                  className="relative inline-flex items-center px-4 py-2 text-sm font-medium"
+                >
+                  Previous
+                </Button>
+                <Button
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  variant="ghost"
+                  className="ml-3 relative inline-flex items-center px-4 py-2 text-sm font-medium"
+                >
+                  Next
+                </Button>
+              </div>
+              <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm text-gray-500">
+                    Showing <span className="font-medium">{(currentPage - 1) * limit + 1}</span> to <span className="font-medium">{Math.min(currentPage * limit, totalCount)}</span> of{' '}
+                    <span className="font-medium">{totalCount}</span> results
+                  </p>
+                </div>
+                <div>
+                  <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                    <Button
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1}
+                      variant="ghost"
+                      className="relative w-[80px] inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-card text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:hover:bg-card "
+                    >
+                      PREV
+                    </Button>
+                    {/* Simple page indicator for now */}
+                    <span className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-card text-sm font-medium text-gray-700">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <Button
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                      disabled={currentPage === totalPages}
+                      variant="ghost"
+                      className="relative w-[80px] inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-card text-sm font-medium text-gray-500 hover:bg-gray-50"
+                    >
+                      NEXT
+                    </Button>
+                  </nav>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -1,4 +1,4 @@
-import { eq, and, desc, inArray } from 'drizzle-orm';
+import { eq, and, desc, inArray, sql, ilike } from 'drizzle-orm';
 import { db } from '../index';
 
 // Helper to convert null to undefined for optional fields
@@ -603,9 +603,27 @@ export async function createExercise(
   return nullToUndefined(newExercise) as Exercise;
 }
 
-export async function getExercises(): Promise<Exercise[]> {
-  const results = await db.select().from(exercise).orderBy(exercise.name);
-  return results.map(nullToUndefined) as Exercise[];
+export async function getExercises(
+  page: number = 1,
+  limit: number = 20
+): Promise<{ exercises: Exercise[]; total: number }> {
+  const offset = (page - 1) * limit;
+
+  const [{ count }] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(exercise);
+
+  const results = await db
+    .select()
+    .from(exercise)
+    .orderBy(exercise.name)
+    .limit(limit)
+    .offset(offset);
+
+  return {
+    exercises: results.map(nullToUndefined) as Exercise[],
+    total: Number(count),
+  };
 }
 
 export async function getExerciseById(exerciseId: string): Promise<Exercise | null> {
@@ -620,14 +638,30 @@ export async function getExerciseById(exerciseId: string): Promise<Exercise | nu
   return nullToUndefined(found) as Exercise;
 }
 
-export async function searchExercises(query: string): Promise<Exercise[]> {
+export async function searchExercises(
+  query: string,
+  page: number = 1,
+  limit: number = 20
+): Promise<{ exercises: Exercise[]; total: number }> {
+  const offset = (page - 1) * limit;
+
+  const [{ count }] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(exercise)
+    .where(ilike(exercise.name, `%${query}%`));
+  
   const results = await db
     .select()
     .from(exercise)
-    .where(eq(exercise.name, query))
-    .orderBy(exercise.name);
+    .where(ilike(exercise.name, `%${query}%`))
+    .orderBy(exercise.name)
+    .limit(limit)
+    .offset(offset);
   
-  return results.map(nullToUndefined) as Exercise[];
+  return {
+    exercises: results.map(nullToUndefined) as Exercise[],
+    total: Number(count),
+  };
 }
 
 export async function updateExercise(

@@ -6,12 +6,18 @@ import { getExercises, createExercise, searchExercises } from '@/lib/db/crud';
 export async function GET(request: NextRequest) {
   try {
     const query = getQueryParam(request.url, 'q');
+    const pageParam = getQueryParam(request.url, 'page');
+    const limitParam = getQueryParam(request.url, 'limit');
+
+    const page = pageParam ? parseInt(pageParam) : 1;
+    const limit = limitParam ? parseInt(limitParam) : 20;
+
     if (query) {
-      const exercises = await searchExercises(query);
-      return NextResponse.json({ exercises });
+      const { exercises, total } = await searchExercises(query, page, limit);
+      return NextResponse.json({ exercises, total, page, limit });
     }
-    const exercises = await getExercises();
-    return NextResponse.json({ exercises });
+    const { exercises, total } = await getExercises(page, limit);
+    return NextResponse.json({ exercises, total, page, limit });
   } catch (error: any) {
     return NextResponse.json(
       { error: error.message || 'Internal server error' },
