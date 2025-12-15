@@ -2,21 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Dumbbell, ForkKnife, User, ListChecks } from 'lucide-react';
-
-const navItems = [
-  { name: 'Today', href: '/', icon: Home, className: 'rounded-l-4xl' },
-  { name: 'Train', href: '/train', icon: Dumbbell, className: '' },
-  { name: 'Fuel', href: '/fuel', icon: ForkKnife, className: '' },
-  { name: 'Log', href: '/log', icon: ListChecks, className: '' },
-  { name: 'Me', href: '/me', icon: User, className: 'rounded-r-4xl' },
-];
+import { navItems } from './config';
 
 export default function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="right-2 bottom-2 left-2 z-20 fixed bg-card/70 backdrop-blur-sm border-border-accent border-t-[0.5px] rounded-4xl">
+    <nav className="right-2 bottom-2 left-2 z-20 fixed bg-card/70 backdrop-blur-sm border-border-accent border-t-[0.5px] border-b-[0.5px] rounded-4xl">
       <div className="flex justify-around items-center rounded-4xl h-16">
         {navItems.map((item) => {
           const isActive = pathname === item.href;

@@ -311,6 +311,47 @@ export default function WorkoutForm({ workoutId, isEditing = false }: WorkoutFor
                        />
                     </div>
                     <div className="col-span-3 sm:col-span-2">
+                       <FormLabel className="text-xs">Load</FormLabel>
+                       <FormInput 
+                         type="number" 
+                         value={exercise.measures.externalLoad?.value ?? ''} 
+                         onChange={e => {
+                           const val = parseFloat(e.target.value);
+                           const currentUnit = exercise.measures.externalLoad?.unit || 'kg';
+                           updateExercise(blockIndex, exerciseIndex, { 
+                             measures: { 
+                               ...exercise.measures, 
+                               externalLoad: isNaN(val)
+                                 ? undefined
+                                 : { value: val, unit: currentUnit },
+                             } 
+                           });
+                         }}
+                         className="px-2 py-1"
+                       />
+                    </div>
+                    <div className="col-span-3 sm:col-span-2">
+                      <FormLabel className="text-xs">Unit</FormLabel>
+                      <FormSelect
+                        value={exercise.measures.externalLoad?.unit || 'kg'}
+                        onChange={e => {
+                          const unit = e.target.value as 'kg' | 'lbs';
+                          const currentValue = exercise.measures.externalLoad?.value;
+                          updateExercise(blockIndex, exerciseIndex, { 
+                            measures: { 
+                              ...exercise.measures, 
+                              externalLoad: currentValue !== undefined
+                                ? { value: currentValue, unit }
+                                : { value: 0, unit },
+                            } 
+                          });
+                        }}
+                      >
+                        <option value="kg">kg</option>
+                        <option value="lbs">lbs</option>
+                      </FormSelect>
+                    </div>
+                    <div className="col-span-3 sm:col-span-2">
                        <FormLabel className="text-xs">Rest (s)</FormLabel>
                        <FormInput 
                          type="number" 

@@ -252,7 +252,7 @@ export default function TrainPage() {
                 </div>
                 <Link href="/train/protocols">
                   <Button size="sm" variant="outline">
-                    Browse Protocols
+                    Browse
                   </Button>
                 </Link>
               </div>

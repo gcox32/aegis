@@ -4,8 +4,8 @@ import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
-import FloatingMenu from '@/components/navigation/FloatingMenu';
-import BottomNav from '@/components/navigation/BottomNav';
+import FloatingMenu from '@/components/layout/navigation/FloatingMenu';
+import BottomNav from '@/components/layout/navigation/BottomNav';
 
 function ProtectedContent({ children }: { children: React.ReactNode }) {
     const { isAuthenticated, isLoading } = useAuth();
@@ -26,7 +26,7 @@ function ProtectedContent({ children }: { children: React.ReactNode }) {
 
     if (isLoading) {
         return (
-            <div className="flex items-center justify-center min-h-screen">
+            <div className="flex justify-center items-center min-h-screen">
                 <Loader2 className="w-10 h-10 animate-spin" />
             </div>
         );

@@ -90,10 +90,13 @@ export default function ActiveSessionPage({
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
+  const [isResting, setIsResting] = useState(false);
+  const [restSecondsRemaining, setRestSecondsRemaining] = useState(0);
   
   // Input State for Current Step
   const [reps, setReps] = useState<string>('');
   const [weight, setWeight] = useState<string>('');
+  const [weightUnit, setWeightUnit] = useState<'kg' | 'lbs'>('lbs');
   const [inputDirty, setInputDirty] = useState(false);
 
   // Swipe State
@@ -220,6 +223,31 @@ export default function ActiveSessionPage({
     return () => clearInterval(interval);
   }, [isPaused]);
 
+  // Rest Timer
+  useEffect(() => {
+    if (!isResting || isPaused) return;
+    if (restSecondsRemaining <= 0) return;
+
+    const interval = setInterval(() => {
+      setRestSecondsRemaining((s) => {
+        if (s <= 1) {
+          clearInterval(interval);
+          // Automatically advance when rest completes
+          if (currentStepIndex < steps.length - 1) {
+            setCurrentStepIndex((i) => i + 1);
+          } else {
+            finishWorkout();
+          }
+          setIsResting(false);
+          return 0;
+        }
+        return s - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isResting, isPaused, restSecondsRemaining, currentStepIndex, steps.length, workoutInstance]);
+
   // Sync Input with Current Step's Data (if exists)
   useEffect(() => {
     if (!currentStep) return;
@@ -227,6 +255,7 @@ export default function ActiveSessionPage({
     // Reset inputs
     setReps(currentStep.exercise.measures.reps?.toString() || '');
     setWeight(currentStep.exercise.measures.externalLoad?.value?.toString() || '');
+    setWeightUnit(currentStep.exercise.measures.externalLoad?.unit || 'kg');
     
     // Check for existing instance data to override
     const blockInsts = exerciseInstances[currentStep.block.id] || [];
@@ -237,7 +266,12 @@ export default function ActiveSessionPage({
     
     if (match) {
       if (match.measures.reps) setReps(match.measures.reps.toString());
-      if (match.measures.externalLoad?.value) setWeight(match.measures.externalLoad.value.toString());
+      if (match.measures.externalLoad?.value) {
+        setWeight(match.measures.externalLoad.value.toString());
+      }
+      if (match.measures.externalLoad?.unit) {
+        setWeightUnit(match.measures.externalLoad.unit);
+      }
     }
     
     setInputDirty(false);
@@ -258,7 +292,9 @@ export default function ActiveSessionPage({
       measures: {
         ...currentStep.exercise.measures,
         reps: reps ? Number(reps) : undefined,
-        externalLoad: weight ? { value: Number(weight), unit: 'kg' } : undefined, // Assuming kg default
+        externalLoad: weight
+          ? { value: Number(weight), unit: weightUnit }
+          : undefined,
       },
       notes: `set:${currentStep.setIndex}:`,
     };
@@ -335,8 +371,30 @@ export default function ActiveSessionPage({
     }
   }
 
+  const maybeStartRest = () => {
+    if (!currentStep) return false;
+    const rest = currentStep.exercise.restTime;
+    if (!rest || rest <= 0) return false;
+    setIsResting(true);
+    setRestSecondsRemaining(rest);
+    return true;
+  };
+
+  const endRestAndAdvance = () => {
+    setIsResting(false);
+    setRestSecondsRemaining(0);
+    if (currentStepIndex < steps.length - 1) {
+      setCurrentStepIndex((i) => i + 1);
+    } else {
+      finishWorkout();
+    }
+  };
+
   const handleNext = async () => {
     await saveCurrentStep();
+    // If this step has a rest interval, start rest instead of immediately advancing
+    if (maybeStartRest()) return;
+
     if (currentStepIndex < steps.length - 1) {
       setCurrentStepIndex(i => i + 1);
     } else {
@@ -380,15 +438,15 @@ export default function ActiveSessionPage({
 
   if (loading) {
     return (
-      <div className="h-screen w-full bg-black text-white flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-brand-primary" />
+      <div className="flex justify-center items-center bg-black w-full h-screen text-white">
+        <Loader2 className="w-8 h-8 text-brand-primary animate-spin" />
       </div>
     );
   }
 
   if (error || !currentStep) {
     return (
-      <div className="h-screen w-full bg-black text-white p-6 flex flex-col items-center justify-center gap-4">
+      <div className="flex flex-col justify-center items-center gap-4 bg-black p-6 w-full h-screen text-white">
         <p className="text-red-500">{error || "Workout completed or invalid."}</p>
         <Button onClick={() => router.push('/train')}>Back to Train</Button>
       </div>
@@ -397,11 +455,11 @@ export default function ActiveSessionPage({
 
   return (
     <div 
-      className="relative h-dvh w-full bg-black text-white overflow-hidden flex flex-col font-sans touch-none overscroll-none"
+      className="relative flex flex-col bg-black w-full h-dvh overflow-hidden overscroll-none font-sans text-white touch-none"
     >
       
       {/* Background Video/Image */}
-      <div className="absolute inset-0 z-0 opacity-40">
+      <div className="z-0 absolute inset-0 opacity-40">
         {currentStep.exercise.exercise.videoUrl ? (
           <video 
             src={currentStep.exercise.exercise.videoUrl} 
@@ -412,7 +470,7 @@ export default function ActiveSessionPage({
             playsInline
           />
         ) : (
-          <div className="w-full h-full bg-zinc-900 flex items-center justify-center">
+          <div className="flex justify-center items-center bg-zinc-900 w-full h-full">
             {/* Fallback pattern or image */}
             <div className="bg-linear-to-br from-zinc-800 to-black w-full h-full" />
           </div>
@@ -421,7 +479,7 @@ export default function ActiveSessionPage({
                 </div>
 
       {/* Main Content Layer */}
-      <div className="relative z-10 flex flex-col h-full px-5 py-4 safe-area-inset-top">
+      <div className="z-10 relative safe-area-inset-top flex flex-col px-5 py-4 h-full">
         
         <SessionHeader 
           elapsedSeconds={elapsedSeconds}
@@ -446,20 +504,54 @@ export default function ActiveSessionPage({
         {/* Spacer to push content down */}
         <div className="flex-1" />
 
-        <SessionInputControls 
-          step={currentStep}
-          reps={reps}
-          onRepsChange={(val) => { setReps(val); setInputDirty(true); }}
-          weight={weight}
-          onWeightChange={(val) => { setWeight(val); setInputDirty(true); }}
-        />
+        {!isResting && (
+          <>
+            <SessionInputControls 
+              step={currentStep}
+              reps={reps}
+              onRepsChange={(val) => { setReps(val); setInputDirty(true); }}
+              weight={weight}
+              onWeightChange={(val) => { setWeight(val); setInputDirty(true); }}
+              weightUnit={weightUnit}
+              onWeightUnitChange={(unit) => { setWeightUnit(unit); setInputDirty(true); }}
+            />
 
-        <SessionFooter 
-          nextStepName={nextStep ? nextStep.exercise.exercise.name : null}
-          onNext={handleNext}
-          onPrevious={handlePrevious}
-          canGoBack={currentStepIndex > 0}
-        />
+            <SessionFooter 
+              nextStepName={nextStep ? nextStep.exercise.exercise.name : null}
+              onNext={handleNext}
+              onPrevious={handlePrevious}
+              canGoBack={currentStepIndex > 0}
+            />
+          </>
+        )}
+
+        {isResting && (
+          <div className="flex flex-col justify-center items-center gap-4 mt-6 mb-10">
+            <div className="font-medium text-zinc-400 text-xs uppercase tracking-[0.2em]">
+              Rest
+            </div>
+            <div className="font-black tabular-nums text-6xl tracking-tight">
+              {formatClock(restSecondsRemaining)}
+            </div>
+            {currentStep.exercise.restTime && (
+              <div className="text-zinc-500 text-xs">
+                Planned rest: {currentStep.exercise.restTime}s
+              </div>
+            )}
+            <div className="flex gap-3 mt-2">
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => {
+                  // convert to 10s chunks or pause by setting remaining to 0 and letting effect advance
+                  endRestAndAdvance();
+                }}
+              >
+                Skip Rest
+              </Button>
+            </div>
+          </div>
+        )}
 
       </div>
 

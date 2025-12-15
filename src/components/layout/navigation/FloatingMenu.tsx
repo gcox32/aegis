@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Settings, Sliders, LogOut, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import ConfirmationModal from '../ui/ConfirmationModal';
+import ConfirmationModal from '../../ui/ConfirmationModal';
 
 export default function FloatingMenu() {
   const [isOpen, setIsOpen] = useState(false);
@@ -50,13 +50,13 @@ export default function FloatingMenu() {
       {/* Overlay */}
       {isOpen && (
         <div
-          className="z-30 fixed inset-0 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
+          className="z-30 fixed inset-0 bg-black/50 backdrop-blur-sm animate-in duration-200 fade-in"
           onClick={() => setIsOpen(false)}
           aria-hidden="true"
         />
       )}
 
-      <div className="fixed top-4 right-4 z-30 flex flex-col items-end">
+      <div className="top-4 right-4 z-30 fixed flex flex-col items-end">
         {/* FAB Button */}
         <button
           onClick={() => setIsOpen(!isOpen)}
@@ -75,11 +75,11 @@ export default function FloatingMenu() {
 
         {/* Menu Items */}
         {isOpen && (
-          <div className="my-2 space-y-2">
+          <div className="space-y-2 my-2">
             {menuItems.map((item, index) => (
               <div
                 key={item.label}
-                className="flex w-full items-center gap-3 opacity-0 animate-[fadeInUp_0.2s_ease-out_forwards]"
+                className="flex items-center gap-3 opacity-0 w-full animate-[fadeInUp_0.2s_ease-out_forwards]"
                 style={{ animationDelay: `${index * 50}ms` }}
               >
                 <button

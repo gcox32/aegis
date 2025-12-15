@@ -6,6 +6,8 @@ interface SessionInputControlsProps {
   onRepsChange: (value: string) => void;
   weight: string;
   onWeightChange: (value: string) => void;
+  weightUnit: 'kg' | 'lbs';
+  onWeightUnitChange: (unit: 'kg' | 'lbs') => void;
 }
 
 export function SessionInputControls({
@@ -14,25 +16,27 @@ export function SessionInputControls({
   onRepsChange,
   weight,
   onWeightChange,
+  weightUnit,
+  onWeightUnitChange,
 }: SessionInputControlsProps) {
   return (
-    <div className="grid grid-cols-2 gap-4 mb-8">
+    <div className="gap-4 grid grid-cols-2 mb-8">
       {/* Reps */}
       <div className="flex flex-col gap-2">
-        <label className="text-zinc-400 text-xs font-medium uppercase tracking-wider pl-1">
+        <label className="pl-1 font-medium text-zinc-400 text-xs uppercase tracking-wider">
           Reps
         </label>
-        <div className="relative group">
+        <div className="group relative">
           <input
             type="number"
             inputMode="numeric"
             value={reps}
             onChange={(e) => onRepsChange(e.target.value)}
-            className="w-full bg-zinc-900/80 border border-zinc-700/50 rounded-2xl px-4 py-5 text-4xl font-bold text-center focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent transition-all placeholder:text-zinc-700"
+            className="bg-zinc-900/80 px-4 py-5 border border-zinc-700/50 focus:border-transparent rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand-primary w-full font-bold placeholder:text-zinc-700 text-4xl text-center transition-all"
             placeholder={step.exercise.measures.reps?.toString() || '0'}
           />
           {step.exercise.measures.reps && (
-            <div className="absolute top-2 right-2 text-[10px] text-zinc-500 font-mono">
+            <div className="top-2 right-2 absolute font-mono text-[10px] text-zinc-500">
               Target: {step.exercise.measures.reps}
             </div>
           )}
@@ -41,23 +45,44 @@ export function SessionInputControls({
 
       {/* Weight */}
       <div className="flex flex-col gap-2">
-        <label className="text-zinc-400 text-xs font-medium uppercase tracking-wider pl-1">
+        <label className="pl-1 font-medium text-zinc-400 text-xs uppercase tracking-wider">
           Weight
         </label>
-        <div className="relative group">
+        <div className="group relative flex flex-col items-end gap-2">
           <input
             type="number"
             inputMode="numeric"
             value={weight}
             onChange={(e) => onWeightChange(e.target.value)}
-            className="w-full bg-zinc-900/80 border border-zinc-700/50 rounded-2xl px-4 py-5 text-4xl font-bold text-center focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent transition-all placeholder:text-zinc-700"
+            className="bg-zinc-900/80 px-4 py-5 border border-zinc-700/50 focus:border-transparent rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand-primary w-full font-bold placeholder:text-zinc-700 text-4xl text-center transition-all"
             placeholder={
               step.exercise.measures.externalLoad?.value?.toString() || '0'
             }
           />
-          <span className="absolute bottom-6 right-4 text-zinc-500 font-medium text-sm">
-            {step.exercise.measures.externalLoad?.unit || 'kg'}
-          </span>
+          <div className="float-right flex items-center gap-1 font-medium text-xs">
+            <button
+              type="button"
+              onClick={() => onWeightUnitChange('kg')}
+              className={`px-2 py-0.5 rounded-full border ${
+                weightUnit === 'kg'
+                  ? 'bg-brand-primary text-black border-brand-primary'
+                  : 'bg-zinc-900/80 text-zinc-400 border-zinc-700'
+              }`}
+            >
+              kg
+            </button>
+            <button
+              type="button"
+              onClick={() => onWeightUnitChange('lbs')}
+              className={`px-2 py-0.5 rounded-full border ${
+                weightUnit === 'lbs'
+                  ? 'bg-brand-primary text-black border-brand-primary'
+                  : 'bg-zinc-900/80 text-zinc-400 border-zinc-700'
+              }`}
+            >
+              lbs
+            </button>
+          </div>
         </div>
       </div>
     </div>
