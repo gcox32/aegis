@@ -72,7 +72,7 @@ export default function StatsLogPage() {
           <BackToLink href="/log" pageName="Log" />
           <h1 className="mb-1 font-bold text-2xl">Body stats</h1>
           <p className="text-muted-foreground text-sm">
-            Log your weight and composition over time.
+            Log your weight and composition.
           </p>
         </section>
 

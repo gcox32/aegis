@@ -139,11 +139,10 @@ export default function LogPage() {
                 <div>
                   <div className="font-semibold text-sm">Body stats</div>
                   <div className="text-muted-foreground text-xs">
-                    Weight, body fat, and measurements over time.
+                    Weight, body fat, and measurements.
                   </div>
                 </div>
               </div>
-              <span className="text-muted-foreground text-xs">View</span>
             </Link>
 
             <div className="flex justify-between items-center bg-card/40 opacity-70 px-4 py-3 border border-border border-dashed rounded-xl">
