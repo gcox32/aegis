@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { withAuth, parseBody } from '@/lib/api/helpers';
-import { getUserProfile, createUserProfile, updateUserProfile } from '@/lib/db/crud';
+import { getUserProfile, createUserProfile, updateUserProfile, getUserById } from '@/lib/db/crud';
 
 // GET /api/user/profile - Get current user's profile
 export async function GET() {
@@ -17,7 +17,17 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   return withAuth(async (userId) => {
     const profileData = await parseBody(request);
-    const profile = await createUserProfile(userId, profileData);
+
+    // Ensure we always have an email value for the profile row
+    const user = await getUserById(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    const profile = await createUserProfile(userId, {
+      ...profileData,
+      email: user.email,
+    });
     return { profile };
   });
 }

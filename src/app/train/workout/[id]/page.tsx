@@ -8,6 +8,7 @@ import type {
   Workout,
   WorkoutInstance
 } from '@/types/train';
+import BackToLink from '@/components/layout/navigation/BackToLink';
 
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, {
@@ -97,7 +98,7 @@ export default function ViewWorkoutPage({
       <div className="bg-background pb-20 min-h-screen">
         <div className="md:mx-auto px-4 md:px-6 pt-6 md:max-w-3xl">
           <div className="flex justify-center items-center py-12">
-            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" />
           </div>
         </div>
       </div>
@@ -108,13 +109,7 @@ export default function ViewWorkoutPage({
     return (
       <div className="bg-background pb-20 min-h-screen">
         <div className="space-y-4 md:mx-auto px-4 md:px-6 pt-6 md:max-w-3xl">
-          <button
-            className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground text-xs"
-            onClick={() => router.back()}
-          >
-            <ChevronLeft className="w-4 h-4" />
-            Back to Train
-          </button>
+          <BackToLink href="/train" pageName="Train" />
           <div className="bg-card p-4 border border-border rounded-lg">
             <p className="text-destructive text-sm">
               {error ?? 'Workout not found.'}
@@ -130,18 +125,12 @@ export default function ViewWorkoutPage({
       <div className="md:mx-auto md:max-w-3xl">
         {/* Header */}
         <section className="px-4 md:px-6 pt-6 pb-4 border-border border-b">
-          <button
-            className="inline-flex items-center gap-1 mb-3 text-muted-foreground hover:text-foreground text-xs"
-            onClick={() => router.back()}
-          >
-            <ChevronLeft className="w-4 h-4" />
-            Back to Train
-          </button>
+          <BackToLink href="/train" pageName="Train" />
           
           <div className="flex justify-between items-start gap-4">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <span className="bg-brand-primary/10 px-2 py-0.5 rounded text-[10px] text-brand-primary uppercase tracking-wide font-medium">
+                <span className="bg-brand-primary/10 px-2 py-0.5 rounded font-medium text-[10px] text-brand-primary uppercase tracking-wide">
                   {workout.workoutType}
                 </span>
                 {workout.estimatedDuration && (
@@ -209,7 +198,7 @@ export default function ViewWorkoutPage({
                 <div className="bg-muted/30 px-4 py-3 border-border border-b">
                   <div className="flex justify-between items-start">
                     <div>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium">
+                      <p className="font-medium text-[10px] text-muted-foreground uppercase tracking-wide">
                         {block.workoutBlockType}
                       </p>
                       <h3 className="font-medium text-sm">
@@ -232,9 +221,9 @@ export default function ViewWorkoutPage({
                 <div className="divide-y divide-border/50">
                   {block.exercises?.length ? (
                     block.exercises.map((ex, index) => (
-                      <div key={ex.id} className="p-4 hover:bg-muted/5 transition-colors">
+                      <div key={ex.id} className="hover:bg-muted/5 p-4 transition-colors">
                         <div className="flex gap-4">
-                          <div className="flex justify-center items-center bg-muted rounded w-12 h-12 shrink-0 text-muted-foreground font-medium text-sm">
+                          <div className="flex justify-center items-center bg-muted rounded w-12 h-12 font-medium text-muted-foreground text-sm shrink-0">
                              {/* Placeholder for exercise image or rank */}
                              {index + 1}
                           </div>
@@ -281,7 +270,7 @@ export default function ViewWorkoutPage({
                       </div>
                     ))
                   ) : (
-                    <div className="p-4 text-center text-muted-foreground text-xs italic">
+                    <div className="p-4 text-muted-foreground text-xs text-center italic">
                       No exercises in this block
                     </div>
                   )}

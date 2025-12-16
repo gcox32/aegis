@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import FloatingMenu from '@/components/layout/navigation/FloatingMenu';
 import BottomNav from '@/components/layout/navigation/BottomNav';
+import { ToastProvider } from '@/components/ui/Toast';
 
 function ProtectedContent({ children }: { children: React.ReactNode }) {
     const { isAuthenticated, isLoading } = useAuth();
@@ -55,7 +56,9 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     return (
         <AuthProvider>
             <ProtectedContent>
-                {children}
+                <ToastProvider>
+                    {children}
+                </ToastProvider>
             </ProtectedContent>
         </AuthProvider>
     );

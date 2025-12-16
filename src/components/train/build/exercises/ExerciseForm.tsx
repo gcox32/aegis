@@ -10,10 +10,9 @@ import {
 import { Exercise, WorkPowerConstants } from '@/types/train';
 import { MuscleGroupSelect, MUSCLE_GROUPS } from '@/components/anatomy/MuscleGroupSelect';
 import { ExerciseAutocomplete } from './ExerciseAutocomplete';
-import { ChevronLeft } from 'lucide-react';
-import Link from 'next/link';
 import { defaultWorkPowerConstants, MOVEMENT_PATTERNS, PLANES_OF_MOTION, EQUIPMENT_TYPES, DIFFICULTY_LEVELS } from './options';
 import { TogglePill } from '@/components/ui/TogglePill';
+import BackToLink from '@/components/layout/navigation/BackToLink';
 
 type ExerciseFormData = Omit<Exercise, 'id' | 'createdAt' | 'updatedAt'>;
 
@@ -170,13 +169,7 @@ export default function ExerciseForm({ initialData, isEditing = false }: Exercis
 
   return (
     <form onSubmit={handleSubmit}>
-      <Link
-        href="/train/build/exercises"
-        className="inline-flex items-center gap-1 mb-4 text-muted-foreground hover:text-foreground text-xs"
-      >
-        <ChevronLeft className="w-4 h-4" />
-        Back to Exercises
-      </Link>
+      <BackToLink href="/train/build/exercises" pageName="Exercises" />
       <FormWrapper>
         <FormCard>
           <FormTitle>{isEditing ? 'Edit Exercise' : 'New Exercise'}</FormTitle>

@@ -119,7 +119,7 @@ export async function updateUserProfile(
   // Convert Date objects to strings for database
   const dbUpdates: any = { ...updates };
   if (updates.birthDate !== undefined) {
-    dbUpdates.birthDate = updates.birthDate ? updates.birthDate.toISOString().split('T')[0] : null;
+    dbUpdates.birthDate = updates.birthDate ? updates.birthDate : null;
   }
 
   const [updatedProfile] = await db
@@ -262,7 +262,6 @@ export async function createUserStats(
   statsData: Omit<UserStats, 'id' | 'statsLogId'>
 ): Promise<UserStats> {
   const statsLogId = await getOrCreateUserStatsLog(userId);
-
   const [newStats] = await db
     .insert(userStats)
     .values({

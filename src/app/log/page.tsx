@@ -1,99 +1,187 @@
-import { Weight, Ruler, Calendar, TrendingUp } from 'lucide-react';
+'use client';
+
+import { Activity, Ribbon, Weight, Camera, BarChart3, PersonStanding } from 'lucide-react';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { Loader2 } from 'lucide-react';
+import { useToast } from '@/components/ui/Toast';
+import type { UserStats } from '@/types/user';
+
+type LatestStatsResponse = {
+  stats: (UserStats & {
+    tapeMeasurements?: UserStats['tapeMeasurements'];
+  }) | null;
+};
 
 export default function LogPage() {
+  const [latestStats, setLatestStats] = useState<UserStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const { showToast } = useToast();
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadLatest() {
+      try {
+        setLoading(true);
+        const res = await fetch('/api/user/stats?latest=true', { cache: 'no-store' });
+        if (!res.ok) {
+          const body = (await res.json().catch(() => null)) as { error?: string } | null;
+          throw new Error(body?.error || 'Failed to load stats');
+        }
+        const data = (await res.json()) as LatestStatsResponse;
+        if (cancelled) return;
+        setLatestStats((data.stats as UserStats) ?? null);
+      } catch (e: any) {
+        if (!cancelled) {
+          showToast({
+            variant: 'error',
+            title: 'Unable to load stats',
+            description: e.message || 'There was a problem loading your latest stats.',
+          });
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    void loadLatest();
+    return () => {
+      cancelled = true;
+    };
+  }, [showToast]);
+
+  const latestWeight = latestStats?.weight;
+  const latestBodyFat = latestStats?.bodyFatPercentage;
+
   return (
-    <div className="min-h-screen pb-20 bg-background">
-      <div className="md:max-w-4xl md:mx-auto">
+    <div className="bg-background pb-20 min-h-screen">
+      <div className="md:mx-auto md:max-w-4xl">
         {/* Header */}
-        <section className="px-4 md:px-6 pt-6 pb-4 border-b border-border">
-          <h1 className="text-2xl font-bold mb-1">Log</h1>
-          <p className="text-sm text-muted-foreground">
-            Track your progress and measurements
+        <section className="px-4 md:px-6 pt-6 pb-4 border-border border-b">
+          <h1 className="mb-1 font-bold text-2xl">Log</h1>
+          <p className="text-muted-foreground text-sm">
+            Track body stats, images, sleep, and more.
           </p>
         </section>
 
-        {/* Quick Log Actions */}
-        <section className="px-4 md:px-6 py-6">
-          <h2 className="text-lg font-semibold mb-4">Quick Log</h2>
-          <div className="grid grid-cols-2 gap-3 md:max-w-2xl">
-            <button className="bg-card rounded-lg p-6 border border-border flex flex-col items-center hover:bg-hover transition-colors">
-              <Weight className="w-8 h-8 mb-3 text-brand-primary" />
-              <span className="font-semibold">Bodyweight</span>
-              <span className="text-xs text-muted-foreground mt-1">Log weight</span>
-            </button>
-            <button className="bg-card rounded-lg p-6 border border-border flex flex-col items-center hover:bg-hover transition-colors">
-              <Ruler className="w-8 h-8 mb-3 text-brand-primary" />
-              <span className="font-semibold">Measurements</span>
-              <span className="text-xs text-muted-foreground mt-1">Log measurements</span>
-            </button>
-          </div>
+        {/* Highlights */}
+        <section className="px-4 md:px-6 py-6 border-border border-b">
+          <h2 className="mb-3 font-semibold text-muted-foreground text-sm uppercase tracking-[0.16em]">
+            Highlights
+          </h2>
+
+          {loading ? (
+            <div className="flex justify-center items-center bg-card px-4 py-8 border border-border rounded-xl text-muted-foreground text-sm">
+              <Loader2 className="mr-2 w-4 h-4 animate-spin" />
+              Loading latest stats...
+            </div>
+          ) : !latestStats ? (
+            <div className="bg-card/40 px-4 py-4 border border-border border-dashed rounded-xl text-muted-foreground text-sm">
+              No body stats logged yet. Start by logging your first entry.
+            </div>
+          ) : (
+            <div className="gap-3 grid grid-cols-2 md:max-w-xl">
+              <div className="bg-card px-4 py-3 border border-border rounded-xl">
+                <div className="flex items-center gap-2 mb-1 text-muted-foreground text-xs uppercase tracking-[0.18em]">
+                  <PersonStanding className="w-4 h-4 text-brand-primary" />
+                  Weight
+                </div>
+                <div className="font-semibold text-2xl">
+                  {latestWeight?.value ?? '--'}
+                  {latestWeight?.unit && (
+                    <span className="ml-1 font-normal text-muted-foreground text-sm">
+                      {latestWeight.unit}
+                    </span>
+                  )}
+                </div>
+                <div className="mt-1 text-muted-foreground text-xs">
+                  As of {(new Date(latestStats.date)).toLocaleDateString()}
+                </div>
+              </div>
+
+              <div className="bg-card px-4 py-3 border border-border rounded-xl">
+                <div className="flex items-center gap-2 mb-1 text-muted-foreground text-xs uppercase tracking-[0.18em]">
+                  <Ribbon className="w-4 h-4 text-brand-primary" />
+                  Body Fat
+                </div>
+                <div className="font-semibold text-2xl">
+                  {latestBodyFat?.value ?? '--'}
+                  {typeof latestBodyFat?.value === 'number' && (
+                    <span className="ml-1 font-normal text-muted-foreground text-sm">
+                      %
+                    </span>
+                  )}
+                </div>
+                <div className="mt-1 text-muted-foreground text-xs">
+                  From latest estimate
+                </div>
+              </div>
+            </div>
+          )}
         </section>
 
-        {/* Recent Logs */}
-        <section className="px-4 md:px-6 py-6 border-t border-border">
-          <h2 className="text-lg font-semibold mb-4">Recent Logs</h2>
-          <div className="space-y-3">
-            {[
-              { type: 'Bodyweight', value: '185.2 lbs', date: 'Today', time: '8:00 AM' },
-              { type: 'Bodyweight', value: '184.8 lbs', date: 'Yesterday', time: '8:00 AM' },
-              { type: 'Chest', value: '42.5"', date: '2 days ago', time: '9:00 AM' },
-            ].map((log, index) => (
-              <div key={index} className="bg-card rounded-lg p-4 border border-border">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      {log.type === 'Bodyweight' ? (
-                        <Weight className="w-4 h-4 text-muted-foreground" />
-                      ) : (
-                        <Ruler className="w-4 h-4 text-muted-foreground" />
-                      )}
-                      <span className="font-semibold">{log.type}</span>
-                    </div>
-                    <p className="text-2xl font-bold">{log.value}</p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {log.date} • {log.time}
-                    </p>
+        {/* Log sections */}
+        <section className="px-4 md:px-6 py-6">
+          <h2 className="mb-3 font-semibold text-muted-foreground text-sm uppercase tracking-[0.16em]">
+            Logs
+          </h2>
+          <div className="gap-3 grid grid-cols-1 md:max-w-xl">
+
+            <Link
+              href="/log/stats"
+              className="flex justify-between items-center bg-card hover:bg-card/80 px-4 py-3 border border-border hover:border-brand-primary rounded-xl transition"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex justify-center items-center bg-brand-primary/10 rounded-full w-10 h-10">
+                  <Activity className="w-5 h-5 text-brand-primary" />
+                </div>
+                <div>
+                  <div className="font-semibold text-sm">Body stats</div>
+                  <div className="text-muted-foreground text-xs">
+                    Weight, body fat, and measurements over time.
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
-        </section>
+              <span className="text-muted-foreground text-xs">View</span>
+            </Link>
 
-        {/* Progress Charts */}
-        <section className="px-4 md:px-6 py-6 border-t border-border">
-          <h2 className="text-lg font-semibold mb-4">Progress</h2>
-          <div className="bg-card rounded-lg p-4 border border-border md:max-w-2xl">
-            <div className="flex items-center gap-3 mb-4">
-              <TrendingUp className="w-5 h-5 text-brand-primary" />
-              <h3 className="font-semibold">Bodyweight Trend</h3>
+            <div className="flex justify-between items-center bg-card/40 opacity-70 px-4 py-3 border border-border border-dashed rounded-xl">
+              <div className="flex items-center gap-3">
+                <div className="flex justify-center items-center bg-zinc-800/60 rounded-full w-10 h-10">
+                  <Camera className="w-5 h-5 text-muted-foreground" />
+                </div>
+                <div>
+                  <div className="font-semibold text-muted-foreground text-sm">
+                    Progress photos
+                  </div>
+                  <div className="text-muted-foreground text-xs">
+                    Coming soon.
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="h-32 bg-input rounded-lg flex items-center justify-center">
-              <p className="text-sm text-muted-foreground">Chart coming soon</p>
-            </div>
-          </div>
-        </section>
 
-        {/* Stats Summary */}
-        <section className="px-4 md:px-6 py-6 border-t border-border">
-          <h2 className="text-lg font-semibold mb-4">This Week</h2>
-          <div className="grid grid-cols-3 gap-3">
-            <div className="bg-card rounded-lg p-4 border border-border text-center">
-              <Calendar className="w-5 h-5 mx-auto mb-2 text-brand-primary" />
-              <p className="text-2xl font-bold">5</p>
-              <p className="text-xs text-muted-foreground">Logs</p>
+            <div className="flex justify-between items-center bg-card/40 opacity-70 px-4 py-3 border border-border border-dashed rounded-xl">
+              <div className="flex items-center gap-3">
+                <div className="flex justify-center items-center bg-zinc-800/60 rounded-full w-10 h-10">
+                  <BarChart3 className="w-5 h-5 text-muted-foreground" />
+                </div>
+                <div>
+                  <div className="font-semibold text-muted-foreground text-sm">
+                    Performance Tracking
+                  </div>
+                  <div className="text-muted-foreground text-xs">
+                    Coming soon.
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="bg-card rounded-lg p-4 border border-border text-center">
-              <p className="text-2xl font-bold">185.0</p>
-              <p className="text-xs text-muted-foreground">Avg Weight</p>
-            </div>
-            <div className="bg-card rounded-lg p-4 border border-border text-center">
-              <p className="text-2xl font-bold">+0.2</p>
-              <p className="text-xs text-muted-foreground">Change</p>
-            </div>
+
           </div>
         </section>
       </div>
     </div>
   );
 }
+

@@ -92,6 +92,7 @@ export default function ActiveSessionPage({
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
   const [isResting, setIsResting] = useState(false);
   const [restSecondsRemaining, setRestSecondsRemaining] = useState(0);
+  const [timerSoundsEnabled, setTimerSoundsEnabled] = useState(true);
   
   // Input State for Current Step
   const [reps, setReps] = useState<string>('');
@@ -101,6 +102,10 @@ export default function ActiveSessionPage({
 
   // Swipe State
   const touchStartY = useRef<number | null>(null);
+
+  // Audio refs
+  const countdownAudioRef = useRef<HTMLAudioElement | null>(null);
+  const completeAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // Derived
   const currentStep = steps[currentStepIndex];
@@ -117,6 +122,19 @@ export default function ActiveSessionPage({
     });
     return total;
   }, [exerciseInstances]);
+
+  // Load timer-sound preference
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const stored = window.localStorage.getItem('super.timerSoundsEnabled');
+      if (stored !== null) {
+        setTimerSoundsEnabled(stored === 'true');
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
 
   // Load Data
   useEffect(() => {
@@ -248,6 +266,22 @@ export default function ActiveSessionPage({
     return () => clearInterval(interval);
   }, [isResting, isPaused, restSecondsRemaining, currentStepIndex, steps.length, workoutInstance]);
 
+  // Rest countdown audio (final 3 seconds)
+  useEffect(() => {
+    if (!isResting || isPaused) return;
+    if (!timerSoundsEnabled) return;
+    if (!countdownAudioRef.current) return;
+    if (restSecondsRemaining <= 2 || restSecondsRemaining > 3) return;
+
+    try {
+      const audio = countdownAudioRef.current;
+      audio.currentTime = 0;
+      void audio.play();
+    } catch {
+      // ignore playback errors
+    }
+  }, [isResting, isPaused, restSecondsRemaining, timerSoundsEnabled]);
+
   // Sync Input with Current Step's Data (if exists)
   useEffect(() => {
     if (!currentStep) return;
@@ -373,6 +407,9 @@ export default function ActiveSessionPage({
 
   const maybeStartRest = () => {
     if (!currentStep) return false;
+    // If this is the final set of the final exercise, do not start a rest timer
+    if (currentStepIndex >= steps.length - 1) return false;
+
     const rest = currentStep.exercise.restTime;
     if (!rest || rest <= 0) return false;
     setIsResting(true);
@@ -419,6 +456,15 @@ export default function ActiveSessionPage({
   const finishWorkout = async () => {
     if (!workoutInstance) return;
     try {
+      // Play completion sound before marking complete / navigating
+      if (timerSoundsEnabled && completeAudioRef.current) {
+        try {
+          completeAudioRef.current.currentTime = 0;
+          void completeAudioRef.current.play();
+        } catch {
+          // ignore
+        }
+      }
        await fetchJson(
         `/api/train/workout-instances/${workoutInstance.id}`,
         {
@@ -570,6 +616,17 @@ export default function ActiveSessionPage({
       <SettingsOverlay 
         isOpen={isSettingsOpen} 
         onClose={() => setIsSettingsOpen(false)} 
+        timerSoundsEnabled={timerSoundsEnabled}
+        onTimerSoundsChange={(value) => {
+          setTimerSoundsEnabled(value);
+          if (typeof window !== 'undefined') {
+            try {
+              window.localStorage.setItem('super.timerSoundsEnabled', value ? 'true' : 'false');
+            } catch {
+              // ignore
+            }
+          }
+        }}
       />
 
       <WorkoutSummaryOverlay 
@@ -578,6 +635,18 @@ export default function ActiveSessionPage({
         workoutInstance={workoutInstance}
         totalVolume={totalVolume}
         durationSeconds={elapsedSeconds}
+      />
+
+      {/* Timer sounds */}
+      <audio
+        ref={countdownAudioRef}
+        src="/sounds/timer-countdown.mp3"
+        preload="auto"
+      />
+      <audio
+        ref={completeAudioRef}
+        src="/sounds/timer-complete.mp3"
+        preload="auto"
       />
     </div>
   );

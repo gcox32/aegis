@@ -4,14 +4,20 @@ import { useEffect, useState } from 'react';
 interface SettingsOverlayProps {
   isOpen: boolean;
   onClose: () => void;
+  timerSoundsEnabled: boolean;
+  onTimerSoundsChange: (value: boolean) => void;
 }
 
-export function SettingsOverlay({ isOpen, onClose }: SettingsOverlayProps) {
+export function SettingsOverlay({ 
+  isOpen, 
+  onClose,
+  timerSoundsEnabled,
+  onTimerSoundsChange,
+}: SettingsOverlayProps) {
   const [shouldRender, setShouldRender] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
 
-  // Mock state for toggles
-  const [audioCues, setAudioCues] = useState(true);
+  // Local-only mock state for future toggles
   const [screenAlwaysOn, setScreenAlwaysOn] = useState(true);
   const [notifications, setNotifications] = useState(false);
 
@@ -55,9 +61,9 @@ export function SettingsOverlay({ isOpen, onClose }: SettingsOverlayProps) {
         <div className="space-y-4">
           <ToggleRow 
             icon={Volume2} 
-            label="Audio Cues" 
-            isActive={audioCues} 
-            onToggle={() => setAudioCues(!audioCues)} 
+            label="Timer Sounds" 
+            isActive={timerSoundsEnabled} 
+            onToggle={() => onTimerSoundsChange(!timerSoundsEnabled)} 
           />
           <ToggleRow 
             icon={Monitor} 
