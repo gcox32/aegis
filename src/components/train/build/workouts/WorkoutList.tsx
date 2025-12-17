@@ -57,11 +57,11 @@ export default function WorkoutList() {
         confirmText="Delete"
         confirmVariant="danger"
       />
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Your Workouts</h2>
-        <Link href="/train/build/workouts/new">
+      <div className="flex flex-col justify-between items-center">
+        <h2 className="font-bold text-2xl">Your Workouts</h2>
+        <Link href="/train/build/workouts/new" className="mt-4 w-full">
           <Button>
-            <Plus className="h-4 w-4 mr-2" />
+            <Plus className="mr-2 w-4 h-4" />
             New Workout
           </Button>
         </Link>
@@ -69,48 +69,48 @@ export default function WorkoutList() {
 
       {loading ? (
         <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-primary"></div>
+          <div className="border-brand-primary border-b-2 rounded-full w-8 h-8 animate-spin"></div>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="gap-4 grid sm:grid-cols-2 lg:grid-cols-3">
           {workouts.map(workout => (
             <Link key={workout.id} href={`/train/build/workouts/${workout.id}/edit`} className="block">
-              <div className="p-6 rounded-lg shadow-sm border border-gray-200 hover:border-brand-primary transition-colors h-full bg-card">
+              <div className="bg-card shadow-sm p-6 border border-gray-200 hover:border-brand-primary rounded-lg h-full transition-colors">
                 <div className="flex justify-between items-start mb-2">
-                  <h3 className="text-lg font-semibold text-gray-300">{workout.name || 'Untitled Workout'}</h3>
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 capitalize">
+                  <h3 className="font-semibold text-gray-300 text-lg">{workout.name || 'Untitled Workout'}</h3>
+                  <span className="inline-flex items-center bg-blue-100 px-2.5 py-0.5 rounded-full font-medium text-blue-800 text-xs capitalize">
                     {workout.workoutType}
                   </span>
                 </div>
-                <p className="text-sm text-gray-500 line-clamp-2 mb-4">
+                <p className="mb-4 text-gray-500 text-sm line-clamp-2">
                   {workout.description || 'No description provided.'}
                 </p>
-                <div className="flex items-center text-xs text-gray-400 gap-4 mt-auto">
+                <div className="flex items-center gap-4 mt-auto text-gray-400 text-xs">
                   <div className="flex items-center">
-                    <Clock className="h-3 w-3 mr-1" />
+                    <Clock className="mr-1 w-3 h-3" />
                     {workout.estimatedDuration} min
                   </div>
                   <div className="flex items-center">
-                    <Calendar className="h-3 w-3 mr-1" />
+                    <Calendar className="mr-1 w-3 h-3" />
                     {new Date(workout.createdAt).toLocaleDateString()}
                   </div>
 
                   <button
                     onClick={(e) => handleDeleteClick(e, workout)}
-                    className="ml-auto p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                    className="hover:bg-red-50 ml-auto p-1 rounded-full text-red-400 hover:text-red-600 transition-colors"
                     title="Delete Workout"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               </div>
             </Link>
           ))}
           {workouts.length === 0 && (
-            <div className="shadow overflow-hidden sm:rounded-md rounded-lg bg-card">
+            <div className="bg-card shadow rounded-lg sm:rounded-md overflow-hidden">
               <ul className="divide-y divide-gray-200">
 
-                <li className="px-6 py-4 text-center text-gray-500">
+                <li className="px-6 py-4 text-gray-500 text-center">
                   No workouts found.
                 </li>
               </ul>

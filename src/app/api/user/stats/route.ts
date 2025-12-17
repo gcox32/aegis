@@ -71,7 +71,6 @@ export async function POST(request: NextRequest) {
     
     // Fetch other values with staleness constraint
     const latestValues = await getLatestStatsValues(userId, maxDaysOld);
-    console.log('latestValues', latestValues);
     // Always use latest height, armLength, legLength, and weight (submitted takes precedence)
     const height = body.height || latestHeight;
     const armLength = body.armLength || latestArmLength;

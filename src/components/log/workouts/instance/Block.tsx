@@ -59,8 +59,6 @@ export default function WorkoutInstanceBlock({ blockInstance, handleUpdateSetLoc
         handleUpdateSetLocal(setId, { measures: newMeasures });
     };
 
-    console.log(blockInstance);
-
     return (
             <div key={blockInstance.id} className="bg-card border border-border rounded-lg overflow-hidden">
                 <div className="flex justify-between items-center bg-zinc-800/50 px-4 py-3 border-border border-b">

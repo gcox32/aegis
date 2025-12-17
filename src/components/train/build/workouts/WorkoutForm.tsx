@@ -11,7 +11,7 @@ import { TogglePill } from '@/components/ui/TogglePill';
 import { ExerciseAutocomplete } from '@/components/train/build/exercises/ExerciseAutocomplete';
 import { Exercise, Workout, WorkoutBlockType, WorkoutType } from '@/types/train';
 import { CreateWorkoutInput, CreateWorkoutBlockInput, CreateWorkoutBlockExerciseInput } from '@/lib/db/crud/train';
-import { Plus, Trash } from 'lucide-react';
+import { Plus, Trash, ChevronUp } from 'lucide-react';
 import { WORKOUT_TYPES, BLOCK_TYPES } from './options';
 
 interface WorkoutFormProps {
@@ -38,6 +38,26 @@ export default function WorkoutForm({ workoutId, isEditing = false }: WorkoutFor
       exercises: [],
     }
   ]);
+
+  // Track which exercises have load fields expanded
+  const [expandedLoads, setExpandedLoads] = useState<Set<string>>(new Set());
+  
+  const toggleLoad = (blockIndex: number, exerciseIndex: number) => {
+    const key = `${blockIndex}-${exerciseIndex}`;
+    setExpandedLoads(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  };
+
+  const isLoadExpanded = (blockIndex: number, exerciseIndex: number) => {
+    return expandedLoads.has(`${blockIndex}-${exerciseIndex}`);
+  };
 
   useEffect(() => {
     // If editing, fetch existing workout details and populate the form
@@ -87,6 +107,16 @@ export default function WorkoutForm({ workoutId, isEditing = false }: WorkoutFor
 
         if (mappedBlocks.length > 0) {
           setBlocks(mappedBlocks);
+          // Auto-expand load fields for exercises that already have load values
+          const loadsToExpand = new Set<string>();
+          mappedBlocks.forEach((block, blockIndex) => {
+            block.exercises.forEach((ex, exIndex) => {
+              if (ex.measures?.externalLoad?.value !== undefined) {
+                loadsToExpand.add(`${blockIndex}-${exIndex}`);
+              }
+            });
+          });
+          setExpandedLoads(loadsToExpand);
         }
       } catch (err) {
         console.error(err);
@@ -197,7 +227,7 @@ export default function WorkoutForm({ workoutId, isEditing = false }: WorkoutFor
     <form onSubmit={handleSubmit}>
       <FormWrapper>
         <FormCard>
-          <FormTitle>Workout Details</FormTitle>
+          <FormTitle>{isEditing ? 'Edit Workout' : 'Create Workout'}</FormTitle>
           <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
             <FormGroup>
               <FormLabel>Name</FormLabel>
@@ -281,139 +311,174 @@ export default function WorkoutForm({ workoutId, isEditing = false }: WorkoutFor
               </div>
 
               <div className="space-y-3 pl-4 border-border border-l-2">
-                {block.exercises.map((exercise, exerciseIndex) => (
-                  <div key={exerciseIndex} className="items-end gap-2 grid grid-cols-12 bg-background/50 p-3 border border-border rounded">
-                    <div className="col-span-12 sm:col-span-4">
-                      <ExerciseAutocomplete
-                        initialExerciseId={exercise.exerciseId || undefined}
-                        onChange={(selected: Exercise | null) =>
-                          updateExercise(blockIndex, exerciseIndex, { exerciseId: selected?.id || '' })
-                        }
-                      />
-                    </div>
-                    <div className="col-span-3 sm:col-span-2">
-                       <FormLabel className="text-xs">Sets</FormLabel>
-                       <FormInput 
-                         type="number" 
-                         value={exercise.sets || ''} 
-                         onChange={e => {
-                           const val = e.target.value === '' ? '' : parseInt(e.target.value, 10);
-                           updateExercise(blockIndex, exerciseIndex, { 
-                             sets: (val === '' || isNaN(val as number)) ? 0 : (val as number)
-                           });
-                         }}
-                         onBlur={e => {
-                           if (e.target.value === '') {
-                             updateExercise(blockIndex, exerciseIndex, { sets: 0 });
-                           }
-                         }}
-                       />
-                    </div>
-                    <div className="col-span-3 sm:col-span-2">
-                       <FormLabel className="text-xs">Reps</FormLabel>
-                       <FormInput 
-                         type="number" 
-                         value={exercise.measures.reps || ''} 
-                         onChange={e => {
-                           const val = e.target.value === '' ? '' : parseInt(e.target.value, 10);
-                           updateExercise(blockIndex, exerciseIndex, { 
-                             measures: { 
-                               ...exercise.measures, 
-                               reps: (val === '' || isNaN(val as number)) ? 0 : (val as number),
-                             } 
-                           });
-                         }}
-                         onBlur={e => {
-                           if (e.target.value === '') {
+                {block.exercises.map((exercise, exerciseIndex) => {
+                  const loadExpanded = isLoadExpanded(blockIndex, exerciseIndex);
+                  return (
+                  <div key={exerciseIndex} className="space-y-2 bg-background/50 p-3 border border-border rounded">
+                    {/* First row: Exercise, Sets, Reps, Rest */}
+                    <div className="items-end gap-2 grid grid-cols-12">
+                      <div className="col-span-12 sm:col-span-6">
+                        <ExerciseAutocomplete
+                          initialExerciseId={exercise.exerciseId || undefined}
+                          onChange={(selected: Exercise | null) =>
+                            updateExercise(blockIndex, exerciseIndex, { exerciseId: selected?.id || '' })
+                          }
+                        />
+                      </div>
+                      <div className="col-span-4 sm:col-span-2">
+                         <FormLabel className="text-xs">Sets</FormLabel>
+                         <FormInput 
+                           type="number" 
+                           value={exercise.sets || ''} 
+                           onChange={e => {
+                             const val = e.target.value === '' ? '' : parseInt(e.target.value, 10);
+                             updateExercise(blockIndex, exerciseIndex, { 
+                               sets: (val === '' || isNaN(val as number)) ? 0 : (val as number)
+                             });
+                           }}
+                           onBlur={e => {
+                             if (e.target.value === '') {
+                               updateExercise(blockIndex, exerciseIndex, { sets: 0 });
+                             }
+                           }}
+                         />
+                      </div>
+                      <div className="col-span-4 sm:col-span-2">
+                         <FormLabel className="text-xs">Reps</FormLabel>
+                         <FormInput 
+                           type="number" 
+                           value={exercise.measures.reps || ''} 
+                           onChange={e => {
+                             const val = e.target.value === '' ? '' : parseInt(e.target.value, 10);
                              updateExercise(blockIndex, exerciseIndex, { 
                                measures: { 
                                  ...exercise.measures, 
-                                 reps: 0,
+                                 reps: (val === '' || isNaN(val as number)) ? 0 : (val as number),
                                } 
                              });
-                           }
-                         }}
-                       />
+                           }}
+                           onBlur={e => {
+                             if (e.target.value === '') {
+                               updateExercise(blockIndex, exerciseIndex, { 
+                                 measures: { 
+                                   ...exercise.measures, 
+                                   reps: 0,
+                                 } 
+                               });
+                             }
+                           }}
+                         />
+                      </div>
+                      <div className="col-span-4 sm:col-span-2">
+                         <FormLabel className="text-xs">Rest (s)</FormLabel>
+                         <FormSelect
+                           value={exercise.restTime || 0}
+                           onChange={e => {
+                             const val = parseInt(e.target.value, 10);
+                             updateExercise(blockIndex, exerciseIndex, { restTime: (isNaN(val) ? 0 : val) as any });
+                           }}
+                         >
+                           <option value={0}>0</option>
+                           <option value={15}>15</option>
+                           <option value={30}>30</option>
+                           <option value={45}>45</option>
+                           <option value={60}>60</option>
+                           <option value={90}>90</option>
+                           <option value={120}>120</option>
+                           <option value={180}>180</option>
+                           <option value={240}>240</option>
+                           <option value={300}>300</option>
+                         </FormSelect>
+                      </div>
                     </div>
-                    <div className="col-span-3 sm:col-span-2">
-                       <FormLabel className="text-xs">Load</FormLabel>
-                       <FormInput 
-                         type="number" 
-                         value={exercise.measures.externalLoad?.value ?? ''} 
-                         onChange={e => {
-                           const val = e.target.value === '' ? '' : parseFloat(e.target.value);
-                           const currentUnit = exercise.measures.externalLoad?.unit || 'kg';
-                           updateExercise(blockIndex, exerciseIndex, { 
-                             measures: { 
-                               ...exercise.measures, 
-                               externalLoad: (val === '' || isNaN(val as number))
-                                 ? undefined
-                                 : { value: val as number, unit: currentUnit },
-                             } 
-                           });
-                         }}
-                         onBlur={e => {
-                           if (e.target.value === '') {
-                             const currentUnit = exercise.measures.externalLoad?.unit || 'kg';
-                             updateExercise(blockIndex, exerciseIndex, { 
-                               measures: { 
-                                 ...exercise.measures, 
-                                 externalLoad: undefined,
-                               } 
-                             });
-                           }
-                         }}
-                       />
-                    </div>
-                    <div className="col-span-3 sm:col-span-2">
-                      <FormLabel className="text-xs">Unit</FormLabel>
-                      <FormSelect
-                        value={exercise.measures.externalLoad?.unit || 'kg'}
-                        onChange={e => {
-                          const unit = e.target.value as 'kg' | 'lbs';
-                          const currentValue = exercise.measures.externalLoad?.value;
-                          updateExercise(blockIndex, exerciseIndex, { 
-                            measures: { 
-                              ...exercise.measures, 
-                              externalLoad: currentValue !== undefined
-                                ? { value: currentValue, unit }
-                                : { value: 0, unit },
-                            } 
-                          });
-                        }}
-                      >
-                        <option value="kg">kg</option>
-                        <option value="lbs">lbs</option>
-                      </FormSelect>
-                    </div>
-                    <div className="col-span-3 sm:col-span-2">
-                       <FormLabel className="text-xs">Rest (s)</FormLabel>
-                       <FormSelect
-                         value={exercise.restTime || 0}
-                         onChange={e => {
-                           const val = parseInt(e.target.value, 10);
-                           updateExercise(blockIndex, exerciseIndex, { restTime: (isNaN(val) ? 0 : val) as any });
-                         }}
-                       >
-                         <option value={0}>0</option>
-                         <option value={15}>15</option>
-                         <option value={30}>30</option>
-                         <option value={45}>45</option>
-                         <option value={60}>60</option>
-                         <option value={90}>90</option>
-                         <option value={120}>120</option>
-                         <option value={180}>180</option>
-                         <option value={240}>240</option>
-                         <option value={300}>300</option>
-                       </FormSelect>
-                    </div>
-                     <div className="flex justify-end col-span-1 pt-4">
-                        <button type="button" onClick={() => removeExercise(blockIndex, exerciseIndex)} className="text-muted-foreground hover:text-red-500">
-                          <Trash className="w-4 h-4" />
+                    
+                    {/* Second row: Load (left) and Delete (right) */}
+                    <div className="flex justify-between items-center">
+                      {loadExpanded ? (
+                        <div className="flex-1 max-w-xs">
+                          <div className="flex justify-start items-center gap-2 mb-1">
+                            <FormLabel className="text-xs">Load</FormLabel>
+                            <button
+                              type="button"
+                              onClick={() => toggleLoad(blockIndex, exerciseIndex)}
+                              className="text-muted-foreground hover:text-foreground transition-colors"
+                              title="Hide Load"
+                            >
+                              <ChevronUp className="w-3 h-3" />
+                            </button>
+                          </div>
+                          <div className="flex gap-2">
+                            <FormInput 
+                              type="number" 
+                              value={exercise.measures.externalLoad?.value ?? ''} 
+                              onChange={e => {
+                                const val = e.target.value === '' ? '' : parseFloat(e.target.value);
+                                const currentUnit = exercise.measures.externalLoad?.unit || 'kg';
+                                updateExercise(blockIndex, exerciseIndex, { 
+                                  measures: { 
+                                    ...exercise.measures, 
+                                    externalLoad: (val === '' || isNaN(val as number))
+                                      ? undefined
+                                      : { value: val as number, unit: currentUnit },
+                                  } 
+                                });
+                              }}
+                              onBlur={e => {
+                                if (e.target.value === '') {
+                                  const currentUnit = exercise.measures.externalLoad?.unit || 'kg';
+                                  updateExercise(blockIndex, exerciseIndex, { 
+                                    measures: { 
+                                      ...exercise.measures, 
+                                      externalLoad: undefined,
+                                    } 
+                                  });
+                                }
+                              }}
+                              className="flex-1"
+                            />
+                            <FormSelect
+                              value={exercise.measures.externalLoad?.unit || 'kg'}
+                              onChange={e => {
+                                const unit = e.target.value as 'kg' | 'lbs';
+                                const currentValue = exercise.measures.externalLoad?.value;
+                                updateExercise(blockIndex, exerciseIndex, { 
+                                  measures: { 
+                                    ...exercise.measures, 
+                                    externalLoad: currentValue !== undefined
+                                      ? { value: currentValue, unit }
+                                      : { value: 0, unit },
+                                  } 
+                                });
+                              }}
+                              className="w-20"
+                            >
+                              <option value="kg">kg</option>
+                              <option value="lbs">lbs</option>
+                            </FormSelect>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => toggleLoad(blockIndex, exerciseIndex)}
+                          className="flex items-center gap-1 text-muted-foreground hover:text-foreground text-xs transition-colors"
+                          title="Add Load"
+                        >
+                          <Plus className="w-3 h-3" />
+                          <span className="text-[10px]">Load</span>
                         </button>
-                     </div>
+                      )}
+                      <button 
+                        type="button" 
+                        onClick={() => removeExercise(blockIndex, exerciseIndex)} 
+                        className="mr-2 ml-4 text-muted-foreground hover:text-red-500 transition-colors"
+                      >
+                        <Trash className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
-                ))}
+                  );
+                })}
                 <Button type="button" variant="secondary" size="sm" onClick={() => addExercise(blockIndex)} fullWidth>
                   <Plus className="mr-2 w-4 h-4" /> Add Exercise
                 </Button>
