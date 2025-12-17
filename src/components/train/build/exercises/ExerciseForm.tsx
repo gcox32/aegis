@@ -98,7 +98,7 @@ export default function ExerciseForm({ initialData, isEditing = false }: Exercis
         if (parentExercise.difficulty) {
           updates.difficulty = parentExercise.difficulty;
         }
-        if (typeof parentExercise.bilateral === 'boolean') {
+        if (parentExercise.bilateral !== undefined) {
           updates.bilateral = parentExercise.bilateral;
         }
       }
@@ -283,7 +283,7 @@ export default function ExerciseForm({ initialData, isEditing = false }: Exercis
             <TogglePill
               leftLabel="Bilateral"
               rightLabel="Unilateral"
-              value={formData.bilateral || true}
+              value={formData.bilateral ?? true}
               onChange={(val) =>
                 setFormData(prev => ({ ...prev, bilateral: val }))
               }

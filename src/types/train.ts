@@ -16,7 +16,7 @@ type MovementPattern =
 
 type Equipment = 'barbell' | 'dumbbell' | 'kettlebell' | 'machine' | 'bodyweight' | 'variable' | 'cable' 
                 | 'band' | 'medicine ball' | 'sled' | 'sandbag' | 'wheel' | 'jump rope' | 'pullup bar'
-                | 'rack' | 'box' | 'swiss ball' | 'foam roller' | 'bench' 
+                | 'rack' | 'box' | 'swiss ball' | 'foam roller' | 'bench' | 'landmine'
                 | 'other';
 
 type Difficulty = 'beginner' | 'intermediate' | 'advanced';

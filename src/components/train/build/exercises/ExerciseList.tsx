@@ -84,10 +84,10 @@ export default function ExerciseList() {
         confirmText="Delete"
         confirmVariant="danger"
       />
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex sm:flex-row flex-col justify-between items-start sm:items-center gap-4">
         <div className="relative w-full sm:max-w-md">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search className="h-5 w-5 text-gray-400" />
+          <div className="left-0 absolute inset-y-0 flex items-center pl-3 pointer-events-none">
+            <Search className="w-5 h-5 text-gray-400" />
           </div>
           <input
             type="text"
@@ -97,12 +97,12 @@ export default function ExerciseList() {
               setSearchTerm(e.target.value);
               setCurrentPage(1);
             }}
-            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary sm:text-sm"
+            className="block py-2 pr-3 pl-10 border border-gray-300 focus:border-brand-primary rounded-md focus:outline-none focus:ring-1 focus:ring-brand-primary w-full sm:text-sm leading-5 placeholder-gray-500 focus:placeholder-gray-400"
           />
         </div>
-        <Link href="/train/build/exercises/new">
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
+        <Link href="/train/build/exercises/new" className="mt-2 w-full">
+          <Button className="w-full">
+            <Plus className="mr-2 w-4 h-4" />
             New Exercise
           </Button>
         </Link>
@@ -110,21 +110,21 @@ export default function ExerciseList() {
 
       {loading ? (
         <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-primary"></div>
+          <div className="border-brand-primary border-b-2 rounded-full w-8 h-8 animate-spin"></div>
         </div>
       ) : (
-        <div className="shadow overflow-hidden sm:rounded-md rounded-lg bg-card">
+        <div className="bg-card shadow rounded-lg sm:rounded-md overflow-hidden">
           <ul className="divide-y divide-gray-200">
             {exercises.length === 0 ? (
-              <li className="px-6 py-4 text-center text-gray-500">
+              <li className="px-6 py-4 text-gray-500 text-center">
                 No exercises found.
               </li>
             ) : (
               exercises.map((exercise) => (
                 <li key={exercise.id}>
                   <Link href={`/train/build/exercises/${exercise.id}/edit`} className="block hover:bg-gray-700">
-                    <div className="px-4 py-4 sm:px-6 flex justify-between items-center">
-                      <div className="truncate text-sm font-medium" style={{ color: 'color-mix(in srgb, var(--color-brand-primary) 70%, white)' }}>
+                    <div className="flex justify-between items-center px-4 sm:px-6 py-4">
+                      <div className="font-medium text-sm truncate" style={{ color: 'color-mix(in srgb, var(--color-brand-primary) 70%, white)' }}>
                         {exercise.name}
                       </div>
 
@@ -132,7 +132,7 @@ export default function ExerciseList() {
                         onClick={(e) => handleDeleteClick(e, exercise)}
                         className="flex items-center text-red-500 hover:text-red-700 transition-colors"
                       >
-                        <Trash2 className="h-4 w-4 mr-1" />
+                        <Trash2 className="mr-1 w-4 h-4" />
                         <span className="hidden sm:inline">Delete</span>
                       </button>
                     </div>
@@ -142,13 +142,13 @@ export default function ExerciseList() {
             )}
           </ul>
           {totalPages > 1 && (
-            <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-between sm:px-6">
-              <div className="flex-1 flex justify-between sm:hidden">
+            <div className="flex justify-between items-center px-4 sm:px-6 py-3 border-gray-200 border-t">
+              <div className="sm:hidden flex flex-1 justify-between">
                 <Button
                   onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                   disabled={currentPage === 1}
                   variant="ghost"
-                  className="relative inline-flex items-center px-4 py-2 text-sm font-medium"
+                  className="inline-flex relative items-center px-4 py-2 font-medium text-sm"
                 >
                   Previous
                 </Button>
@@ -156,37 +156,37 @@ export default function ExerciseList() {
                   onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                   disabled={currentPage === totalPages}
                   variant="ghost"
-                  className="ml-3 relative inline-flex items-center px-4 py-2 text-sm font-medium"
+                  className="inline-flex relative items-center ml-3 px-4 py-2 font-medium text-sm"
                 >
                   Next
                 </Button>
               </div>
-              <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+              <div className="hidden sm:flex sm:flex-1 sm:justify-between sm:items-center">
                 <div>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-gray-500 text-sm">
                     Showing <span className="font-medium">{(currentPage - 1) * limit + 1}</span> to <span className="font-medium">{Math.min(currentPage * limit, totalCount)}</span> of{' '}
                     <span className="font-medium">{totalCount}</span> results
                   </p>
                 </div>
                 <div>
-                  <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                  <nav className="inline-flex z-0 relative -space-x-px shadow-sm rounded-md" aria-label="Pagination">
                     <Button
                       onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                       disabled={currentPage === 1}
                       variant="ghost"
-                      className="relative w-[80px] inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-card text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:hover:bg-card "
+                      className="inline-flex relative items-center bg-card hover:bg-gray-50 disabled:hover:bg-card px-2 py-2 border border-gray-300 rounded-r-md w-[80px] font-medium text-gray-500 text-sm"
                     >
                       PREV
                     </Button>
                     {/* Simple page indicator for now */}
-                    <span className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-card text-sm font-medium text-gray-700">
+                    <span className="inline-flex relative items-center bg-card px-4 py-2 border border-gray-300 font-medium text-gray-700 text-sm">
                       Page {currentPage} of {totalPages}
                     </span>
                     <Button
                       onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                       disabled={currentPage === totalPages}
                       variant="ghost"
-                      className="relative w-[80px] inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-card text-sm font-medium text-gray-500 hover:bg-gray-50"
+                      className="inline-flex relative items-center bg-card hover:bg-gray-50 px-2 py-2 border border-gray-300 rounded-l-md w-[80px] font-medium text-gray-500 text-sm"
                     >
                       NEXT
                     </Button>

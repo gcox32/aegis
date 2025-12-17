@@ -12,5 +12,5 @@ export type LongTimeMeasurement   = { value: number; unit: 'days' | 'weeks' | 'm
 export type HeightMeasurement     = { value: number; unit: 'cm' | 'm' | 'in' | 'ft' };
 export type PercentageMeasurement = { value: number; unit: '%' };
 
-export type WorkMeasurement      = { value: number; unit: 'kg' | 'lbs' };
-export type PowerMeasurement     = { value: number; unit: 'W' };
+export type WorkMeasurement      = { value: number; unit: 'J' | 'kJ' | 'ftlb' | 'cal' | 'kcal' };
+export type PowerMeasurement     = { value: number; unit: 'W' | 'kW' | 'hp' };

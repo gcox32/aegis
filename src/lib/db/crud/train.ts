@@ -1,5 +1,8 @@
 import { eq, and, desc, inArray, sql, ilike } from 'drizzle-orm';
 import { db } from '../index';
+import { calculateOutput } from '@/lib/log/train/work-power';
+import { getLatestUserStats } from './user';
+import type { WeightMeasurement, WorkMeasurement, PowerMeasurement } from '@/types/measures';
 
 // Helper to convert null to undefined for optional fields
 function nullToUndefined<T extends Record<string, any>>(obj: T): T {
@@ -799,9 +802,28 @@ export async function createWorkoutInstance(
     } as any)
     .returning();
 
+  // Calculate and update metrics (similar to bodyfat calculation for user stats)
+  const metrics = await calculateWorkoutInstanceMetrics(newInstance.id, userId);
+  const updateData: any = {};
+  if (metrics.work !== undefined) updateData.work = metrics.work;
+  if (metrics.averagePower !== undefined) updateData.averagePower = metrics.averagePower;
+  if (metrics.volume !== undefined) updateData.volume = metrics.volume;
+  
+  if (Object.keys(updateData).length > 0) {
+    await db
+      .update(workoutInstance)
+      .set(updateData)
+      .where(eq(workoutInstance.id, newInstance.id));
+  }
+
+  // Fetch the updated instance
+  const updated = await db.query.workoutInstance.findFirst({
+    where: (wi, { eq }) => eq(wi.id, newInstance.id),
+  });
+
   return {
-    ...newInstance,
-    date: new Date(newInstance.date),
+    ...(updated || newInstance),
+    date: new Date((updated || newInstance).date),
   } as WorkoutInstance;
 }
 
@@ -924,6 +946,114 @@ export async function getWorkoutInstanceById(
   } as WorkoutInstance;
 }
 
+/**
+ * Calculate work, averagePower, and volume for a workout instance
+ * Similar to how bodyfat is calculated for user stats
+ */
+async function calculateWorkoutInstanceMetrics(
+  instanceId: string,
+  userId: string
+): Promise<{
+  work?: WorkMeasurement;
+  averagePower?: PowerMeasurement;
+  volume?: WeightMeasurement;
+}> {
+  // Get the workout instance with all exercise instances
+  const instance = await getWorkoutInstanceById(instanceId, userId);
+  if (!instance || !instance.blockInstances) {
+    return {};
+  }
+
+  // Collect all exercise instances
+  const allExerciseInstances: WorkoutBlockExerciseInstance[] = [];
+  instance.blockInstances.forEach((blockInstance) => {
+    if (blockInstance.exerciseInstances) {
+      allExerciseInstances.push(...blockInstance.exerciseInstances);
+    }
+  });
+
+  // If no exercise instances, return empty
+  if (allExerciseInstances.length === 0) {
+    return {};
+  }
+
+  // Get latest user stats for work/power calculation
+  const userStats = await getLatestUserStats(userId);
+  if (!userStats) {
+    // Can't calculate work/power without user stats, but can still calculate volume
+    return calculateVolumeOnly(allExerciseInstances);
+  }
+
+  // Calculate work and averagePower
+  let work: WorkMeasurement | undefined;
+  let averagePower: PowerMeasurement | undefined;
+
+  try {
+    const result = calculateOutput(userStats, allExerciseInstances, instance.duration || null);
+    work = result.allWork;
+    // averagePower is only returned if duration is provided
+    averagePower = 'averagePower' in result ? result.averagePower : undefined;
+  } catch (error) {
+    // If calculation fails (e.g., missing stats), just calculate volume
+    console.warn('Failed to calculate work/power:', error);
+  }
+
+  // Calculate volume (sets * reps * externalLoad)
+  const volume = calculateVolume(allExerciseInstances);
+
+  return {
+    work,
+    averagePower,
+    volume,
+  };
+}
+
+/**
+ * Calculate volume from exercise instances
+ * Volume = sum of (reps * externalLoad) for each exercise instance
+ */
+function calculateVolume(
+  exerciseInstances: WorkoutBlockExerciseInstance[]
+): WeightMeasurement | undefined {
+  let totalVolumeKg = 0;
+  let hasVolume = false;
+
+  exerciseInstances.forEach((instance) => {
+    const reps = instance.measures?.reps || 0;
+    const externalLoad = instance.measures?.externalLoad;
+
+    if (reps > 0 && externalLoad?.value) {
+      hasVolume = true;
+      // Convert to kg for calculation
+      let loadKg = externalLoad.value;
+      if (externalLoad.unit === 'lbs') {
+        loadKg = loadKg * 0.453592; // Convert lbs to kg
+      }
+      totalVolumeKg += reps * loadKg;
+    }
+  });
+
+  if (!hasVolume) {
+    return undefined;
+  }
+
+  // Return in kg (standard unit for volume)
+  return {
+    value: totalVolumeKg,
+    unit: 'kg',
+  };
+}
+
+/**
+ * Calculate volume only (when user stats are not available)
+ */
+function calculateVolumeOnly(
+  exerciseInstances: WorkoutBlockExerciseInstance[]
+): { volume?: WeightMeasurement } {
+  const volume = calculateVolume(exerciseInstances);
+  return { volume };
+}
+
 export async function updateWorkoutInstance(
   instanceId: string,
   userId: string,
@@ -942,9 +1072,28 @@ export async function updateWorkoutInstance(
 
   if (!updated) return null;
 
+  // Recalculate and update metrics (similar to bodyfat recalculation for user stats)
+  const metrics = await calculateWorkoutInstanceMetrics(instanceId, userId);
+  const updateData: any = {};
+  if (metrics.work !== undefined) updateData.work = metrics.work;
+  if (metrics.averagePower !== undefined) updateData.averagePower = metrics.averagePower;
+  if (metrics.volume !== undefined) updateData.volume = metrics.volume;
+  
+  if (Object.keys(updateData).length > 0) {
+    await db
+      .update(workoutInstance)
+      .set(updateData)
+      .where(eq(workoutInstance.id, instanceId));
+  }
+
+  // Fetch the updated instance
+  const final = await db.query.workoutInstance.findFirst({
+    where: (wi, { eq }) => eq(wi.id, instanceId),
+  });
+
   return {
-    ...updated,
-    date: new Date(updated.date),
+    ...(final || updated),
+    date: new Date((final || updated).date),
   } as WorkoutInstance;
 }
 

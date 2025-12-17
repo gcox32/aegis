@@ -18,7 +18,7 @@ export const PLANES_OF_MOTION = ['sagittal', 'frontal', 'transverse'] as const;
 export const EQUIPMENT_TYPES = [
     'barbell', 'dumbbell', 'kettlebell', 'machine', 'bodyweight', 'variable',
     'cable', 'band', 'medicine ball', 'sled', 'sandbag', 'wheel', 'jump rope',
-    'pullup bar', 'rack', 'box', 'swiss ball', 'foam roller', 'bench',
+    'pullup bar', 'rack', 'box', 'swiss ball', 'foam roller', 'bench', 'landmine',
     'other'
 ] as const;
 

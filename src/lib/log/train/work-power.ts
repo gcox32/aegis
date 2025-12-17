@@ -1,28 +1,37 @@
 import { UserStats } from "@/types/user";
-import { WorkPowerConstants } from "@/types/train";
+import { ExerciseMeasures, WorkoutBlockExerciseInstance, WorkPowerConstants } from "@/types/train";
 import { defaultWorkPowerConstants } from "@/components/train/build/exercises/options";
+import { PowerMeasurement, TimeMeasurement, WorkMeasurement } from "@/types/measures";
 
-export const calculateOutput = (userStats: UserStats, measuresArray: any[], time = null, constantsArray = [], acceleration = 9.81) => {
+export const calculateOutput = (userStats: UserStats, exercises: WorkoutBlockExerciseInstance[], duration: TimeMeasurement | null, acceleration = 9.81) => {
     // Validate required inputs
     if (!userStats?.weight || !userStats?.armLength || !userStats?.legLength) {
       throw new Error('User stats are required to calculate work power');
     }
-  
+
+    if (!exercises || exercises.length === 0) {
+      throw new Error('Exercises are required to calculate work power');
+    }
+
+    const exerciseWorkPowerConstants: WorkPowerConstants[] = exercises.map((exercise) => exercise.workoutBlockExercise?.exercise.workPowerConstants || defaultWorkPowerConstants);
+    const exerciseMeasures: ExerciseMeasures[] = exercises.map((exercise) => exercise.measures || {});
+
     let totalWork = 0;
   
     // Process each measure with its corresponding constants
-    measuresArray.forEach((measures, index) => {
-      let constants: WorkPowerConstants = constantsArray[index] || defaultWorkPowerConstants;
-  
+    exercises.forEach((exercise, index) => {
+      let constants: WorkPowerConstants = exerciseWorkPowerConstants[index];
+      let measures: ExerciseMeasures = exerciseMeasures[index];
+
       // If using calories (for cardio machines)
       if (constants.useCalories) {
         if (measures.calories) {
-          const work = measures.calories * 4184; // 1 calorie = ~4184 Joules
+          const work = (measures.calories?.value || 0) * 4184; // 1 calorie = ~4184 Joules
           totalWork += work;
         }
       } else {
         // Simplified weight calculation - always consider bodyweight with factor
-        const weight = ((userStats.weight?.value || 0) * constants.bodyweightFactor) + (measures.externalLoad || 0);
+        const weight = ((userStats.weight?.value || 0) * constants.bodyweightFactor) + (measures.externalLoad?.value || 0) || 0;
         const force = weight * (acceleration / 9.81); // Normalize to gravity
   
         // Calculate distance to use (in meters)
@@ -73,8 +82,8 @@ export const calculateOutput = (userStats: UserStats, measuresArray: any[], time
           else if (distUnit === 'ft') distMeters = distMeters * 0.3048;
           else if (distUnit === 'in') distMeters = distMeters * 0.0254;
           else if (distUnit === 'km') distMeters = distMeters * 1000;
-          else if (distUnit === 'mi' || distUnit === 'miles') distMeters = distMeters * 1609.34;
-          // 'm' or 'meters' is already in meters
+          else if (distUnit === 'mi') distMeters = distMeters * 1609.34;
+          // 'm' is already in meters
           distanceMeters = distMeters;
         }
 
@@ -88,9 +97,15 @@ export const calculateOutput = (userStats: UserStats, measuresArray: any[], time
     });
   
     // Calculate power if time is provided
-    if (time) {
-      const power = totalWork / time; // kW
-      return { work: totalWork, power };
+    const allWork: WorkMeasurement     = { value: totalWork, unit: 'J' };
+    let averagePower: PowerMeasurement = { value: 0, unit: 'W' };
+
+    if (duration?.value) {
+      // duration is in minutes
+      const durationInSeconds = duration.value * 60;
+      averagePower = { value: totalWork / durationInSeconds, unit: 'W' };
+      return { allWork, averagePower };
+    } else {
+      return { allWork };
     }
-    return { work: totalWork };
   }
