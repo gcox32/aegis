@@ -285,12 +285,40 @@ export default function ActiveSessionPage({
   useEffect(() => {
     if (!currentStep) return;
     
-    // Reset inputs
-    setReps(currentStep.exercise.measures.reps?.toString() || '');
-    setWeight(currentStep.exercise.measures.externalLoad?.value?.toString() || '');
-    setWeightUnit(currentStep.exercise.measures.externalLoad?.unit || 'kg');
+    // 1. Determine defaults from Target or Previous Set
+    let defaultReps = currentStep.exercise.measures.reps?.toString() || '';
+    let defaultWeight = currentStep.exercise.measures.externalLoad?.value?.toString() || '';
+    let defaultUnit = currentStep.exercise.measures.externalLoad?.unit || 'lbs';
+
+    // Check previous step for "carry forward" logic
+    if (currentStepIndex > 0) {
+      const prevStep = steps[currentStepIndex - 1];
+      if (
+        prevStep &&
+        prevStep.block.id === currentStep.block.id &&
+        prevStep.exercise.id === currentStep.exercise.id
+      ) {
+        // Previous step was same exercise. Check if we have data for it.
+        const prevBlockInsts = exerciseInstances[prevStep.block.id] || [];
+        const prevMatch = prevBlockInsts.find(inst => 
+          inst.workoutBlockExerciseId === prevStep.exercise.id && 
+          inst.notes?.startsWith(`set:${prevStep.setIndex}:`)
+        );
+
+        if (prevMatch?.measures.externalLoad?.value) {
+          defaultWeight = prevMatch.measures.externalLoad.value.toString();
+          if (prevMatch.measures.externalLoad.unit) {
+            defaultUnit = prevMatch.measures.externalLoad.unit;
+          }
+        }
+      }
+    }
+
+    setReps(defaultReps);
+    setWeight(defaultWeight);
+    setWeightUnit(defaultUnit);
     
-    // Check for existing instance data to override
+    // 2. Override with existing saved data for THIS step
     const blockInsts = exerciseInstances[currentStep.block.id] || [];
     const match = blockInsts.find(inst => 
       inst.workoutBlockExerciseId === currentStep.exercise.id && 
@@ -307,7 +335,7 @@ export default function ActiveSessionPage({
       }
     }
     
-  }, [currentStepIndex, exerciseInstances, currentStep]);
+  }, [currentStepIndex, exerciseInstances, currentStep, steps]);
 
   // Actions
   async function saveCurrentStep() {
