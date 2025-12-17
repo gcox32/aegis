@@ -4,54 +4,16 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button';
-import { Play, Calendar, Loader2, Trash } from 'lucide-react';
+import { Play, Calendar, Loader2, Trash, Eye } from 'lucide-react';
 import type {
   ProtocolInstance,
   Workout,
   WorkoutInstance,
   Protocol,
 } from '@/types/train';
-import type { TimeMeasurement } from '@/types/measures';
+import { fetchJson, formatDate, timeToMinutes, formatMinutesAsHours } from '@/lib/train/helpers';
 
 type ApiListResponse<T> = { [key: string]: T[] };
-
-async function fetchJson<T>(input: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(input, {
-    ...init,
-    cache: 'no-store',
-  });
-
-  if (!res.ok) {
-    throw new Error(`Request failed: ${res.status}`);
-  }
-
-  return res.json();
-}
-
-function formatDate(date: Date | string) {
-  const d = typeof date === 'string' ? new Date(date) : date;
-  return d.toLocaleDateString(undefined, {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-  });
-}
-
-function timeToMinutes(duration?: TimeMeasurement | null): number {
-  if (!duration) return 0;
-  const { value, unit } = duration;
-  if (unit === 'min') return value;
-  if (unit === 'hr') return value * 60;
-  if (unit === 's') return value / 60;
-  return 0;
-}
-
-function formatMinutesAsHours(minutes: number) {
-  if (minutes <= 0) return '0m';
-  if (minutes < 60) return `${Math.round(minutes)}m`;
-  const hours = minutes / 60;
-  return `${hours.toFixed(hours >= 3 ? 0 : 1)}h`;
-}
 
 export default function TrainPage() {
   const router = useRouter();
@@ -167,17 +129,6 @@ export default function TrainPage() {
       console.error('Failed to start workout', err);
       alert('Failed to start workout. Please try again.');
       setStartingWorkoutId(null);
-    }
-  }
-
-  async function handleDeleteWorkoutInstance(workoutInstanceId: string) {
-    try {
-      await fetchJson(`/api/train/workout-instances/${workoutInstanceId}`, {
-        method: 'DELETE',
-      });
-      setRecentWorkoutInstances(recentWorkoutInstances.filter(instance => instance.id !== workoutInstanceId));
-    } catch (err: any) {
-      console.error('Failed to delete workout instance', err);
     }
   }
 
@@ -356,17 +307,19 @@ export default function TrainPage() {
                         {instance.complete ? 'Completed' : 'In progress'}
                       </span>
                     </div>
-                    <div className="flex gap-2 justify-between">
-                      <Link href={`/train/session/${instance.id}`}>
-                        <Button variant="outline" size="sm">
+                    <div className="flex justify-between gap-2">
+                      <Link href={`/log/workouts/${instance.id}`} className="w-full">
+                        <Button variant="outline" size="md" className="w-full">
+                          <Eye className="mr-1 w-4 h-4" />
+                          View
+                        </Button>
+                      </Link>
+                      <Link href={`/train/session/${instance.id}`} className="w-full">
+                        <Button variant="outline" size="md" className="w-full">
                           <Play className="mr-1 w-4 h-4" />
                           Resume
                         </Button>
                       </Link>
-                      <Button variant="danger" size="sm" onClick={() => handleDeleteWorkoutInstance(instance.id)}>
-                        <Trash className="w-4 h-4" />
-                        Delete
-                      </Button>
                     </div>
                   </div>
                 );

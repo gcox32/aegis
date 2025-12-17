@@ -2,7 +2,7 @@ export type PortionMeasurement    = { value: number; unit: 'g' | 'ml' | 'oz' | '
 export type LiquidMeasurement     = { value: number; unit: 'ml' | 'oz' | 'cup' | 'tbsp' | 'tsp' | 'fl oz' | 'other' };
 export type DosageMeasurement     = { value: number; unit: 'mg' | 'g' | 'ml' | 'oz' | 'tbsp' | 'tsp' | 'other' }; // e.g. "100 milligrams"
 
-export type DistanceMeasurement   = { value: number; unit: 'cm' | 'm' | 'in' | 'ft' | 'meters' | 'feet' | 'yards' | 'miles' };
+export type DistanceMeasurement   = { value: number; unit: 'cm' | 'm' | 'in' | 'ft' | 'm' | 'ft' | 'yd' | 'mi' | 'km'};
 export type TimeMeasurement       = { value: number; unit: 's' | 'min' | 'hr' };
 export type WeightMeasurement     = { value: number; unit: 'kg' | 'lbs' };
 export type CaloriesMeasurement   = { value: number; unit: 'cal' };

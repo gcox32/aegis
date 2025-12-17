@@ -32,6 +32,15 @@ const getGroupedExercises = (blockInstance: any) => {
         }
     });
 
+    // Sort sets within each group by created_at (completion time), then sort groups by exercise order
+    Object.values(groups).forEach(group => {
+        group.sets.sort((a, b) => {
+            const createdA = new Date(a.created_at as any).getTime();
+            const createdB = new Date(b.created_at as any).getTime();
+            return createdA - createdB;
+        });
+    });
+
     return Object.values(groups).sort((a, b) => a.definition.order - b.definition.order);
 };
 
@@ -50,28 +59,30 @@ export default function WorkoutInstanceBlock({ blockInstance, handleUpdateSetLoc
         handleUpdateSetLocal(setId, { measures: newMeasures });
     };
 
+    console.log(blockInstance);
+
     return (
-            <div key={blockInstance.id} className="bg-card rounded-lg border border-border overflow-hidden">
-                <div className="px-4 py-3 bg-zinc-800/50 border-b border-border flex justify-between items-center">
+            <div key={blockInstance.id} className="bg-card border border-border rounded-lg overflow-hidden">
+                <div className="flex justify-between items-center bg-zinc-800/50 px-4 py-3 border-border border-b">
                     <h3 className="font-semibold text-lg">
                         {blockInstance.workoutBlock?.name || 'Block'}
                     </h3>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-muted-foreground text-xs">
                         {blockInstance.workoutBlock?.circuit ? 'Circuit' : ''}
                     </span>
-                    <span className="text-xs text-muted-foreground uppercase tracking-wider px-2 py-1 rounded bg-zinc-800 border border-zinc-700">
+                    <span className="bg-zinc-800 px-2 py-1 border border-zinc-700 rounded text-muted-foreground text-xs uppercase tracking-wider">
                         {blockInstance.workoutBlock?.workoutBlockType}
                     </span>
                 </div>
-                <div className="p-4 space-y-6">
+                <div className="space-y-6 p-4">
                     {getGroupedExercises(blockInstance).map((group) => (
                         <div key={group.definition.id} className="space-y-3">
-                            <div className="flex items-center justify-between flex-col gap-2">
+                            <div className="flex flex-col justify-between items-center gap-2">
                                 <h4 className="font-medium text-brand-primary text-lg">
                                     {group.definition.exercise.name}
                                 </h4>
-                                <div className="flex items-center justify-between w-full gap-3">
-                                    <span className="text-xs text-muted-foreground">
+                                <div className="flex justify-between items-center gap-3 w-full">
+                                    <span className="text-muted-foreground text-xs">
                                         {group.definition.restTime ? `Rest: ${group.definition.restTime}s` : ''}
                                     </span>
                                     <Link href={`/log/workouts/${instanceId}/notes/${group.definition.id}`} className="text-muted-foreground hover:text-brand-primary transition-colors">
@@ -82,7 +93,7 @@ export default function WorkoutInstanceBlock({ blockInstance, handleUpdateSetLoc
 
                             <div className="overflow-x-auto">
                                 <table className="w-full text-sm text-left">
-                                    <thead className="text-xs text-muted-foreground uppercase bg-zinc-900/50">
+                                    <thead className="bg-zinc-900/50 text-muted-foreground text-xs uppercase">
                                         <tr>
                                             <th className="px-3 py-2 rounded-l-md w-12 text-center">Set</th>
                                             <th className="px-3 py-2 w-24">Reps</th>
@@ -92,13 +103,13 @@ export default function WorkoutInstanceBlock({ blockInstance, handleUpdateSetLoc
                                     </thead>
                                     <tbody className="divide-y divide-zinc-800/50">
                                         {group.sets.map((set, index) => (
-                                            <tr key={set.id} className="hover:bg-zinc-800/30 group/row">
-                                                <td className="px-3 py-2 text-center font-medium text-muted-foreground">
+                                            <tr key={set.id} className="group/row hover:bg-zinc-800/30">
+                                                <td className="px-3 py-2 font-medium text-muted-foreground text-center">
                                                     {index + 1}
                                                 </td>
                                                 <td className="px-3 py-2">
                                                     <NumberInput
-                                                        className="w-16 bg-transparent border border-zinc-700 rounded px-2 py-1 text-center focus:border-brand-primary outline-none focus:ring-1 focus:ring-brand-primary"
+                                                        className="bg-transparent px-2 py-1 border border-zinc-700 focus:border-brand-primary rounded outline-none focus:ring-1 focus:ring-brand-primary w-16 text-center"
                                                         value={set.measures.reps}
                                                         onValueChange={(val) => updateMeasure(set.id, set.measures, 'reps', val)}
                                                     />
@@ -106,7 +117,7 @@ export default function WorkoutInstanceBlock({ blockInstance, handleUpdateSetLoc
                                                 <td className="px-3 py-2">
                                                     <div className="flex items-center gap-1">
                                                         <NumberInput
-                                                            className="w-20 bg-transparent border border-zinc-700 rounded px-2 py-1 text-center focus:border-brand-primary outline-none focus:ring-1 focus:ring-brand-primary"
+                                                            className="bg-transparent px-2 py-1 border border-zinc-700 focus:border-brand-primary rounded outline-none focus:ring-1 focus:ring-brand-primary w-20 text-center"
                                                             value={set.measures.externalLoad?.value}
                                                             onValueChange={(val) => updateLoad(set.id, set.measures, val)}
                                                             allowFloat
@@ -122,7 +133,7 @@ export default function WorkoutInstanceBlock({ blockInstance, handleUpdateSetLoc
                                                         variant="ghost"
                                                         size="sm"
                                                         onClick={() => handleDeleteSet(set.id, blockInstance.id)}
-                                                        className="text-xs h-7 text-muted-foreground hover:text-brand-primary px-2"
+                                                        className="px-2 h-7 text-muted-foreground hover:text-brand-primary text-xs"
                                                         title="Delete Set"
                                                     >
                                                         <X className="w-4 h-4" />
@@ -137,9 +148,9 @@ export default function WorkoutInstanceBlock({ blockInstance, handleUpdateSetLoc
                                         variant="ghost"
                                         size="sm"
                                         onClick={() => handleAddSet(blockInstance.id, group.definition.id)}
-                                        className="text-xs h-7 text-muted-foreground hover:text-brand-primary px-2"
+                                        className="px-2 h-7 text-muted-foreground hover:text-brand-primary text-xs"
                                     >
-                                        <Plus className="w-3 h-3 mr-1" /> Add Set
+                                        <Plus className="mr-1 w-3 h-3" /> Add Set
                                     </Button>
                                 </div>
                             </div>

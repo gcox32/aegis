@@ -72,6 +72,8 @@ export interface UserStats {
     statsLogId:         UserStatsLog['id'];
     height?:            HeightMeasurement;
     weight?:            WeightMeasurement;
+    armLength?:         HeightMeasurement;
+    legLength?:         HeightMeasurement;
     bodyFatPercentage?: PercentageMeasurement;
     muscleMass?:        WeightMeasurement;
     tapeMeasurements?:  TapeMeasurement;

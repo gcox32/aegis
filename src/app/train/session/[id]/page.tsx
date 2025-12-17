@@ -297,7 +297,6 @@ export default function ActiveSessionPage({
     const payload = {
       workoutBlockInstanceId: blockInstanceId,
       workoutBlockExerciseId: currentStep.exercise.id,
-      date: new Date().toISOString(),
       complete: true,
       measures: {
         ...currentStep.exercise.measures,

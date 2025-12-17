@@ -268,6 +268,8 @@ export async function createUserStats(
       statsLogId,
       height: statsData.height,
       weight: statsData.weight,
+      armLength: statsData.armLength,
+      legLength: statsData.legLength,
       bodyFatPercentage: statsData.bodyFatPercentage,
       muscleMass: statsData.muscleMass,
       date: statsData.date ? statsData.date.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],

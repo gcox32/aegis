@@ -4,12 +4,14 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { WorkoutInstance, WorkoutBlockExerciseInstance } from '@/types/train';
 import BackToLink from '@/components/layout/navigation/BackToLink';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Trash } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 import StatsGrid from '@/components/log/workouts/instance/StatsGrid';
 import Button from '@/components/ui/Button';
 import WorkoutInstanceHeader from '@/components/log/workouts/instance/Header';
 import WorkoutInstanceBlock from '@/components/log/workouts/instance/Block';
+import { fetchJson } from '@/lib/train/helpers';
+import ConfirmationModal from '@/components/ui/ConfirmationModal';
 
 export default function WorkoutInstanceDetailPage() {
     const { instanceId } = useParams();
@@ -17,6 +19,31 @@ export default function WorkoutInstanceDetailPage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const { showToast } = useToast();
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [workoutInstanceToDelete, setWorkoutInstanceToDelete] = useState<WorkoutInstance | null>(null);
+
+    const handleDeleteClick = (e: React.MouseEvent, workoutInstance: WorkoutInstance) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setWorkoutInstanceToDelete(workoutInstance);
+        setDeleteModalOpen(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!workoutInstanceToDelete) return;
+        try {
+            await fetchJson(`/api/train/workout-instances/${workoutInstanceToDelete.id}`, {
+                method: 'DELETE',
+            });
+        } catch (err) {
+            console.error('Failed to delete workout instance', err);
+        }
+    };
+
+    const handleCloseDeleteModal = () => {
+        setDeleteModalOpen(false);
+        setWorkoutInstanceToDelete(null);
+    };
 
     useEffect(() => {
         async function fetchInstance() {
@@ -53,12 +80,12 @@ export default function WorkoutInstanceDetailPage() {
 
     const handleAddSet = async (blockInstanceId: string, exerciseId: string) => {
         if (!instance) return;
-        
+
         // Find existing sets to copy measures from last set
         const block = instance.blockInstances?.find(b => b.id === blockInstanceId);
         const existingSets = block?.exerciseInstances?.filter(e => e.workoutBlockExerciseId === exerciseId) || [];
         const lastSet = existingSets.length > 0 ? existingSets[existingSets.length - 1] : null;
-        
+
         const newSetData = {
             workoutBlockInstanceId: blockInstanceId,
             workoutBlockExerciseId: exerciseId,
@@ -179,15 +206,15 @@ export default function WorkoutInstanceDetailPage() {
     if (!instance) return <div className="p-8">Workout not found</div>;
 
     return (
-        <div className="mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-7xl mb-16">
-            <div className="flex items-center justify-between">
+        <div className="mx-auto mb-16 px-4 sm:px-6 lg:px-8 py-8 max-w-7xl">
+            <div className="flex justify-between items-center">
                 <BackToLink href="/log/workouts" pageName="Workout History" />
             </div>
 
             {/* Header */}
             <div className="mb-6">
-                <h1 className="text-3xl font-bold text-gray-100 my-2">{instance.workout?.name || 'Untitled Workout'}</h1>
-                <Button onClick={handleSave} disabled={saving} className="w-full sm:w-auto my-2">
+                <h1 className="my-2 font-bold text-gray-100 text-3xl">{instance.workout?.name || 'Untitled Workout'}</h1>
+                <Button onClick={handleSave} disabled={saving} className="my-2 w-full sm:w-auto">
                     {saving ? <Loader2 className="animate-spin" /> : 'Update'}
                 </Button>
                 <WorkoutInstanceHeader instance={instance} setInstance={setInstance} />
@@ -198,15 +225,31 @@ export default function WorkoutInstanceDetailPage() {
             {/* Blocks */}
             <div className="space-y-6">
                 {instance.blockInstances?.map((blockInstance) => (
-                    <WorkoutInstanceBlock 
-                        key={blockInstance.id} 
-                        blockInstance={blockInstance} 
-                        handleUpdateSetLocal={handleUpdateSetLocal} 
+                    <WorkoutInstanceBlock
+                        key={blockInstance.id}
+                        blockInstance={blockInstance}
+                        handleUpdateSetLocal={handleUpdateSetLocal}
                         handleAddSet={handleAddSet}
                         handleDeleteSet={handleDeleteSet}
                     />
                 ))}
             </div>
+            <Button
+                onClick={(e) => handleDeleteClick(e, instance)}
+                variant="danger"
+                disabled={saving}
+                className="my-4 w-full sm:w-auto font-weight-light"
+            >
+                <Trash className="mr-1 w-4 h-4" />
+                Delete
+            </Button>
+            <ConfirmationModal
+                isOpen={deleteModalOpen}
+                onClose={handleCloseDeleteModal}
+                onConfirm={handleConfirmDelete}
+                title="Delete Workout Instance"
+                message={`Are you sure you want to delete this workout instance? This action cannot be undone.`}
+            />
         </div>
     );
 }

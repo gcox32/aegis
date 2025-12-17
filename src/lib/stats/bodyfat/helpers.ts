@@ -1,6 +1,9 @@
 import type { UserStats, TapeMeasurement } from '@/types/user';
 import type { HeightMeasurement, WeightMeasurement, DistanceMeasurement } from '@/types/measures';
 import { getUserStats } from '@/lib/db/crud/user';
+import { db } from '@/lib/db';
+import { tapeMeasurement } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 
 /**
  * Get the latest height value (ignores staleness - height rarely changes)
@@ -17,6 +20,48 @@ export async function getLatestHeight(userId: string): Promise<HeightMeasurement
   for (const stat of sortedStats) {
     if (stat.height) {
       return stat.height;
+    }
+  }
+
+  return undefined;
+}
+
+/**
+ * Get the latest arm length value (ignores staleness - arm length rarely changes)
+ */
+export async function getLatestArmLength(userId: string): Promise<HeightMeasurement | undefined> {
+  const stats = await getUserStats(userId);
+  if (stats.length === 0) {
+    return undefined;
+  }
+
+  // Sort by date (newest first) and find first arm length
+  const sortedStats = stats.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  
+  for (const stat of sortedStats) {
+    if (stat.armLength) {
+      return stat.armLength;
+    }
+  }
+
+  return undefined;
+}
+
+/**
+ * Get the latest leg length value (ignores staleness - leg length rarely changes)
+ */
+export async function getLatestLegLength(userId: string): Promise<HeightMeasurement | undefined> {
+  const stats = await getUserStats(userId);
+  if (stats.length === 0) {
+    return undefined;
+  }
+
+  // Sort by date (newest first) and find first leg length
+  const sortedStats = stats.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  
+  for (const stat of sortedStats) {
+    if (stat.legLength) {
+      return stat.legLength;
     }
   }
 
@@ -60,8 +105,33 @@ export async function getLatestStatsValues(
     if (!latestWeight && stat.weight) {
       latestWeight = stat.weight;
     }
-    if (!latestTapeMeasurements && stat.tapeMeasurements) {
-      latestTapeMeasurements = stat.tapeMeasurements;
+    
+    // Fetch tape measurements from the separate table if we don't have them yet
+    if (!latestTapeMeasurements) {
+      const [tape] = await db
+        .select()
+        .from(tapeMeasurement)
+        .where(eq(tapeMeasurement.userStatsId, stat.id))
+        .limit(1);
+      
+      if (tape) {
+        // Convert tape measurement to the expected format
+        latestTapeMeasurements = {
+          neck: tape.neck as DistanceMeasurement | undefined,
+          shoulders: tape.shoulders as DistanceMeasurement | undefined,
+          chest: tape.chest as DistanceMeasurement | undefined,
+          waist: tape.waist as DistanceMeasurement | undefined,
+          hips: tape.hips as DistanceMeasurement | undefined,
+          leftArm: tape.leftArm as DistanceMeasurement | undefined,
+          rightArm: tape.rightArm as DistanceMeasurement | undefined,
+          leftLeg: tape.leftLeg as DistanceMeasurement | undefined,
+          rightLeg: tape.rightLeg as DistanceMeasurement | undefined,
+          leftForearm: tape.leftForearm as DistanceMeasurement | undefined,
+          rightForearm: tape.rightForearm as DistanceMeasurement | undefined,
+          leftCalf: tape.leftCalf as DistanceMeasurement | undefined,
+          rightCalf: tape.rightCalf as DistanceMeasurement | undefined,
+        };
+      }
     }
 
     // If we have all values, we can stop

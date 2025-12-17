@@ -7,7 +7,7 @@ import type { TapeMeasurement } from '@/types/user';
 import type { HeightMeasurement, WeightMeasurement, PercentageMeasurement, DistanceMeasurement } from '@/types/measures';
 import { useToast } from '@/components/ui/Toast';
 import { getPreference } from '@/lib/preferences';
-import HeightField from './HeightField';
+import AnthropometryField from './AnthropometryField';
 import BodyFatField from './BodyFatField';
 import MuscleMassField from './MuscleMassField';
 import TapeMeasurementsField from './TapeMeasurementsField';
@@ -16,6 +16,8 @@ type CreateStatsPayload = {
   date?: string;
   height?: HeightMeasurement;
   weight?: WeightMeasurement;
+  armLength?: HeightMeasurement;
+  legLength?: HeightMeasurement;
   bodyFatPercentage?: PercentageMeasurement;
   muscleMass?: WeightMeasurement;
   tapeMeasurements?: Partial<TapeMeasurement>;
@@ -28,31 +30,39 @@ type StatsFormProps = {
 export default function StatsForm({ onSuccess }: StatsFormProps) {
   const [saving, setSaving] = useState(false);
   const [date, setDate] = useState('');
-  
+
   // Weight (always visible)
   const [weight, setWeight] = useState('');
   const [weightUnit, setWeightUnit] = useState<'kg' | 'lbs'>('lbs');
-  
+
   // Expandable sections
-  const [showHeight, setShowHeight] = useState(false);
+  const [showAnthropometry, setShowAnthropometry] = useState(false);
   const [showBodyFat, setShowBodyFat] = useState(false);
   const [showMuscleMass, setShowMuscleMass] = useState(false);
   const [showTapeMeasurements, setShowTapeMeasurements] = useState(false);
-  
+
   // Height
   const [height, setHeight] = useState('');
   const [heightUnit, setHeightUnit] = useState<'cm' | 'm' | 'in' | 'ft'>('in');
-  
+
+  // Arm length
+  const [armLength, setArmLength] = useState('');
+  const [armLengthUnit, setArmLengthUnit] = useState<'cm' | 'm' | 'in' | 'ft'>('in');
+
+  // Leg length
+  const [legLength, setLegLength] = useState('');
+  const [legLengthUnit, setLegLengthUnit] = useState<'cm' | 'm' | 'in' | 'ft'>('in');
+
   // Body fat
   const [bodyFat, setBodyFat] = useState('');
-  
+
   // Muscle mass
   const [muscleMass, setMuscleMass] = useState('');
   const [muscleMassUnit, setMuscleMassUnit] = useState<'kg' | 'lbs'>('lbs');
-  
+
   // Tape measurements
   const [tapeMeasurements, setTapeMeasurements] = useState<Record<string, { value: string; unit: 'cm' | 'in' }>>({});
-  
+
   const { showToast } = useToast();
 
   async function handleSubmit(e: FormEvent) {
@@ -62,35 +72,49 @@ export default function StatsForm({ onSuccess }: StatsFormProps) {
     try {
       const payload: CreateStatsPayload = {};
       if (date) payload.date = date;
-      
+
       if (weight) {
         payload.weight = {
           value: Number(weight),
           unit: weightUnit,
         };
       }
-      
-      if (showHeight && height) {
-        payload.height = {
-          value: Number(height),
-          unit: heightUnit,
-        };
+
+      if (showAnthropometry) {
+        if (height) {
+          payload.height = {
+            value: Number(height),
+            unit: heightUnit,
+          };
+        }
+        if (armLength) {
+          payload.armLength = {
+            value: Number(armLength),
+            unit: armLengthUnit,
+          };
+        }
+        if (legLength) {
+          payload.legLength = {
+            value: Number(legLength),
+            unit: legLengthUnit,
+          };
+        }
       }
-      
+
       if (showBodyFat && bodyFat) {
         payload.bodyFatPercentage = {
           value: Number(bodyFat),
           unit: '%',
         };
       }
-      
+
       if (showMuscleMass && muscleMass) {
         payload.muscleMass = {
           value: Number(muscleMass),
           unit: muscleMassUnit,
         };
       }
-      
+
       if (showTapeMeasurements) {
         const tape: Partial<Record<keyof TapeMeasurement, DistanceMeasurement>> = {};
         const tapeFields: Array<keyof TapeMeasurement> = [
@@ -98,7 +122,7 @@ export default function StatsForm({ onSuccess }: StatsFormProps) {
           'leftArm', 'rightArm', 'leftLeg', 'rightLeg',
           'leftForearm', 'rightForearm', 'leftCalf', 'rightCalf',
         ];
-        
+
         tapeFields.forEach((field) => {
           const data = tapeMeasurements[field];
           if (data?.value) {
@@ -109,7 +133,7 @@ export default function StatsForm({ onSuccess }: StatsFormProps) {
             tape[field] = measurement;
           }
         });
-        
+
         if (Object.keys(tape).length > 0) {
           payload.tapeMeasurements = tape as Partial<TapeMeasurement>;
         }
@@ -138,20 +162,22 @@ export default function StatsForm({ onSuccess }: StatsFormProps) {
       // Reset form
       setWeight('');
       setHeight('');
+      setArmLength('');
+      setLegLength('');
       setBodyFat('');
       setMuscleMass('');
       setTapeMeasurements({});
-      setShowHeight(false);
+      setShowAnthropometry(false);
       setShowBodyFat(false);
       setShowMuscleMass(false);
       setShowTapeMeasurements(false);
-      
+
       showToast({
         variant: 'success',
         title: 'Stats logged',
         description: 'Your body stats entry has been saved.',
       });
-      
+
       onSuccess?.();
     } catch (e: any) {
       showToast({
@@ -163,7 +189,7 @@ export default function StatsForm({ onSuccess }: StatsFormProps) {
       setSaving(false);
     }
   }
-  
+
   function updateTapeMeasurement(field: string, value: string, unit: 'cm' | 'in') {
     setTapeMeasurements((prev) => ({
       ...prev,
@@ -226,17 +252,15 @@ export default function StatsForm({ onSuccess }: StatsFormProps) {
 
       {/* Expandable sections */}
       <div className="space-y-3 pt-2">
-        <HeightField
-          isExpanded={showHeight}
-          onExpand={() => setShowHeight(true)}
+        <TapeMeasurementsField
+          isExpanded={showTapeMeasurements}
+          onExpand={() => setShowTapeMeasurements(true)}
           onCollapse={() => {
-            setShowHeight(false);
-            setHeight('');
+            setShowTapeMeasurements(false);
+            setTapeMeasurements({});
           }}
-          value={height}
-          unit={heightUnit}
-          onValueChange={setHeight}
-          onUnitChange={setHeightUnit}
+          measurements={tapeMeasurements}
+          onMeasurementChange={updateTapeMeasurement}
         />
 
         <BodyFatField
@@ -263,16 +287,29 @@ export default function StatsForm({ onSuccess }: StatsFormProps) {
           onUnitChange={setMuscleMassUnit}
         />
 
-        <TapeMeasurementsField
-          isExpanded={showTapeMeasurements}
-          onExpand={() => setShowTapeMeasurements(true)}
+        <AnthropometryField
+          isExpanded={showAnthropometry}
+          onExpand={() => setShowAnthropometry(true)}
           onCollapse={() => {
-            setShowTapeMeasurements(false);
-            setTapeMeasurements({});
+            setShowAnthropometry(false);
+            setHeight('');
+            setArmLength('');
+            setLegLength('');
           }}
-          measurements={tapeMeasurements}
-          onMeasurementChange={updateTapeMeasurement}
+          height={height}
+          heightUnit={heightUnit}
+          onHeightChange={setHeight}
+          onHeightUnitChange={setHeightUnit}
+          armLength={armLength}
+          armLengthUnit={armLengthUnit}
+          onArmLengthChange={setArmLength}
+          onArmLengthUnitChange={setArmLengthUnit}
+          legLength={legLength}
+          legLengthUnit={legLengthUnit}
+          onLegLengthChange={setLegLength}
+          onLegLengthUnitChange={setLegLengthUnit}
         />
+
       </div>
 
       <div className="pt-1">

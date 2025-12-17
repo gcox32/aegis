@@ -179,7 +179,7 @@ export interface WorkoutBlockExerciseInstance {
     workoutBlockInstanceId: WorkoutBlockInstance['id'];
     workoutBlockExerciseId: WorkoutBlockExercise['id'];
     workoutBlockExercise?:  WorkoutBlockExercise; // hydrated on frontend
-    date:                   Date;
+    created_at:             Date;
     complete:               boolean;
     personalBest?:          boolean;
     measures:               ExerciseMeasures;

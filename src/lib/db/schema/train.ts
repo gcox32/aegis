@@ -154,7 +154,7 @@ export const workoutBlockExerciseInstance = trainSchema.table('workout_block_exe
   workoutBlockExerciseId: uuid('workout_block_exercise_id')
     .notNull()
     .references(() => workoutBlockExercise.id),
-  date: timestamp('date', { withTimezone: true }).notNull(),
+  created_at: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   complete: boolean('complete').notNull().default(false),
   personalBest: boolean('personal_best'),
   measures: jsonb('measures').notNull(),

@@ -10,7 +10,7 @@ import {
 } from '@/lib/db/crud';
 import { getQueryParam } from '@/lib/api/helpers';
 import { estimateBodyFat } from '@/lib/stats/bodyfat';
-import { getLatestStatsValues, getLatestHeight, calculateAge } from '@/lib/stats/bodyfat/helpers';
+import { getLatestStatsValues, getLatestHeight, getLatestArmLength, getLatestLegLength, calculateAge } from '@/lib/stats/bodyfat/helpers';
 import type { BodyFatInput } from '@/types/stats';
 import type { CompositeStrategy } from '@/types/stats';
 
@@ -36,6 +36,8 @@ export async function POST(request: NextRequest) {
       date?: string;
       height?: { value: number; unit: string };
       weight?: { value: number; unit: string };
+      armLength?: { value: number; unit: string };
+      legLength?: { value: number; unit: string };
       bodyFatPercentage?: { value: number; unit?: string };
       muscleMass?: { value: number; unit: string };
       tapeMeasurements?: Record<string, { value: number; unit: string }>;
@@ -47,6 +49,8 @@ export async function POST(request: NextRequest) {
     const hasAnyData = !!(
       body.height ||
       body.weight ||
+      body.armLength ||
+      body.legLength ||
       body.bodyFatPercentage ||
       body.muscleMass ||
       body.tapeMeasurements ||
@@ -60,14 +64,18 @@ export async function POST(request: NextRequest) {
     // Always fetch latest values to fill in missing data
     const maxDaysOld = body.bodyFatMaxDaysOld ?? 30;
     
-    // Fetch height separately (ignores staleness - height rarely changes)
+    // Fetch height, armLength, and legLength separately (ignores staleness - these rarely change)
     const latestHeight = await getLatestHeight(userId);
+    const latestArmLength = await getLatestArmLength(userId);
+    const latestLegLength = await getLatestLegLength(userId);
     
     // Fetch other values with staleness constraint
     const latestValues = await getLatestStatsValues(userId, maxDaysOld);
-
-    // Always use latest height and weight (submitted takes precedence)
+    console.log('latestValues', latestValues);
+    // Always use latest height, armLength, legLength, and weight (submitted takes precedence)
     const height = body.height || latestHeight;
+    const armLength = body.armLength || latestArmLength;
+    const legLength = body.legLength || latestLegLength;
     const weight = body.weight || latestValues.weight;
     
     // Merge tape measurements: use submitted values, fill in missing from latest
@@ -153,14 +161,40 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Build complete stats data: always include height, weight, date, and calculated body fat
+    // Build complete stats data: include submitted values or latest values (if they exist)
     const statsData: any = {
       date: body.date ? new Date(body.date) : new Date(), // Use submitted date or now
-      height: height, // Always include latest height
-      weight: weight, // Always include latest weight
-      ...(body.muscleMass && { muscleMass: body.muscleMass }),
-      ...(body.tapeMeasurements && { tapeMeasurements: body.tapeMeasurements }),
     };
+
+    // Include height if submitted or latest exists
+    if (height) {
+      statsData.height = height;
+    }
+
+    // Include armLength if submitted or latest exists
+    if (armLength) {
+      statsData.armLength = armLength;
+    }
+
+    // Include legLength if submitted or latest exists
+    if (legLength) {
+      statsData.legLength = legLength;
+    }
+
+    // Include weight if submitted or latest exists
+    if (weight) {
+      statsData.weight = weight;
+    }
+
+    // Include muscle mass if submitted
+    if (body.muscleMass) {
+      statsData.muscleMass = body.muscleMass;
+    }
+
+    // Include tape measurements if submitted
+    if (body.tapeMeasurements) {
+      statsData.tapeMeasurements = body.tapeMeasurements;
+    }
 
     // Include body fat: use submitted if provided, otherwise use calculated
     if (body.bodyFatPercentage) {

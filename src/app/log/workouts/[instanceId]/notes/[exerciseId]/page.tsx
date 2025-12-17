@@ -40,7 +40,11 @@ export default function ExerciseNotesPage() {
                 );
                 
                 if (matchingInstances.length > 0 && matchingInstances[0].workoutBlockExercise) {
-                    const sortedSets = matchingInstances.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+                    const sortedSets = matchingInstances.sort((a, b) => {
+                        const createdA = new Date(a.created_at as any).getTime();
+                        const createdB = new Date(b.created_at as any).getTime();
+                        return createdA - createdB;
+                    });
                     setSets(sortedSets);
                     setTargetGroup({
                         definition: matchingInstances[0].workoutBlockExercise,

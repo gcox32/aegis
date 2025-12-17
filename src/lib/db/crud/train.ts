@@ -892,16 +892,22 @@ export async function getWorkoutInstanceById(
     workoutBlock: bi.workoutBlock ? nullToUndefined(bi.workoutBlock) : undefined,
     exerciseInstances: bi.exerciseInstances.map((ei: any) => ({
       ...nullToUndefined(ei),
-      date: new Date(ei.date),
+      created_at: new Date(ei.created_at),
       workoutBlockExercise: ei.workoutBlockExercise ? {
         ...nullToUndefined(ei.workoutBlockExercise),
         exercise: ei.workoutBlockExercise.exercise ? nullToUndefined(ei.workoutBlockExercise.exercise) : undefined
       } : undefined
     })).sort((a: any, b: any) => {
-      // Sort by order from definition if available
+      // Sort by order from definition first, then by created_at for sets within the same exercise
       const orderA = a.workoutBlockExercise?.order ?? 0;
       const orderB = b.workoutBlockExercise?.order ?? 0;
-      return orderA - orderB;
+      if (orderA !== orderB) {
+        return orderA - orderB;
+      }
+      // If same exercise, sort by created_at
+      const createdA = a.created_at?.getTime() ?? 0;
+      const createdB = b.created_at?.getTime() ?? 0;
+      return createdA - createdB;
     })
   })).sort((a: any, b: any) => {
     // Sort by order from definition if available
@@ -1089,7 +1095,6 @@ export async function createWorkoutBlockExerciseInstance(
       userId,
       workoutBlockInstanceId: instanceData.workoutBlockInstanceId,
       workoutBlockExerciseId: instanceData.workoutBlockExerciseId,
-      date: instanceData.date,
       complete: instanceData.complete ?? false,
       personalBest: instanceData.personalBest,
       measures: instanceData.measures,
@@ -1101,7 +1106,7 @@ export async function createWorkoutBlockExerciseInstance(
 
   return {
     ...newInstance,
-    date: new Date(newInstance.date),
+    created_at: new Date(newInstance.created_at),
   } as WorkoutBlockExerciseInstance;
 }
 
@@ -1114,11 +1119,11 @@ export async function getWorkoutBlockExerciseInstances(
     .where(
       eq(workoutBlockExerciseInstance.workoutBlockInstanceId, workoutBlockInstanceId)
     )
-    .orderBy(workoutBlockExerciseInstance.date);
+    .orderBy(workoutBlockExerciseInstance.created_at);
   
   return results.map((r) => ({
     ...r,
-    date: new Date(r.date),
+    created_at: new Date(r.created_at),
   })) as WorkoutBlockExerciseInstance[];
 }
 
@@ -1133,9 +1138,6 @@ export async function updateWorkoutBlockExerciseInstance(
   >
 ): Promise<WorkoutBlockExerciseInstance | null> {
   const dbUpdates: any = { ...updates };
-  if (dbUpdates.date && typeof dbUpdates.date === 'string') {
-    dbUpdates.date = new Date(dbUpdates.date);
-  }
 
   const [updated] = await db
     .update(workoutBlockExerciseInstance)
@@ -1152,7 +1154,7 @@ export async function updateWorkoutBlockExerciseInstance(
 
   return {
     ...updated,
-    date: new Date(updated.date),
+    created_at: new Date(updated.created_at),
   } as WorkoutBlockExerciseInstance;
 }
 

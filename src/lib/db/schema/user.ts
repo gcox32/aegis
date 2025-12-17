@@ -53,6 +53,8 @@ export const userStats = pgTable('user_stats', {
   statsLogId: uuid('stats_log_id').notNull().references(() => userStatsLog.id),
   height: jsonb('height'),
   weight: jsonb('weight'),
+  armLength: jsonb('arm_length'),
+  legLength: jsonb('leg_length'),
   bodyFatPercentage: jsonb('body_fat_percentage'),
   muscleMass: jsonb('muscle_mass'),
   date: date('date').notNull(),
