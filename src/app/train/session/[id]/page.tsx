@@ -12,6 +12,7 @@ import type {
   WorkoutBlockExercise,
   WorkoutBlockExerciseInstance,
   SessionStep,
+  Exercise,
 } from '@/types/train';
 import { formatClock } from '@/lib/train/helpers';
 
@@ -25,6 +26,9 @@ import { SessionMenu } from '@/components/train/session/overlays/SessionMenu';
 import { PauseOverlay } from '@/components/train/session/overlays/PauseOverlay';
 import { SettingsOverlay } from '@/components/train/session/overlays/SettingsOverlay';
 import { WorkoutSummaryOverlay } from '@/components/train/session/overlays/WorkoutSummaryOverlay';
+import { NoteInputOverlay } from '@/components/train/session/overlays/NoteInputOverlay';
+import { ExerciseDetailsOverlay } from '@/components/train/session/overlays/ExerciseDetailsOverlay';
+import { SwapExerciseOverlay } from '@/components/train/session/overlays/SwapExerciseOverlay';
 
 
 type WorkoutInstanceResponse = { workoutInstance: WorkoutInstance };
@@ -59,6 +63,7 @@ export default function ActiveSessionPage({
   const [error, setError] = useState<string | null>(null);
   const [workoutInstance, setWorkoutInstance] = useState<WorkoutInstance | null>(null);
   const [blocks, setBlocks] = useState<WorkoutBlock[]>([]);
+  const [exercisesMap, setExercisesMap] = useState<Record<string, WorkoutBlockExercise[]>>({});
   const [exerciseInstances, setExerciseInstances] = useState<Record<string, WorkoutBlockExerciseInstance[]>>({});
 
   // Execution State
@@ -69,6 +74,9 @@ export default function ActiveSessionPage({
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
+  const [isNoteOpen, setIsNoteOpen] = useState(false);
+  const [isExerciseDetailsOpen, setIsExerciseDetailsOpen] = useState(false);
+  const [isSwapExerciseOpen, setIsSwapExerciseOpen] = useState(false);
   const [isResting, setIsResting] = useState(false);
   const [restSecondsRemaining, setRestSecondsRemaining] = useState(0);
   const [timerSoundsEnabled, setTimerSoundsEnabled] = useState(true);
@@ -97,6 +105,18 @@ export default function ActiveSessionPage({
       });
     });
     return total;
+  }, [exerciseInstances]);
+
+  const totalSets = useMemo(() => {
+    let count = 0;
+    Object.values(exerciseInstances).forEach((instances) => {
+      instances.forEach((inst) => {
+        if (inst.complete) {
+          count++;
+        }
+      });
+    });
+    return count;
   }, [exerciseInstances]);
 
   // Load timer-sound preference
@@ -184,14 +204,14 @@ export default function ActiveSessionPage({
         setBlocks(blocksRes.blocks || []);
 
         // 3. Get Exercises & Existing Logs
-        const exercisesMap: Record<string, WorkoutBlockExercise[]> = {};
+        const exercisesMapData: Record<string, WorkoutBlockExercise[]> = {};
         const instancesMap: Record<string, WorkoutBlockExerciseInstance[]> = {};
 
         for (const block of blocksRes.blocks || []) {
           const exRes = await fetchJson<BlockExercisesResponse>(
             `/api/train/workouts/${wi.workoutInstance.workoutId}/blocks/${block.id}/exercises`
           );
-          exercisesMap[block.id] = exRes.exercises || [];
+          exercisesMapData[block.id] = exRes.exercises || [];
 
           const blockInstance = biRes.instances.find(bi => bi.workoutBlockId === block.id);
           if (blockInstance) {
@@ -209,12 +229,13 @@ export default function ActiveSessionPage({
         }
 
         if (cancelled) return;
+        setExercisesMap(exercisesMapData);
         setExerciseInstances(instancesMap);
         
         // 4. Build Steps (Flattened Workout)
         const builtSteps: SessionStep[] = [];
         (blocksRes.blocks || []).forEach(block => {
-          const exercises = exercisesMap[block.id] || [];
+          const exercises = exercisesMapData[block.id] || [];
           
           if (block.circuit) {
             // Circuit mode: cycle through exercises (set 1 of all exercises, then set 2 of all exercises, etc.)
@@ -570,6 +591,220 @@ export default function ActiveSessionPage({
     }
   };
 
+  const handleSaveNote = async (noteText: string) => {
+    if (!currentStep || !workoutInstance) return;
+
+    const blockInstanceId = await ensureBlockInstance(currentStep.block.id);
+    if (!blockInstanceId) return;
+
+    // Find existing instance for this set
+    const blockInsts = exerciseInstances[currentStep.block.id] || [];
+    const existing = blockInsts.find(inst => 
+      inst.workoutBlockExerciseId === currentStep.exercise.id && 
+      inst.notes?.startsWith(`set:${currentStep.setIndex}:`)
+    );
+
+    // Build notes string: set prefix + note text
+    const notesPrefix = `set:${currentStep.setIndex}:`;
+    const fullNotes = noteText.trim() 
+      ? `${notesPrefix}${noteText.trim()}`
+      : notesPrefix;
+
+    if (!workoutInstance?.workoutId) return;
+
+    try {
+      let saved: WorkoutBlockExerciseInstance;
+      if (existing) {
+        // Update existing instance with note
+        const res = await fetchJson<{ instance: WorkoutBlockExerciseInstance }>(
+          `/api/train/workouts/${workoutInstance.workoutId}/blocks/${currentStep.block.id}/exercises/${currentStep.exercise.id}/instances/${existing.id}`,
+          {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              notes: fullNotes,
+            }),
+          }
+        );
+        saved = res.instance;
+      } else {
+        // Create new instance with note (but not marked complete)
+        const res = await fetchJson<{ instance: WorkoutBlockExerciseInstance }>(
+          `/api/train/workouts/${workoutInstance.workoutId}/blocks/${currentStep.block.id}/exercises/${currentStep.exercise.id}/instances`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              workoutBlockInstanceId: blockInstanceId,
+              workoutBlockExerciseId: currentStep.exercise.id,
+              complete: false,
+              notes: fullNotes,
+            }),
+          }
+        );
+        saved = res.instance;
+      }
+
+      // Update local state
+      setExerciseInstances(prev => {
+        const list = prev[currentStep.block.id] || [];
+        const idx = list.findIndex(i => i.id === saved.id);
+        const nextList = idx === -1 ? [...list, saved] : list.map((item, i) => i === idx ? saved : item);
+        return { ...prev, [currentStep.block.id]: nextList };
+      });
+    } catch (e) {
+      console.error('Failed to save note', e);
+      throw e;
+    }
+  };
+
+  // Get current note text (strip the set prefix)
+  const getCurrentNote = (): string => {
+    if (!currentStep) return '';
+    const blockInsts = exerciseInstances[currentStep.block.id] || [];
+    const existing = blockInsts.find(inst => 
+      inst.workoutBlockExerciseId === currentStep.exercise.id && 
+      inst.notes?.startsWith(`set:${currentStep.setIndex}:`)
+    );
+    if (!existing?.notes) return '';
+    const prefix = `set:${currentStep.setIndex}:`;
+    return existing.notes.startsWith(prefix) 
+      ? existing.notes.slice(prefix.length).trim()
+      : existing.notes.trim();
+  };
+
+  // Handle exercise swap
+  const handleSwapExercise = async (newExercise: Exercise) => {
+    if (!currentStep || !workoutInstance?.workoutId) return;
+
+    try {
+      // Update the workout block exercise definition
+      await fetchJson(
+        `/api/train/workouts/${workoutInstance.workoutId}/blocks/${currentStep.block.id}/exercises/${currentStep.exercise.id}`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            exerciseId: newExercise.id,
+          }),
+        }
+      );
+
+      // Reload exercises for this block
+      const exRes = await fetchJson<BlockExercisesResponse>(
+        `/api/train/workouts/${workoutInstance.workoutId}/blocks/${currentStep.block.id}/exercises`
+      );
+      
+      // Update exercises map
+      setExercisesMap(prev => ({
+        ...prev,
+        [currentStep.block.id]: exRes.exercises || [],
+      }));
+
+      // Rebuild steps for this block
+      const updatedExercises = exRes.exercises || [];
+      const currentBlock = blocks.find(b => b.id === currentStep.block.id);
+      if (!currentBlock) return;
+
+      // Find all steps for this block and rebuild them
+      const otherBlockSteps = steps.filter(s => s.block.id !== currentStep.block.id);
+      const newBlockSteps: SessionStep[] = [];
+
+      if (currentBlock.circuit) {
+        const maxSets = Math.max(...updatedExercises.map(ex => ex.sets || 1), 1);
+        for (let setIndex = 0; setIndex < maxSets; setIndex++) {
+          updatedExercises.forEach(ex => {
+            const totalSets = ex.sets || 1;
+            if (setIndex < totalSets) {
+              newBlockSteps.push({
+                uniqueId: `${currentBlock.id}-${ex.id}-${setIndex}`,
+                block: currentBlock,
+                exercise: ex,
+                setIndex,
+                totalSets,
+              });
+            }
+          });
+        }
+      } else {
+        updatedExercises.forEach(ex => {
+          const setCheck = ex.sets || 1;
+          for (let i = 0; i < setCheck; i++) {
+            newBlockSteps.push({
+              uniqueId: `${currentBlock.id}-${ex.id}-${i}`,
+              block: currentBlock,
+              exercise: ex,
+              setIndex: i,
+              totalSets: setCheck,
+            });
+          }
+        });
+      }
+
+      // Combine steps and find the new current step index
+      const allSteps = [...otherBlockSteps, ...newBlockSteps].sort((a, b) => {
+        // Sort by block order, then by exercise order, then by set index
+        const blockOrderA = blocks.findIndex(bl => bl.id === a.block.id);
+        const blockOrderB = blocks.findIndex(bl => bl.id === b.block.id);
+        if (blockOrderA !== blockOrderB) return blockOrderA - blockOrderB;
+        
+        const exOrderA = updatedExercises.findIndex(ex => ex.id === a.exercise.id);
+        const exOrderB = updatedExercises.findIndex(ex => ex.id === b.exercise.id);
+        if (exOrderA !== exOrderB) return exOrderA - exOrderB;
+        
+        return a.setIndex - b.setIndex;
+      });
+
+      setSteps(allSteps);
+
+      // Find the step that matches our current position (same block, same set index, same exercise order if possible)
+      // Or find the first incomplete step in the new exercise
+      const oldExerciseOrder = exercisesMap[currentStep.block.id]?.findIndex(ex => ex.id === currentStep.exercise.id) ?? -1;
+      const newExerciseAtSameOrder = updatedExercises[oldExerciseOrder];
+      
+      let newStepIndex = 0;
+      if (newExerciseAtSameOrder) {
+        // Try to find a step with the same exercise order and set index
+        const matchingStep = allSteps.findIndex(s => 
+          s.block.id === currentStep.block.id &&
+          s.exercise.id === newExerciseAtSameOrder.id &&
+          s.setIndex === currentStep.setIndex
+        );
+        if (matchingStep !== -1) {
+          newStepIndex = matchingStep;
+        } else {
+          // Find first step of the new exercise
+          const firstStepOfNewExercise = allSteps.findIndex(s => 
+            s.block.id === currentStep.block.id &&
+            s.exercise.id === newExerciseAtSameOrder.id
+          );
+          if (firstStepOfNewExercise !== -1) {
+            newStepIndex = firstStepOfNewExercise;
+          }
+        }
+      } else {
+        // Find first incomplete step
+        for (let i = 0; i < allSteps.length; i++) {
+          const s = allSteps[i];
+          const blockInsts = exerciseInstances[s.block.id] || [];
+          const match = blockInsts.find(inst => 
+            inst.workoutBlockExerciseId === s.exercise.id && 
+            inst.notes?.startsWith(`set:${s.setIndex}:`)
+          );
+          if (!match || !match.complete) {
+            newStepIndex = i;
+            break;
+          }
+        }
+      }
+
+      setCurrentStepIndex(newStepIndex);
+    } catch (e) {
+      console.error('Failed to swap exercise', e);
+      throw e;
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center bg-black w-full h-screen text-white">
@@ -673,6 +908,18 @@ export default function ActiveSessionPage({
         isOpen={isMenuOpen}
         onClose={() => setIsMenuOpen(false)}
         onSkip={handleNext}
+        onAddNote={() => {
+          setIsMenuOpen(false);
+          setIsNoteOpen(true);
+        }}
+        onExerciseDetails={() => {
+          setIsMenuOpen(false);
+          setIsExerciseDetailsOpen(true);
+        }}
+        onSwapExercise={() => {
+          setIsMenuOpen(false);
+          setIsSwapExerciseOpen(true);
+        }}
       />
 
       <PauseOverlay 
@@ -703,6 +950,30 @@ export default function ActiveSessionPage({
         workoutInstance={workoutInstance}
         totalVolume={totalVolume}
         durationSeconds={elapsedSeconds}
+        totalSets={totalSets}
+        blocks={blocks}
+        exercisesMap={exercisesMap}
+      />
+
+      <NoteInputOverlay
+        isOpen={isNoteOpen}
+        onClose={() => setIsNoteOpen(false)}
+        initialNote={getCurrentNote()}
+        onSave={handleSaveNote}
+        exerciseName={currentStep?.exercise.exercise.name || ''}
+      />
+
+      <ExerciseDetailsOverlay
+        isOpen={isExerciseDetailsOpen}
+        onClose={() => setIsExerciseDetailsOpen(false)}
+        exercise={currentStep?.exercise.exercise || null}
+      />
+
+      <SwapExerciseOverlay
+        isOpen={isSwapExerciseOpen}
+        onClose={() => setIsSwapExerciseOpen(false)}
+        currentExercise={currentStep?.exercise.exercise || null}
+        onSwap={handleSwapExercise}
       />
 
       {/* Timer sounds */}

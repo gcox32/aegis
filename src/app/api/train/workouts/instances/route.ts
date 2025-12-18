@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
-import { withAuth, getQueryParam } from '@/lib/api/helpers';
-import { getUserWorkoutInstances } from '@/lib/db/crud';
+import { withAuth, getQueryParam, parseBody } from '@/lib/api/helpers';
+import { createWorkoutInstance, getUserWorkoutInstances } from '@/lib/db/crud';
 
 // GET /api/train/workouts/instances - Get all user's workout instances (across all workouts)
 export async function GET(request: NextRequest) {
@@ -19,3 +19,11 @@ export async function GET(request: NextRequest) {
   });
 }
 
+// POST /api/train/workouts/instances - Create a new workout instance
+export async function POST(request: NextRequest) {
+  return withAuth(async (userId) => {
+    const workoutInstanceData = await parseBody(request);
+    const workoutInstance = await createWorkoutInstance(userId, workoutInstanceData);
+    return { workoutInstance };
+  });
+}

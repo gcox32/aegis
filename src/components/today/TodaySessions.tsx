@@ -83,7 +83,7 @@ export default function TodaySessions() {
     setStartingWorkoutId(selectedWorkoutId);
     try {
       const res = await fetchJson<{ workoutInstance: WorkoutInstance }>(
-        '/api/train/workout/instances',
+        '/api/train/workouts/instances',
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -94,7 +94,7 @@ export default function TodaySessions() {
           }),
         }
       );
-
+      console.log('res', res);
       if (!res.workoutInstance?.id) {
         throw new Error('Failed to create workout instance - no ID returned');
       }
@@ -204,14 +204,10 @@ export default function TodaySessions() {
     <div className="bg-card p-4 border border-border rounded-lg">
       <div className="mb-3">
         <h3 className="mb-1 font-semibold">
-          {selected
-            ? selected.name || `${selected.workoutType} Workout`
-            : "Get to Work"}
+          Get to Work
         </h3>
         <p className="text-muted-foreground text-sm">
-          {selected?.estimatedDuration
-            ? `~${selected.estimatedDuration} min`
-            : 'Pick something'}
+          Pick something
         </p>
       </div>
 

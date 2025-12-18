@@ -11,9 +11,12 @@ interface SessionMenuProps {
   isOpen: boolean;
   onClose: () => void;
   onSkip: () => void;
+  onAddNote: () => void;
+  onExerciseDetails: () => void;
+  onSwapExercise: () => void;
 }
 
-export function SessionMenu({ isOpen, onClose, onSkip }: SessionMenuProps) {
+export function SessionMenu({ isOpen, onClose, onSkip, onAddNote, onExerciseDetails, onSwapExercise }: SessionMenuProps) {
   const [shouldRender, setShouldRender] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
 
@@ -49,12 +52,12 @@ export function SessionMenu({ isOpen, onClose, onSkip }: SessionMenuProps) {
         <MenuButton
           icon={Info}
           label="Exercise Details"
-          onClick={onClose}
+          onClick={onExerciseDetails}
         />
         <MenuButton
           icon={RotateCcw}
           label="Swap Exercise"
-          onClick={onClose}
+          onClick={onSwapExercise}
         />
         <MenuButton
           icon={ChevronRight}
@@ -66,8 +69,8 @@ export function SessionMenu({ isOpen, onClose, onSkip }: SessionMenuProps) {
         />
         <MenuButton
           icon={StickyNote}
-          label="Note to Self"
-          onClick={onClose}
+          label="Add Note"
+          onClick={onAddNote}
         />
         <MenuButton
           icon={Repeat}
@@ -76,7 +79,7 @@ export function SessionMenu({ isOpen, onClose, onSkip }: SessionMenuProps) {
           onClick={onClose}
         />
       </div>
-      <div className="absolute inset-0 -z-10" onClick={onClose} />
+      <div className="-z-10 absolute inset-0" onClick={onClose} />
     </div>
   );
 }

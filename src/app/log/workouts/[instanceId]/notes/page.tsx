@@ -20,7 +20,7 @@ export default function WorkoutNotesPage() {
   useEffect(() => {
     async function fetchInstance() {
       try {
-        const res = await fetch(`/api/train/workout/instances/${instanceId}`);
+        const res = await fetch(`/api/train/workouts/instances/${instanceId}`);
         if (res.ok) {
           const data = await res.json();
           setInstance(data.workoutInstance);
@@ -41,7 +41,7 @@ export default function WorkoutNotesPage() {
     setSaving(true);
     
     try {
-      const res = await fetch(`/api/train/workout/instances/${instanceId}`, {
+      const res = await fetch(`/api/train/workouts/instances/${instanceId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ notes }),

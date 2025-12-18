@@ -1,4 +1,4 @@
-import { X, Volume2, Monitor, Bell } from 'lucide-react';
+import { X, Volume2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 interface SettingsOverlayProps {
@@ -16,10 +16,6 @@ export function SettingsOverlay({
 }: SettingsOverlayProps) {
   const [shouldRender, setShouldRender] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
-
-  // Local-only mock state for future toggles
-  const [screenAlwaysOn, setScreenAlwaysOn] = useState(true);
-  const [notifications, setNotifications] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -64,18 +60,6 @@ export function SettingsOverlay({
             label="Timer Sounds" 
             isActive={timerSoundsEnabled} 
             onToggle={() => onTimerSoundsChange(!timerSoundsEnabled)} 
-          />
-          <ToggleRow 
-            icon={Monitor} 
-            label="Screen Always On" 
-            isActive={screenAlwaysOn} 
-            onToggle={() => setScreenAlwaysOn(!screenAlwaysOn)} 
-          />
-          <ToggleRow 
-            icon={Bell} 
-            label="Notifications" 
-            isActive={notifications} 
-            onToggle={() => setNotifications(!notifications)} 
           />
         </div>
       </div>

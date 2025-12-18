@@ -1,6 +1,6 @@
-import { X, Dumbbell, Clock, Flame } from 'lucide-react';
+import { X, Dumbbell, Clock } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import type { WorkoutInstance } from '@/types/train';
+import type { WorkoutInstance, WorkoutBlock, WorkoutBlockExercise } from '@/types/train';
 
 interface WorkoutSummaryOverlayProps {
   isOpen: boolean;
@@ -8,6 +8,9 @@ interface WorkoutSummaryOverlayProps {
   workoutInstance: WorkoutInstance | null;
   totalVolume: number; // calculated in parent for now
   durationSeconds: number;
+  totalSets: number; // calculated in parent
+  blocks: WorkoutBlock[];
+  exercisesMap: Record<string, WorkoutBlockExercise[]>;
 }
 
 export function WorkoutSummaryOverlay({ 
@@ -15,7 +18,10 @@ export function WorkoutSummaryOverlay({
   onClose, 
   workoutInstance,
   totalVolume,
-  durationSeconds 
+  durationSeconds,
+  totalSets,
+  blocks,
+  exercisesMap
 }: WorkoutSummaryOverlayProps) {
   const [shouldRender, setShouldRender] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
@@ -47,24 +53,24 @@ export function WorkoutSummaryOverlay({
       onClick={onClose}
     >
       <div 
-        className={`w-full max-w-sm bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden shadow-2xl transition-all duration-200 ${
+        className={`w-full max-w-sm max-h-[90vh] bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden shadow-2xl transition-all duration-200 flex flex-col ${
           isVisible ? 'scale-100 translate-y-0' : 'scale-95 translate-y-4'
         }`}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="p-6 pb-4 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-white">Workout Summary</h2>
+        <div className="flex justify-between items-center p-6 pb-4">
+          <h2 className="pl-6 w-full font-bold text-white text-xl text-center">Summary</h2>
           <button 
             onClick={onClose}
-            className="p-2 -mr-2 text-zinc-400 hover:text-white transition-colors"
+            className="-mr-2 p-2 text-zinc-400 hover:text-white transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 gap-px bg-zinc-800/50 border-y border-zinc-800">
+        <div className="gap-px grid grid-cols-2 bg-zinc-800/50 border-y border-zinc-800">
           <StatBox 
             icon={Clock} 
             label="Duration" 
@@ -76,22 +82,51 @@ export function WorkoutSummaryOverlay({
             value={`${totalVolume}kg`} 
           />
           <StatBox 
-            icon={Flame} 
-            label="Calories" 
-            value="--" 
-            sublabel="(Est)"
-          />
-          <StatBox 
             label="Sets" 
-            value={workoutInstance?.id ? "Check Log" : "--"} 
-            className="flex flex-col justify-center items-center p-6 bg-zinc-900"
+            value={totalSets.toString()} 
+            className="flex flex-col justify-center items-center bg-zinc-900 p-6"
           />
         </div>
 
-        {/* Footer / Placeholder for future chart */}
-        <div className="p-6 bg-zinc-900">
-          <div className="h-32 rounded-2xl bg-zinc-800/30 border border-zinc-800 border-dashed flex items-center justify-center text-zinc-500 text-sm">
-            Performance Chart Coming Soon
+        {/* Workout Outline */}
+        <div className="flex-1 bg-zinc-900 p-6 border-zinc-800 border-t overflow-y-auto">
+          <h3 className="mb-3 font-semibold text-zinc-400 text-sm text-center uppercase tracking-wide">Outline</h3>
+          <div className="space-y-4">
+            {blocks.map((block) => {
+              const exercises = exercisesMap[block.id] || [];
+              if (exercises.length === 0) return null;
+              
+              return (
+                <div key={block.id} className="space-y-2">
+                  {block.name && (
+                    <div className="flex items-center gap-2 text-zinc-300 text-sm">
+                      <span className="font-medium">{block.name}</span>
+                      {block.circuit && (
+                        <span className="bg-zinc-800 px-2 py-0.5 rounded text-zinc-500 text-xs">Circuit</span>
+                      )}
+                    </div>
+                  )}
+                  {!block.name && block.circuit && (
+                    <div className="bg-zinc-800 px-2 py-0.5 rounded w-fit text-zinc-500 text-xs">Circuit</div>
+                  )}
+                  <div className="space-y-1.5 pl-2">
+                    {exercises.map((exercise) => (
+                      <div key={exercise.id} className="flex items-center gap-2 text-zinc-400 text-sm">
+                        <span className="text-zinc-300">{exercise.exercise.name}</span>
+                        <span className="text-zinc-500">•</span>
+                        <span>{exercise.sets} sets</span>
+                        {exercise.measures.reps && (
+                          <>
+                            <span className="text-zinc-500">•</span>
+                            <span>{exercise.measures.reps} reps</span>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -112,17 +147,17 @@ function StatBox({
   sublabel?: string,
   className?: string 
 }) {
-  if (className) return <div className={className}><span className="text-zinc-400 text-sm mb-1">{label}</span><span className="text-white font-mono text-xl font-bold">{value}</span></div>;
+  if (className) return <div className={className}><span className="mb-1 text-zinc-400 text-sm">{label}</span><span className="font-mono font-bold text-white text-xl">{value}</span></div>;
 
   return (
-    <div className="flex flex-col justify-center items-center p-6 bg-zinc-900 hover:bg-zinc-800/50 transition-colors">
+    <div className="flex flex-col justify-center items-center bg-zinc-900 hover:bg-zinc-800/50 p-6 transition-colors">
       <div className="flex items-center gap-2 mb-2 text-zinc-400">
         {Icon && <Icon className="w-4 h-4" />}
-        <span className="text-sm font-medium">{label}</span>
+        <span className="font-medium text-sm">{label}</span>
       </div>
       <div className="flex items-baseline gap-1">
-        <span className="text-white font-mono text-2xl font-bold">{value}</span>
-        {sublabel && <span className="text-xs text-zinc-500">{sublabel}</span>}
+        <span className="font-mono font-bold text-white text-2xl">{value}</span>
+        {sublabel && <span className="text-zinc-500 text-xs">{sublabel}</span>}
       </div>
     </div>
   );
