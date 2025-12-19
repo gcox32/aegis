@@ -1,25 +1,13 @@
 import { User, Target, Calendar, Sliders } from 'lucide-react';
 import Link from 'next/link';
+import PageLayout from '@/components/layout/PageLayout';
 
 export default function MePage() {
   return (
-    <div className="bg-background pb-20 min-h-screen">
-      <div className="md:mx-auto md:max-w-4xl">
-        {/* Header */}
-        <section className="px-4 md:px-6 pt-6 pb-4 border-border border-b">
-          <div className="flex items-center gap-4">
-            <div className="flex justify-center items-center bg-brand-primary/20 rounded-full w-16 h-16">
-              <User className="w-8 h-8 text-brand-primary" />
-            </div>
-            <div>
-              <h1 className="font-bold text-2xl">Me</h1>
-              <p className="text-muted-foreground text-sm">
-                Manage your account and settings
-              </p>
-            </div>
-          </div>
-        </section>
-
+    <PageLayout
+      title="Me"
+      subtitle="Manage your account and settings"
+    >
         {/* Stats Overview */}
         <section className="px-4 md:px-6 py-6">
           <h2 className="mb-4 font-semibold text-lg">Overview</h2>
@@ -68,7 +56,6 @@ export default function MePage() {
           </div>
         </section>
 
-      </div>
-    </div>
+    </PageLayout>
   );
 }

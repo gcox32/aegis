@@ -1,12 +1,14 @@
 import WorkoutList from '@/components/train/build/workouts/WorkoutList';
-import BackToLink from '@/components/layout/navigation/BackToLink';
+import PageLayout from '@/components/layout/PageLayout';
 
 export default function WorkoutsPage() {
   return (
-    <div className="mx-auto px-4 sm:px-6 lg:px-8 py-6 max-w-7xl">
-      <BackToLink href="/train/build" pageName="Build" />
-      <h2 className="font-bold text-2xl my-4">Workouts</h2>
+    <PageLayout
+      breadcrumbHref="/train/build"
+      breadcrumbText="Build"
+      title="Workouts"
+    >
       <WorkoutList />
-    </div>
+    </PageLayout>
   );
 }

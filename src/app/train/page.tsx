@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button';
-import { Play, Calendar, Loader2, Trash, Eye } from 'lucide-react';
+import { Play, Calendar, Loader2 } from 'lucide-react';
+import PageLayout from '@/components/layout/PageLayout';
 import type {
   ProtocolInstance,
   Workout,
@@ -182,17 +183,11 @@ export default function TrainPage() {
   }
 
   return (
-    <div className="bg-background pb-20 min-h-screen">
+    <PageLayout
+      title="Train"
+      subtitle="Your training program, sessions, and performance"
+    >
       <div className="md:mx-auto md:max-w-4xl">
-        {/* Header */}
-        <section className="flex justify-between items-center px-4 md:px-6 pt-6 pb-4 border-border border-b">
-          <div>
-            <h1 className="mb-1 font-bold text-2xl">Train</h1>
-            <p className="text-muted-foreground text-sm">
-              Your training program, sessions, and performance
-            </p>
-          </div>
-        </section>
 
         {/* Active Program */}
         <section className="px-4 md:px-6 py-6">
@@ -375,7 +370,6 @@ export default function TrainPage() {
                     <div className="flex justify-between gap-2">
                       <Link href={`/log/workouts/${instance.id}`} className="w-full">
                         <Button variant="outline" size="md" className="w-full">
-                          <Eye className="mr-1 w-4 h-4" />
                           View
                         </Button>
                       </Link>
@@ -394,6 +388,6 @@ export default function TrainPage() {
         </section>
 
       </div>
-    </div>
+    </PageLayout>
   );
 }

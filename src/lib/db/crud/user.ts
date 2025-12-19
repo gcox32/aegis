@@ -151,8 +151,8 @@ export async function createUserGoal(
       name: goalData.name,
       description: goalData.description,
       duration: goalData.duration,
-      startDate: goalData.startDate ? goalData.startDate.toISOString().split('T')[0] : null,
-      endDate: goalData.endDate ? goalData.endDate.toISOString().split('T')[0] : null,
+      startDate: goalData.startDate ? goalData.startDate : null,
+      endDate: goalData.endDate ? goalData.endDate : null,
       complete: goalData.complete ?? false,
       notes: goalData.notes ?? null,
     } as any)
@@ -203,10 +203,10 @@ export async function updateUserGoal(
   // Convert Date objects to strings for database
   const dbUpdates: any = { ...updates };
   if (updates.startDate !== undefined) {
-    dbUpdates.startDate = updates.startDate ? updates.startDate.toISOString().split('T')[0] : null;
+    dbUpdates.startDate = updates.startDate ? updates.startDate : null;
   }
   if (updates.endDate !== undefined) {
-    dbUpdates.endDate = updates.endDate ? updates.endDate.toISOString().split('T')[0] : null;
+    dbUpdates.endDate = updates.endDate ? updates.endDate : null;
   }
 
   const [updatedGoal] = await db

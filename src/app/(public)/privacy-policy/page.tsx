@@ -1,25 +1,13 @@
-import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+
+import PageLayout from '@/components/layout/PageLayout';
 
 export default function PrivacyPolicyPage() {
   return (
-    <div className="min-h-screen pb-20 bg-background">
+    <PageLayout
+      title="Privacy Policy"
+      subtitle="Last updated: December 18, 2025"
+    >
       <div className="md:max-w-4xl md:mx-auto">
-        {/* Header */}
-        <section className="px-4 md:px-6 pt-6 pb-4 border-b border-border">
-          <Link
-            href="/signin"
-            className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-4"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Back</span>
-          </Link>
-          <h1 className="text-3xl font-bold mb-2">Privacy Policy</h1>
-          <p className="text-sm text-muted-foreground">
-            Last updated: January 15, 2024
-          </p>
-        </section>
-
         {/* Content */}
         <section className="px-4 md:px-6 py-6 space-y-6">
           <div>
@@ -120,6 +108,6 @@ export default function PrivacyPolicyPage() {
           </div>
         </section>
       </div>
-    </div>
+    </PageLayout>
   );
 }

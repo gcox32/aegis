@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import { getProtocolById, getPhases } from '@/lib/db/crud/train';
 import ProtocolForm from '@/components/train/build/protocols/ProtocolForm';
-import BackToLink from '@/components/layout/navigation/BackToLink';
+import PageLayout from '@/components/layout/PageLayout';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -19,18 +19,16 @@ export default async function EditProtocolPage({ params }: PageProps) {
   const phases = await getPhases(id);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-      <BackToLink href="/train/build/protocols" pageName="Protocols" />
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-300">Edit Protocol</h1>
-        <p className="mt-2 text-gray-600">Update training protocol and phases.</p>
-      </div>
+    <PageLayout
+      breadcrumbHref="/train/build/protocols"
+      breadcrumbText="Protocols"
+      title="Edit Protocol"
+    >
       <ProtocolForm 
         initialData={protocol} 
         initialPhases={phases}
-        isEditing 
-      />
-    </div>
+        isEditing />
+    </PageLayout>
   );
 }
 

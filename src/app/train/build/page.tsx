@@ -2,24 +2,19 @@
 
 import Link from 'next/link';
 import { Dumbbell, ClipboardList, CalendarDays } from 'lucide-react';
-import BackToLink from '@/components/layout/navigation/BackToLink';
+import PageLayout from '@/components/layout/PageLayout';
 
 export default function BuildPage() {
   return (
-    <div className="bg-background pb-20 min-h-screen">
-      <div className="md:mx-auto md:max-w-4xl">
-        {/* Header */}
-        <section className="px-4 md:px-6 pt-6 pb-4 border-border border-b">
-          <BackToLink href="/train" pageName="Train" />
-          
-          <h1 className="mb-1 font-bold text-2xl my-4">Build</h1>
-          <p className="text-muted-foreground text-sm">
-            Manage your training components
-          </p>
-        </section>
+    <PageLayout
+      breadcrumbHref="/train"
+      breadcrumbText="Train"
+      title="Build"
+      subtitle="Manage your training components"
+    >
 
         {/* Build Options */}
-        <section className="space-y-4 px-4 md:px-6 py-6">
+        <section className="space-y-4 px-2 md:px-6 pb-6">
           
           <Link href="/train/build/exercises" className="block">
             <div className="flex items-center gap-4 bg-card shadow-lg active:shadow-none p-6 border border-border hover:border-brand-primary rounded-lg transition-colors">
@@ -64,8 +59,7 @@ export default function BuildPage() {
           </Link>
 
         </section>
-      </div>
-    </div>
+    </PageLayout>
   );
 }
 

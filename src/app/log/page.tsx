@@ -7,6 +7,7 @@ import { useToast } from '@/components/ui/Toast';
 import type { UserStats } from '@/types/user';
 import { logViews } from './config';
 import Highlights from '@/components/log/Highlights';
+import PageLayout from '@/components/layout/PageLayout';
 
 type LatestStatsResponse = {
   stats: (UserStats & {
@@ -56,79 +57,72 @@ export default function LogPage() {
   const latestBodyFat = latestStats?.bodyFatPercentage;
 
   return (
-    <div className="bg-background pb-20 min-h-screen">
-      <div className="md:mx-auto md:max-w-4xl">
-        {/* Header */}
-        <section className="px-4 md:px-6 pt-6 pb-4 border-border border-b">
-          <h1 className="mb-1 font-bold text-2xl">Log</h1>
-          <p className="text-muted-foreground text-sm">
-            Track body stats, images, sleep, and more.
-          </p>
-        </section>
+    <PageLayout
+      title="Log"
+      subtitle="Track your body stats, workouts, and more"
+    >
+      {/* Highlights */}
+      <section className="px-4 md:px-6 py-6 border-border border-b">
+        <h2 className="mb-3 font-semibold text-muted-foreground text-sm uppercase tracking-[0.16em]">
+          Highlights
+        </h2>
 
-        {/* Highlights */}
-        <section className="px-4 md:px-6 py-6 border-border border-b">
-          <h2 className="mb-3 font-semibold text-muted-foreground text-sm uppercase tracking-[0.16em]">
-            Highlights
-          </h2>
+        {loading ? (
+          <div className="flex justify-center items-center bg-card px-4 py-8 border border-border rounded-xl text-muted-foreground text-sm">
+            <Loader2 className="mr-2 w-4 h-4 animate-spin" />
+            Loading latest stats...
+          </div>
+        ) : !latestStats ? (
+          <div className="bg-card/40 px-4 py-4 border border-border border-dashed rounded-xl text-muted-foreground text-sm">
+            No body stats logged yet. Start by logging your first entry.
+          </div>
+        ) : (
+          <Highlights latestWeight={latestWeight} latestBodyFat={latestBodyFat} latestStatsDate={latestStats.date ? new Date(latestStats.date).toLocaleDateString() : ''} />
+        )}
+      </section>
 
-          {loading ? (
-            <div className="flex justify-center items-center bg-card px-4 py-8 border border-border rounded-xl text-muted-foreground text-sm">
-              <Loader2 className="mr-2 w-4 h-4 animate-spin" />
-              Loading latest stats...
-            </div>
-          ) : !latestStats ? (
-            <div className="bg-card/40 px-4 py-4 border border-border border-dashed rounded-xl text-muted-foreground text-sm">
-              No body stats logged yet. Start by logging your first entry.
-            </div>
-          ) : (
-            <Highlights latestWeight={latestWeight} latestBodyFat={latestBodyFat} latestStatsDate={latestStats.date ? new Date(latestStats.date).toLocaleDateString() : ''} />
-          )}
-        </section>
-
-        {/* Log sections */}
-        <section className="px-4 md:px-6 py-6">
-          <h2 className="mb-3 font-semibold text-muted-foreground text-sm uppercase tracking-[0.16em]">
-            Logs
-          </h2>
-          <div className="gap-3 grid grid-cols-1 md:max-w-xl">
-            {logViews.map((view) => (
-              <div key={`${view.name}-log-section`}>
-                {view.active ?
-                  <Link
-                    key={view.name}
-                    href={view.href}
-                    className='flex justify-between items-center bg-card hover:bg-card/80 px-4 py-3 border border-border hover:border-brand-primary rounded-xl transition'
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className='flex justify-center items-center bg-brand-primary/10 rounded-full w-10 h-10'>
-                        <view.icon className='w-5 h-5 text-brand-primary' />
-                      </div>
-                      <div>
-                        <div className="font-semibold text-sm">{view.name}</div>
-                        <div className="text-muted-foreground text-xs">{view.description}</div>
-                      </div>
+      {/* Log sections */}
+      <section className="px-4 md:px-6 py-6">
+        <h2 className="mb-3 font-semibold text-muted-foreground text-sm uppercase tracking-[0.16em]">
+          Logs
+        </h2>
+        <div className="gap-3 grid grid-cols-1 md:max-w-xl">
+          {logViews.map((view) => (
+            <div key={`${view.name}-log-section`}>
+              {view.active ?
+                <Link
+                  key={view.name}
+                  href={view.href}
+                  className='flex justify-between items-center bg-card hover:bg-card/80 px-4 py-3 border border-border hover:border-brand-primary rounded-xl transition'
+                >
+                  <div className="flex items-center gap-3">
+                    <div className='flex justify-center items-center bg-brand-primary/10 rounded-full w-10 h-10'>
+                      <view.icon className='w-5 h-5 text-brand-primary' />
                     </div>
-                  </Link>
-                  :
-                  <div key={view.name} className="flex justify-between items-center bg-card/40 opacity-70 px-4 py-3 border border-border-accent border-dashed rounded-xl">
-                    <div className="flex items-center gap-3">
-                      <div className="flex justify-center items-center bg-zinc-800/60 rounded-full w-10 h-10">
-                        <view.icon className="w-5 h-5 text-muted-foreground" />
-                      </div>
-                      <div>
-                        <div className="font-semibold text-sm">{view.name}</div>
-                        <div className="text-muted-foreground text-xs">{view.description}</div>
-                      </div>
+                    <div>
+                      <div className="font-semibold text-sm">{view.name}</div>
+                      <div className="text-muted-foreground text-xs">{view.description}</div>
                     </div>
                   </div>
-                }
-              </div>
-            ))}
-          </div>
-        </section>
-      </div>
-    </div>
+                </Link>
+                :
+                <div key={view.name} className="flex justify-between items-center bg-card/40 opacity-70 px-4 py-3 border border-border-accent border-dashed rounded-xl">
+                  <div className="flex items-center gap-3">
+                    <div className="flex justify-center items-center bg-zinc-800/60 rounded-full w-10 h-10">
+                      <view.icon className="w-5 h-5 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <div className="font-semibold text-sm">{view.name}</div>
+                      <div className="text-muted-foreground text-xs">{view.description}</div>
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          ))}
+        </div>
+      </section>
+    </PageLayout>
   );
 }
 

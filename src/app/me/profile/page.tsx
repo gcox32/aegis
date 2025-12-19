@@ -5,6 +5,7 @@ import { Loader2 } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import type { UserProfile } from '@/types/user';
 import { useToast } from '@/components/ui/Toast';
+import PageLayout from '@/components/layout/PageLayout';
 
 type ProfileResponse = {
   profile: UserProfile | null;
@@ -155,23 +156,25 @@ export default function MeProfilePage() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center bg-black w-full h-screen text-white">
+      <PageLayout
+        breadcrumbHref="/me"
+        breadcrumbText="Me"
+        title="Profile"
+        subtitle="Manage your profile"
+      >
         <Loader2 className="w-6 h-6 text-brand-primary animate-spin" />
-      </div>
+      </PageLayout>
     );
   }
 
   return (
-    <div className="flex justify-center bg-black px-5 py-6 w-full min-h-screen text-white">
-      <div className="w-full max-w-xl">
-        <header className="mb-6">
-          <h1 className="font-semibold text-xl tracking-tight">Your Profile</h1>
-          <p className="mt-1 text-zinc-400 text-sm">
-            Keep your details up to date so we can better contextualize your training.
-          </p>
-        </header>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
+    <PageLayout
+      breadcrumbHref="/me"
+      breadcrumbText="Me"
+      title="Profile"
+      subtitle="Keep your details up to date to better contextualize your training."
+    >
+      <form onSubmit={handleSubmit} className="space-y-6">
           {profile?.email && (
             <div className="space-y-1.5">
               <label className="block font-medium text-zinc-400 text-xs uppercase tracking-[0.18em]">
@@ -313,8 +316,7 @@ export default function MeProfilePage() {
             </Button>
           </div>
         </form>
-      </div>
-    </div>
+    </PageLayout>
   );
 }
 

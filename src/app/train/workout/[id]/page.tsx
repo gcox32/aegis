@@ -3,12 +3,12 @@
 import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button';
-import { ChevronLeft, Play, Loader2, Calendar, Clock, Dumbbell } from 'lucide-react';
+import { Play, Loader2, Clock } from 'lucide-react';
+import PageLayout from '@/components/layout/PageLayout';
 import type {
   Workout,
   WorkoutInstance
 } from '@/types/train';
-import BackToLink from '@/components/layout/navigation/BackToLink';
 
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, {
@@ -95,38 +95,38 @@ export default function ViewWorkoutPage({
 
   if (loading) {
     return (
-      <div className="bg-background pb-20 min-h-screen">
-        <div className="md:mx-auto px-4 md:px-6 pt-6 md:max-w-3xl">
-          <div className="flex justify-center items-center py-12">
-            <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" />
-          </div>
+      <PageLayout
+        title="Loading..."
+        subtitle="Loading your workout..."
+      >
+        <div className="flex justify-center items-center py-12">
+          <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" />
         </div>
-      </div>
+      </PageLayout>
     );
   }
 
   if (error || !workout) {
     return (
-      <div className="bg-background pb-20 min-h-screen">
-        <div className="space-y-4 md:mx-auto px-4 md:px-6 pt-6 md:max-w-3xl">
-          <BackToLink href="/train" pageName="Train" />
-          <div className="bg-card p-4 border border-border rounded-lg">
-            <p className="text-destructive text-sm">
-              {error ?? 'Workout not found.'}
-            </p>
-          </div>
-        </div>
-      </div>
+      <PageLayout
+        title="Error"
+        subtitle="An error occurred while loading your workout."
+      >
+        <p className="text-destructive text-sm">
+          {error ?? 'Workout not found.'}
+        </p>
+      </PageLayout>
     );
   }
 
   return (
-    <div className="bg-background pb-20 min-h-screen">
+    <PageLayout
+      title={workout.name || `${workout.workoutType} Workout`}
+      subtitle={workout.description}
+    >
       <div className="md:mx-auto md:max-w-3xl">
         {/* Header */}
         <section className="px-4 md:px-6 pt-6 pb-4 border-border border-b">
-          <BackToLink href="/train" pageName="Train" />
-          
           <div className="flex justify-between items-start gap-4">
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -280,6 +280,6 @@ export default function ViewWorkoutPage({
           )}
         </section>
       </div>
-    </div>
+    </PageLayout>
   );
 }

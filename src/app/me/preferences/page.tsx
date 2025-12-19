@@ -7,6 +7,7 @@ import { getUserPreferences, saveUserPreferences, type UserPreferences } from '@
 import type { CompositeStrategy } from '@/types/stats';
 import { useToast } from '@/components/ui/Toast';
 import { TogglePill } from '@/components/ui/TogglePill';
+import PageLayout from '@/components/layout/PageLayout';
 
 export default function PreferencesPage() {
   const [prefs, setPrefs] = useState<UserPreferences>(getUserPreferences());
@@ -31,7 +32,12 @@ export default function PreferencesPage() {
   }
 
   return (
-    <div className="bg-background pb-20 min-h-screen">
+    <PageLayout
+      breadcrumbHref="/me"
+      breadcrumbText="Me"
+      title="Preferences"
+      subtitle="Customize your app experience"
+    >
       <div className="md:mx-auto md:max-w-4xl">
         {/* Header */}
         <section className="px-4 md:px-6 pt-6 pb-4 border-border border-b">
@@ -150,6 +156,6 @@ export default function PreferencesPage() {
         </section>
 
       </div>
-    </div>
+    </PageLayout>
   );
 }
