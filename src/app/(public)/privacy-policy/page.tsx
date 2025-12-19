@@ -4,8 +4,11 @@ import PageLayout from '@/components/layout/PageLayout';
 export default function PrivacyPolicyPage() {
   return (
     <PageLayout
+      breadcrumbHref="/"
+      breadcrumbText="Home"
       title="Privacy Policy"
       subtitle="Last updated: December 18, 2025"
+
     >
       <div className="md:max-w-4xl md:mx-auto">
         {/* Content */}

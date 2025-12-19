@@ -3,6 +3,8 @@ import PageLayout from '@/components/layout/PageLayout';
 export default function TermsOfServicePage() {
   return (
     <PageLayout
+      breadcrumbHref="/"
+      breadcrumbText="Home"
       title="Terms of Service"
       subtitle="Last updated: December 18, 2025"
     >

@@ -122,11 +122,11 @@ export default function SettingsPage() {
         <div className="bg-card rounded-lg p-4 border border-border space-y-3">
           <div className="flex justify-between">
             <span className="text-muted-foreground">Version</span>
-            <span className="font-medium">1.0.0</span>
+            <span className="font-medium">{process.env.APP_VERSION}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">Build</span>
-            <span className="font-medium">2024.01.15</span>
+            <span className="font-medium">{process.env.APP_BUILD}</span>
           </div>
           <Link
             href="/terms-of-service"

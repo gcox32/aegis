@@ -40,7 +40,7 @@ export function GoalList({ goals, onEdit, onDelete }: GoalListProps) {
                             </div>
                          </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-10 flex-col">
                         <Button variant="ghost" size="sm" onClick={() => onEdit(goal)}>
                             <Edit size={16} />
                         </Button>
