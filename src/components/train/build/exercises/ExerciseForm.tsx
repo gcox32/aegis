@@ -12,7 +12,6 @@ import { MuscleGroupSelect, MUSCLE_GROUPS } from '@/components/anatomy/MuscleGro
 import { ExerciseAutocomplete } from './ExerciseAutocomplete';
 import { defaultWorkPowerConstants, MOVEMENT_PATTERNS, PLANES_OF_MOTION, EQUIPMENT_TYPES, DIFFICULTY_LEVELS } from './options';
 import { TogglePill } from '@/components/ui/TogglePill';
-import BackToLink from '@/components/layout/navigation/BackToLink';
 
 type ExerciseFormData = Omit<Exercise, 'id' | 'createdAt' | 'updatedAt'>;
 
@@ -169,7 +168,6 @@ export default function ExerciseForm({ initialData, isEditing = false }: Exercis
 
   return (
     <form onSubmit={handleSubmit}>
-      <BackToLink href="/train/build/exercises" pageName="Exercises" />
       <FormWrapper>
         <FormCard>
           <FormTitle>{isEditing ? 'Edit Exercise' : 'New Exercise'}</FormTitle>

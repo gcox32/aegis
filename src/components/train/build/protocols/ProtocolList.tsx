@@ -57,10 +57,9 @@ export default function ProtocolList() {
         confirmText="Delete"
         confirmVariant="danger"
       />
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Your Protocols</h2>
+      <div className="flex flex-col justify-between">
         <Link href="/train/build/protocols/new">
-          <Button>
+          <Button className="w-full">
             <Plus className="h-4 w-4 mr-2" />
             New Protocol
           </Button>

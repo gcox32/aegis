@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/Form';
 import { Protocol, Workout, Phase } from '@/types/train';
 import { Trash, Plus, ChevronUp, ChevronDown } from 'lucide-react';
+import BackToLink from '@/components/layout/navigation/BackToLink';
 
 interface ProtocolFormProps {
     initialData?: Protocol;
@@ -224,6 +225,7 @@ export default function ProtocolForm({ initialData, initialPhases = [], isEditin
 
   return (
     <form onSubmit={handleSubmit}>
+      <BackToLink href="/train/build/protocols" pageName="Protocols" />
       <FormWrapper>
         <FormCard>
           <FormTitle>Protocol Details</FormTitle>

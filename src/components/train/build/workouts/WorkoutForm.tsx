@@ -11,7 +11,7 @@ import { TogglePill } from '@/components/ui/TogglePill';
 import { ExerciseAutocomplete } from '@/components/train/build/exercises/ExerciseAutocomplete';
 import { Exercise, Workout, WorkoutBlockType, WorkoutType } from '@/types/train';
 import { CreateWorkoutInput, CreateWorkoutBlockInput, CreateWorkoutBlockExerciseInput } from '@/lib/db/crud/train';
-import { Plus, Trash, ChevronUp } from 'lucide-react';
+import { Plus, Trash, ChevronUp, Copy } from 'lucide-react';
 import { WORKOUT_TYPES, BLOCK_TYPES } from './options';
 
 interface WorkoutFormProps {
@@ -22,6 +22,8 @@ interface WorkoutFormProps {
 export default function WorkoutForm({ workoutId, isEditing = false }: WorkoutFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  
+  const [availableWorkouts, setAvailableWorkouts] = useState<Workout[]>([]);
   
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -59,9 +61,60 @@ export default function WorkoutForm({ workoutId, isEditing = false }: WorkoutFor
     return expandedLoads.has(`${blockIndex}-${exerciseIndex}`);
   };
 
+  const populateForm = (w: Workout) => {
+    setName(w.name ?? '');
+    setDescription(w.description ?? '');
+    setWorkoutType(w.workoutType);
+    setEstimatedDuration(w.estimatedDuration ?? 60);
+    setObjectives(w.objectives ?? []);
+
+    const mappedBlocks: CreateWorkoutBlockInput[] =
+      (w.blocks ?? []).map((b, blockIndex) => ({
+        workoutBlockType: b.workoutBlockType,
+        name: b.name ?? '',
+        order: blockIndex + 1,
+        circuit: b.circuit ?? false,
+        estimatedDuration: b.estimatedDuration,
+        description: b.description,
+        exercises: (b.exercises ?? []).map((ex, exIndex) => ({
+          exerciseId: ex.exercise.id,
+          order: exIndex + 1,
+          sets: ex.sets,
+          measures: ex.measures ?? {},
+          tempo: ex.tempo,
+          restTime: ex.restTime,
+          rpe: ex.rpe,
+          notes: ex.notes,
+        })),
+      }));
+
+    if (mappedBlocks.length > 0) {
+      setBlocks(mappedBlocks);
+      // Auto-expand load fields for exercises that already have load values
+      const loadsToExpand = new Set<string>();
+      mappedBlocks.forEach((block, blockIndex) => {
+        block.exercises.forEach((ex, exIndex) => {
+          if (ex.measures?.externalLoad?.value !== undefined) {
+            loadsToExpand.add(`${blockIndex}-${exIndex}`);
+          }
+        });
+      });
+      setExpandedLoads(loadsToExpand);
+    }
+  };
+
   useEffect(() => {
     // If editing, fetch existing workout details and populate the form
-    if (!isEditing || !workoutId) return;
+    if (!isEditing) {
+        // Fetch available workouts for copy feature
+        fetch('/api/train/workouts')
+            .then(res => res.json())
+            .then(data => setAvailableWorkouts(data.workouts || []))
+            .catch(err => console.error('Failed to load workouts for copy', err));
+        return;
+    }
+    
+    if (!workoutId) return;
 
     let cancelled = false;
 
@@ -77,47 +130,7 @@ export default function WorkoutForm({ workoutId, isEditing = false }: WorkoutFor
         const data = await res.json() as { workout: Workout };
         if (cancelled || !data.workout) return;
 
-        const w = data.workout;
-
-        setName(w.name ?? '');
-        setDescription(w.description ?? '');
-        setWorkoutType(w.workoutType);
-        setEstimatedDuration(w.estimatedDuration ?? 60);
-        setObjectives(w.objectives ?? []);
-
-        const mappedBlocks: CreateWorkoutBlockInput[] =
-          (w.blocks ?? []).map((b, blockIndex) => ({
-            workoutBlockType: b.workoutBlockType,
-            name: b.name ?? '',
-            order: blockIndex + 1,
-            circuit: b.circuit ?? false,
-            estimatedDuration: b.estimatedDuration,
-            description: b.description,
-            exercises: (b.exercises ?? []).map((ex, exIndex) => ({
-              exerciseId: ex.exercise.id,
-              order: exIndex + 1,
-              sets: ex.sets,
-              measures: ex.measures ?? {},
-              tempo: ex.tempo,
-              restTime: ex.restTime,
-              rpe: ex.rpe,
-              notes: ex.notes,
-            })),
-          }));
-
-        if (mappedBlocks.length > 0) {
-          setBlocks(mappedBlocks);
-          // Auto-expand load fields for exercises that already have load values
-          const loadsToExpand = new Set<string>();
-          mappedBlocks.forEach((block, blockIndex) => {
-            block.exercises.forEach((ex, exIndex) => {
-              if (ex.measures?.externalLoad?.value !== undefined) {
-                loadsToExpand.add(`${blockIndex}-${exIndex}`);
-              }
-            });
-          });
-          setExpandedLoads(loadsToExpand);
-        }
+        populateForm(data.workout);
       } catch (err) {
         console.error(err);
       }
@@ -128,6 +141,28 @@ export default function WorkoutForm({ workoutId, isEditing = false }: WorkoutFor
       cancelled = true;
     };
   }, [isEditing, workoutId]);
+
+  const handleCopyFrom = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const id = e.target.value;
+    if (!id) return;
+    
+    setLoading(true);
+    try {
+        const res = await fetch(`/api/train/workouts/${id}?details=true`);
+        if (!res.ok) throw new Error('Failed to load workout details');
+        const data = await res.json();
+        if (data.workout) {
+            populateForm(data.workout);
+            // Append (Copy) to name
+            setName(`${data.workout.name} (Copy)`);
+        }
+    } catch (err) {
+        console.error(err);
+        alert('Failed to copy workout details');
+    } finally {
+        setLoading(false);
+    }
+  };
 
   const addBlock = () => {
     setBlocks([
@@ -228,6 +263,28 @@ export default function WorkoutForm({ workoutId, isEditing = false }: WorkoutFor
       <FormWrapper>
         <FormCard>
           <FormTitle>{isEditing ? 'Edit Workout' : 'Create Workout'}</FormTitle>
+          
+          {!isEditing && availableWorkouts.length > 0 && (
+            <div className="mb-6 bg-brand-primary/5 p-4 border border-brand-primary/20 rounded-lg">
+                <div className="flex items-center gap-2 mb-2 text-brand-primary text-sm font-medium">
+                    <Copy className="w-4 h-4" />
+                    <span>Copy from existing workout</span>
+                </div>
+                <FormSelect 
+                    value="" 
+                    onChange={handleCopyFrom}
+                >
+                    <option value="">Select a workout to copy...</option>
+                    {availableWorkouts.map(w => (
+                        <option key={w.id} value={w.id}>{w.name}</option>
+                    ))}
+                </FormSelect>
+                <p className="mt-1 text-muted-foreground text-xs">
+                    This will replace current form contents with the selected workout's structure.
+                </p>
+            </div>
+          )}
+
           <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
             <FormGroup>
               <FormLabel>Name</FormLabel>

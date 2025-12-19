@@ -12,7 +12,7 @@ export default function BuildPage() {
         <section className="px-4 md:px-6 pt-6 pb-4 border-border border-b">
           <BackToLink href="/train" pageName="Train" />
           
-          <h1 className="mb-1 font-bold text-2xl">Build</h1>
+          <h1 className="mb-1 font-bold text-2xl my-4">Build</h1>
           <p className="text-muted-foreground text-sm">
             Manage your training components
           </p>

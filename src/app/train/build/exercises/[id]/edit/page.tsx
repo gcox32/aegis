@@ -1,7 +1,7 @@
-import React from 'react';
 import { notFound } from 'next/navigation';
 import { getExerciseById } from '@/lib/db/crud/train';
 import ExerciseForm from '@/components/train/build/exercises/ExerciseForm';
+import BackToLink from '@/components/layout/navigation/BackToLink';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -16,7 +16,8 @@ export default async function EditExercisePage({ params }: PageProps) {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <BackToLink href="/train/build/exercises" pageName="Exercises" />
       <ExerciseForm initialData={exercise} isEditing />
     </div>
   );

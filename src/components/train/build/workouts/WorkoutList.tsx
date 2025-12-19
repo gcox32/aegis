@@ -57,10 +57,10 @@ export default function WorkoutList() {
         confirmText="Delete"
         confirmVariant="danger"
       />
-      <div className="flex flex-col justify-between items-center">
-        <h2 className="font-bold text-2xl">Your Workouts</h2>
-        <Link href="/train/build/workouts/new" className="mt-4 w-full">
-          <Button>
+      <div className="flex flex-col justify-between">
+        
+        <Link href="/train/build/workouts/new" className="w-full">
+          <Button className="w-full">
             <Plus className="mr-2 w-4 h-4" />
             New Workout
           </Button>
