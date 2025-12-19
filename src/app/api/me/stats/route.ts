@@ -146,6 +146,11 @@ export async function POST(request: NextRequest) {
             circumferenceUnit,
             composite: {
               strategy: strategy as CompositeStrategy,
+              weights: {
+                navy: 0.6,
+                bmi: 0.2,
+                ymca: 0.2,
+              },
             },
           };
 
