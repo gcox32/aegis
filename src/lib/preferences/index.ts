@@ -9,7 +9,7 @@ export interface UserPreferences {
 }
 
 const DEFAULT_PREFERENCES: UserPreferences = {
-  bodyFatStrategy: 'median',
+  bodyFatStrategy: 'weighted_mean',
   preferredWeightUnit: 'lb',
   preferredLengthUnit: 'in',
   bodyFatMaxDaysOld: 30,
