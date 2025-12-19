@@ -20,8 +20,9 @@ import {
   tapeMeasurement,
   userImageLog,
   userImage,
+  userProfileKeyExercise,
 } from '../schema';
-import type { User, UserProfile, UserGoal, UserStats, TapeMeasurement, UserImage } from '@/types/user';
+import type { User, UserProfile, UserGoal, UserGoalComponent, UserStats, TapeMeasurement, UserImage } from '@/types/user';
 
 // ============================================================================
 // USER CRUD
@@ -91,9 +92,20 @@ export async function createUserProfile(
     } as any)
     .returning();
 
+  // Insert key exercises if provided
+  if (profileData.keyExercises && profileData.keyExercises.length > 0) {
+    await db.insert(userProfileKeyExercise).values(
+      profileData.keyExercises.map(exerciseId => ({
+        userProfileId: newProfile.id,
+        exerciseId,
+      }))
+    );
+  }
+
   return {
     ...nullToUndefined(newProfile),
     birthDate: newProfile.birthDate ? new Date(newProfile.birthDate) : undefined,
+    keyExercises: profileData.keyExercises,
   } as UserProfile;
 }
 
@@ -106,9 +118,18 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
 
   if (!profile) return null;
 
+  // Fetch key exercises from junction table
+  const keyExerciseRows = await db
+    .select({ exerciseId: userProfileKeyExercise.exerciseId })
+    .from(userProfileKeyExercise)
+    .where(eq(userProfileKeyExercise.userProfileId, profile.id));
+
+  const keyExercises = keyExerciseRows.map(row => row.exerciseId);
+
   return {
     ...nullToUndefined(profile),
     birthDate: profile.birthDate ? new Date(profile.birthDate) : undefined,
+    keyExercises: keyExercises.length > 0 ? keyExercises : undefined,
   } as UserProfile;
 }
 
@@ -116,29 +137,130 @@ export async function updateUserProfile(
   userId: string,
   updates: Partial<Omit<UserProfile, 'id' | 'userId' | 'createdAt' | 'updatedAt'>>
 ): Promise<UserProfile | null> {
-  // Convert Date objects to strings for database
-  const dbUpdates: any = { ...updates };
-  if (updates.birthDate !== undefined) {
-    dbUpdates.birthDate = updates.birthDate ? updates.birthDate : null;
+  // Get the profile first to access its id
+  const [existingProfile] = await db
+    .select()
+    .from(userProfile)
+    .where(eq(userProfile.userId, userId))
+    .limit(1);
+
+  if (!existingProfile) return null;
+
+  // Handle keyExercises separately if provided
+  const { keyExercises, ...profileUpdates } = updates;
+  
+  // Only update profile if there are actual profile fields to update
+  let updatedProfile = existingProfile;
+  if (Object.keys(profileUpdates).length > 0) {
+    // Convert Date objects to strings for database
+    const dbUpdates: any = { ...profileUpdates };
+    if (profileUpdates.birthDate !== undefined) {
+      dbUpdates.birthDate = profileUpdates.birthDate ? profileUpdates.birthDate : null;
+    }
+
+    const [result] = await db
+      .update(userProfile)
+      .set(dbUpdates)
+      .where(eq(userProfile.userId, userId))
+      .returning();
+
+    if (!result) return null;
+    updatedProfile = result;
   }
 
-  const [updatedProfile] = await db
-    .update(userProfile)
-    .set(dbUpdates)
-    .where(eq(userProfile.userId, userId))
-    .returning();
+  // Update key exercises if provided
+  if (keyExercises !== undefined) {
+    // Ensure keyExercises is an array
+    if (!Array.isArray(keyExercises)) {
+      throw new Error('keyExercises must be an array');
+    }
 
-  if (!updatedProfile) return null;
+    // Delete existing key exercises
+    await db
+      .delete(userProfileKeyExercise)
+      .where(eq(userProfileKeyExercise.userProfileId, existingProfile.id));
+
+    // Insert new key exercises
+    if (keyExercises.length > 0) {
+      await db.insert(userProfileKeyExercise).values(
+        keyExercises.map(exerciseId => ({
+          userProfileId: existingProfile.id,
+          exerciseId,
+        }))
+      );
+    }
+  }
+
+  // Fetch updated key exercises
+  const keyExerciseRows = await db
+    .select({ exerciseId: userProfileKeyExercise.exerciseId })
+    .from(userProfileKeyExercise)
+    .where(eq(userProfileKeyExercise.userProfileId, updatedProfile.id));
+
+  const updatedKeyExercises = keyExerciseRows.map(row => row.exerciseId);
 
   return {
     ...nullToUndefined(updatedProfile),
     birthDate: updatedProfile.birthDate ? new Date(updatedProfile.birthDate) : undefined,
+    keyExercises: updatedKeyExercises.length > 0 ? updatedKeyExercises : undefined,
   } as UserProfile;
 }
 
 // ============================================================================
 // USER GOAL CRUD
 // ============================================================================
+
+// Helper to deserialize components from JSONB (convert date strings to Date objects)
+function deserializeComponents(components: any): UserGoalComponent[] | undefined {
+  if (!components || !Array.isArray(components)) {
+    return undefined;
+  }
+  return components.map((comp: any) => ({
+    ...comp,
+    createdAt: comp.createdAt ? new Date(comp.createdAt) : new Date(),
+    updatedAt: comp.updatedAt ? new Date(comp.updatedAt) : new Date(),
+  }));
+}
+
+// Helper to serialize components for JSONB (convert Date objects to ISO strings)
+// Also handles cases where dates come as strings from JSON parsing
+function serializeComponents(components: UserGoalComponent[] | undefined): any {
+  if (!components || !Array.isArray(components)) {
+    return null;
+  }
+  return components.map((comp) => {
+    // Handle createdAt - could be Date, string, or undefined
+    let createdAt: string | undefined;
+    if (comp.createdAt instanceof Date) {
+      createdAt = comp.createdAt.toISOString();
+    } else if (typeof comp.createdAt === 'string') {
+      createdAt = comp.createdAt;
+    } else {
+      createdAt = new Date().toISOString();
+    }
+
+    // Handle updatedAt - could be Date, string, or undefined
+    let updatedAt: string | undefined;
+    if (comp.updatedAt instanceof Date) {
+      updatedAt = comp.updatedAt.toISOString();
+    } else if (typeof comp.updatedAt === 'string') {
+      updatedAt = comp.updatedAt;
+    } else {
+      updatedAt = new Date().toISOString();
+    }
+
+    return {
+      id: comp.id,
+      name: comp.name,
+      description: comp.description,
+      priority: comp.priority,
+      complete: comp.complete,
+      notes: comp.notes,
+      createdAt,
+      updatedAt,
+    };
+  });
+}
 
 export async function createUserGoal(
   userId: string,
@@ -150,6 +272,7 @@ export async function createUserGoal(
       userId,
       name: goalData.name,
       description: goalData.description,
+      components: serializeComponents(goalData.components),
       duration: goalData.duration,
       startDate: goalData.startDate ? goalData.startDate : null,
       endDate: goalData.endDate ? goalData.endDate : null,
@@ -160,6 +283,7 @@ export async function createUserGoal(
 
   return {
     ...nullToUndefined(newGoal),
+    components: deserializeComponents(newGoal.components),
     startDate: newGoal.startDate ? new Date(newGoal.startDate) : undefined,
     endDate: newGoal.endDate ? new Date(newGoal.endDate) : undefined,
   } as UserGoal;
@@ -174,6 +298,7 @@ export async function getUserGoals(userId: string): Promise<UserGoal[]> {
   
   return results.map((r) => ({
     ...nullToUndefined(r),
+    components: deserializeComponents(r.components),
     startDate: r.startDate ? new Date(r.startDate) : undefined,
     endDate: r.endDate ? new Date(r.endDate) : undefined,
   })) as UserGoal[];
@@ -190,6 +315,7 @@ export async function getUserGoalById(goalId: string, userId: string): Promise<U
 
   return {
     ...nullToUndefined(goal),
+    components: deserializeComponents(goal.components),
     startDate: goal.startDate ? new Date(goal.startDate) : undefined,
     endDate: goal.endDate ? new Date(goal.endDate) : undefined,
   } as UserGoal;
@@ -200,8 +326,11 @@ export async function updateUserGoal(
   userId: string,
   updates: Partial<Omit<UserGoal, 'id' | 'userId' | 'createdAt' | 'updatedAt'>>
 ): Promise<UserGoal | null> {
-  // Convert Date objects to strings for database
+  // Convert Date objects to strings for database and serialize components
   const dbUpdates: any = { ...updates };
+  if (updates.components !== undefined) {
+    dbUpdates.components = serializeComponents(updates.components);
+  }
   if (updates.startDate !== undefined) {
     dbUpdates.startDate = updates.startDate ? updates.startDate : null;
   }
@@ -219,6 +348,7 @@ export async function updateUserGoal(
 
   return {
     ...nullToUndefined(updatedGoal),
+    components: deserializeComponents(updatedGoal.components),
     startDate: updatedGoal.startDate ? new Date(updatedGoal.startDate) : undefined,
     endDate: updatedGoal.endDate ? new Date(updatedGoal.endDate) : undefined,
   } as UserGoal;

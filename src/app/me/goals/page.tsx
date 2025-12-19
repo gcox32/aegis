@@ -1,24 +1,23 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { UserGoal } from '@/types/user';
 import { GoalList } from '@/components/goals/GoalList';
 import { GoalForm } from '@/components/goals/GoalForm';
 import Button from '@/components/ui/Button';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import { useToast } from '@/components/ui/Toast';
-import { Plus, ArrowLeft } from 'lucide-react';
+import { Plus, Dumbbell } from 'lucide-react';
 import Link from 'next/link';
-import BackToLink from '@/components/layout/navigation/BackToLink';
 import PageLayout from '@/components/layout/PageLayout';
 
 export default function GoalsPage() {
+    const router = useRouter();
     const [goals, setGoals] = useState<UserGoal[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isCreating, setIsCreating] = useState(false);
-    const [editingGoal, setEditingGoal] = useState<UserGoal | null>(null);
     const [deletingGoal, setDeletingGoal] = useState<UserGoal | null>(null);
-    const [isSubmitting, setIsSubmitting] = useState(false);
     
     const { showToast } = useToast();
 
@@ -46,7 +45,6 @@ export default function GoalsPage() {
     }, []);
 
     const handleCreate = async (data: Partial<UserGoal>) => {
-        setIsSubmitting(true);
         try {
             const res = await fetch('/api/me/goals', {
                 method: 'POST',
@@ -56,37 +54,15 @@ export default function GoalsPage() {
             
             if (!res.ok) throw new Error('Failed to create goal');
             
+            const result = await res.json();
             await fetchGoals();
             setIsCreating(false);
             showToast({ title: 'Success', description: 'Goal created successfully', variant: 'success' });
+            // Navigate to the new goal
+            router.push(`/me/goals/${result.goal.id}`);
         } catch (error) {
             console.error(error);
-             showToast({ title: 'Error', description: 'Failed to create goal', variant: 'error' });
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    const handleUpdate = async (data: Partial<UserGoal>) => {
-        if (!editingGoal) return;
-        setIsSubmitting(true);
-        try {
-            const res = await fetch(`/api/me/goals/${editingGoal.id}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data),
-            });
-            
-            if (!res.ok) throw new Error('Failed to update goal');
-            
-            await fetchGoals();
-            setEditingGoal(null);
-            showToast({ title: 'Success', description: 'Goal updated successfully', variant: 'success' });
-        } catch (error) {
-            console.error(error);
-            showToast({ title: 'Error', description: 'Failed to update goal', variant: 'error' });
-        } finally {
-            setIsSubmitting(false);
+            showToast({ title: 'Error', description: 'Failed to create goal', variant: 'error' });
         }
     };
 
@@ -119,25 +95,6 @@ export default function GoalsPage() {
                 <GoalForm 
                     onSubmit={handleCreate} 
                     onCancel={() => setIsCreating(false)}
-                    isSubmitting={isSubmitting}
-                />
-            </PageLayout>
-        );
-    }
-
-    if (editingGoal) {
-         return (
-            <PageLayout
-                breadcrumbHref="/me/goals"
-                breadcrumbText="Goals"
-                title="Edit Goal"
-                subtitle="Edit your goal"
-            >
-                <GoalForm 
-                    initialData={editingGoal}
-                    onSubmit={handleUpdate} 
-                    onCancel={() => setEditingGoal(null)}
-                    isSubmitting={isSubmitting}
                 />
             </PageLayout>
         );
@@ -150,16 +107,24 @@ export default function GoalsPage() {
             title="Goals"
             subtitle="Manage your goals"
         >
-            <Button className="w-full" onClick={() => setIsCreating(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                New Goal
-            </Button>
+            <div className="space-y-2 mb-6">
+                <Button className="mb-6 w-full" onClick={() => setIsCreating(true)}>
+                    <Plus className="mr-2 w-4 h-4" />
+                    New Goal
+                </Button>
+                <Link href="/me/goals/keys" className="flex justify-between items-center bg-card hover:bg-hover p-4 border border-border rounded-lg w-full transition-colors">
+                    <div className="flex items-center gap-3">
+                        <Dumbbell className="w-5 h-5 text-muted-foreground" />
+                        <span className="font-medium">Key Exercises</span>
+                    </div>
+                </Link>
+            </div>
             {isLoading ? (
-                <div className="py-12 text-center text-muted-foreground">Loading goals...</div>
+                <div className="py-12 text-muted-foreground text-center">Loading goals...</div>
             ) : (
                 <GoalList 
                     goals={goals} 
-                    onEdit={setEditingGoal} 
+                    onEdit={() => {}} 
                     onDelete={setDeletingGoal} 
                 />
             )}

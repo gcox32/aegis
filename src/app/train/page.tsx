@@ -23,7 +23,6 @@ export default function TrainPage() {
   const [activeProtocolInstance, setActiveProtocolInstance] =
     useState<ProtocolInstance | null>(null);
   const [activeProtocol, setActiveProtocol] = useState<Protocol | null>(null);
-  const [activePhaseInstance, setActivePhaseInstance] = useState<PhaseInstance | null>(null);
   const [activePhase, setActivePhase] = useState<Phase | null>(null);
   const [phaseWorkouts, setPhaseWorkouts] = useState<Workout[]>([]);
   const [workouts, setWorkouts] = useState<Workout[]>([]);
@@ -95,8 +94,6 @@ export default function TrainPage() {
             (pi: PhaseInstance) => pi.active && !pi.complete
           ) || phaseInstancesRes.phaseInstances[0] || null;
 
-          setActivePhaseInstance(activePhaseInst);
-
           // Determine which phase to show (active phase instance or first phase)
           const phaseToShow = activePhaseInst
             ? phases.find(p => p.id === activePhaseInst.phaseId) || null
@@ -125,7 +122,6 @@ export default function TrainPage() {
         } else {
           setActiveProtocol(null);
           setActivePhase(null);
-          setActivePhaseInstance(null);
           setPhaseWorkouts([]);
         }
       } catch (error) {

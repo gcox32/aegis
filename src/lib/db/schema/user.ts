@@ -34,6 +34,7 @@ export const userGoal = pgTable('user_goal', {
   userId: uuid('user_id').notNull().references(() => user.id),
   name: text('name'),
   description: text('description'),
+  components: jsonb('components'),
   duration: jsonb('duration'),
   startDate: date('start_date'),
   endDate: date('end_date'),

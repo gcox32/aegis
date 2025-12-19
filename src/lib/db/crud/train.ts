@@ -1,6 +1,6 @@
 import { eq, and, desc, inArray, sql, ilike } from 'drizzle-orm';
 import { db } from '../index';
-import { calculateOutput } from '@/lib/log/train/work-power';
+import { calculateOutput } from '@/lib/stats/performance/work-power';
 import { getLatestUserStats } from './user';
 import type { WeightMeasurement, WorkMeasurement, PowerMeasurement } from '@/types/measures';
 

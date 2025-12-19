@@ -92,17 +92,22 @@ export function ExerciseAutocomplete({
     };
   }, [searchTerm, currentExerciseId]);
 
+  const clearSelection = () => {
+    setSearchTerm('');
+    setOptions([]);
+    onChange(null);
+  };
+
   const handleSelect = (exercise: Exercise | null) => {
     if (!exercise) {
-      setSearchTerm('');
-      setOptions([]);
-      onChange(null);
+      clearSelection();
       return;
     }
 
     setSearchTerm(exercise.name);
     setOptions([]);
     onChange(exercise);
+    clearSelection();
   };
 
   // Close suggestions when clicking outside

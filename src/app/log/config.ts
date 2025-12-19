@@ -1,4 +1,4 @@
-import { Activity, Camera, Dumbbell, Timer } from 'lucide-react';
+import { Activity, Camera, Dumbbell, Goal, Timer, PieChart } from 'lucide-react';
 
 export const logViews = [
     {
@@ -12,8 +12,22 @@ export const logViews = [
         name: 'Workouts',
         href: '/log/workouts',
         icon: Dumbbell,
-        description: 'Track your workouts.',
+        description: 'Review your workouts.',
         active: true,
+    },
+    {
+        name: 'Performance',
+        href: '/log/performance',
+        icon: Timer,
+        description: `Confirm you're getting better.`,
+        active: false,
+    },
+    {
+        name: 'Macros',
+        href: '/log/fuel',
+        icon: PieChart,
+        description: 'Coming soon.',
+        active: false,
     },
     {
         name: 'Progress photos',
@@ -22,11 +36,5 @@ export const logViews = [
         description: 'Coming soon.',
         active: false,
     },
-    {
-        name: 'Performance',
-        href: '/log/performance',
-        icon: Timer,
-        description: 'Coming soon.',
-        active: false,
-    },
+
 ]

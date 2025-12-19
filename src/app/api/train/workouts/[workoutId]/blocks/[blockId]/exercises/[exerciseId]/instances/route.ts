@@ -5,7 +5,7 @@ import {
   createWorkoutBlockExerciseInstance,
 } from '@/lib/db/crud';
 import type { WorkoutBlockExerciseInstance } from '@/types/train';
-import { calculateProjected1RMFromMeasures } from '@/lib/log/train/projected-max';
+import { calculateProjected1RMFromMeasures } from '@/lib/stats/performance/projected-max';
 
 // GET /api/train/workouts/[workoutId]/blocks/[blockId]/exercises/[exerciseId]/instances - Get exercise instances for a specific exercise
 export async function GET(

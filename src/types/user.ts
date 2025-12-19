@@ -27,7 +27,7 @@ export interface UserProfile {
     birthDate?:                Date;
     dailyWaterRecommendation?: LiquidMeasurement;
     activityLevel?:            ActivityLevel;
-    keyExercises?:             Exercise[];
+    keyExercises?:             Exercise['id'][];
 
     // latest instances
     latestStats?:              UserStats;
@@ -52,9 +52,21 @@ export interface UserGoal {
     userId:       User['id'];
     name?:        string;
     description?: string;
+    components?:  UserGoalComponent[]; // JSONB array of UserGoalComponent
     duration?:    LongTimeMeasurement; // in weeks
     startDate?:   Date;
     endDate?:     Date | null;
+    complete:     boolean; // as determined by the components if components.length > 0, otherwise false
+    notes?:       string;
+    createdAt:    Date;
+    updatedAt:    Date;
+}
+
+export interface UserGoalComponent {
+    id:           string;
+    name:         string;
+    description?: string;
+    priority:     number;
     complete:     boolean;
     notes?:       string;
     createdAt:    Date;
