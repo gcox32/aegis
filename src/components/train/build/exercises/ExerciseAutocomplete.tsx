@@ -1,25 +1,28 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Exercise } from '@/types/train';
 import { FormInput } from '@/components/ui/Form';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Plus } from 'lucide-react';
 
 interface ExerciseAutocompleteProps {
   initialExerciseId?: string;
   /** The exercise currently being edited/created, used to exclude from results when editing */
   currentExerciseId?: string;
   onChange: (exercise: Exercise | null) => void;
+  onCreate?: () => void;
 }
 
 export function ExerciseAutocomplete({
   initialExerciseId,
   currentExerciseId,
   onChange,
+  onCreate,
 }: ExerciseAutocompleteProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [options, setOptions] = useState<Exercise[]>([]);
   const [loading, setLoading] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   // Load initial parent (when editing)
@@ -77,6 +80,7 @@ export function ExerciseAutocomplete({
           results = results.filter((ex) => ex.id !== currentExerciseId);
         }
         setOptions(results);
+        setIsOpen(true);
       } catch (err: any) {
         if (err.name !== 'AbortError') {
           console.error('Failed to search exercises', err);
@@ -95,6 +99,7 @@ export function ExerciseAutocomplete({
   const clearSelection = () => {
     setSearchTerm('');
     setOptions([]);
+    setIsOpen(false);
     onChange(null);
   };
 
@@ -106,26 +111,27 @@ export function ExerciseAutocomplete({
 
     setSearchTerm(exercise.name);
     setOptions([]);
+    setIsOpen(false);
     onChange(exercise);
-    // handleClickOutside(new MouseEvent('click'));
   };
 
   function handleClickOutside(event: MouseEvent) {
     if (!containerRef.current) return;
     if (!containerRef.current.contains(event.target as Node)) {
-      setOptions([]);
+      setIsOpen(false);
     }
   }
 
   // Close suggestions when clicking outside
   useEffect(() => {
-    handleClickOutside(new MouseEvent('click'));
-
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
+  const hasExactMatch = options.some(opt => opt.name.toLowerCase() === searchTerm.trim().toLowerCase());
+  const showDropdown = isOpen && ((searchTerm && options.length > 0) || (onCreate && searchTerm && !loading && !hasExactMatch));
 
   return (
     <div ref={containerRef} className="relative">
@@ -139,7 +145,12 @@ export function ExerciseAutocomplete({
           setSearchTerm(value);
           if (!value) {
             handleSelect(null);
+          } else {
+            setIsOpen(true);
           }
+        }}
+        onFocus={() => {
+            if (searchTerm) setIsOpen(true);
         }}
         autoComplete="off"
       />
@@ -148,15 +159,8 @@ export function ExerciseAutocomplete({
           <Loader2 className="w-4 h-4 animate-spin" />
         </div>
       )}
-      {searchTerm && options.length > 0 && (
+      {showDropdown ? (
         <div className="z-10 absolute bg-card shadow-lg mt-1 border border-border rounded-md w-full max-h-56 overflow-auto">
-          <button
-            type="button"
-            className="block hover:bg-muted px-3 py-2 w-full text-muted-foreground text-xs text-left"
-            onClick={() => handleSelect(null)}
-          >
-            None (clear selection)
-          </button>
           {options.map((option) => (
             <button
               key={option.id}
@@ -167,10 +171,23 @@ export function ExerciseAutocomplete({
               {option.name}
             </button>
           ))}
+          
+          {onCreate && !hasExactMatch && (
+            <button
+              type="button"
+              className="flex items-center gap-2 hover:bg-brand-primary/10 px-3 py-2 border-t border-border w-full font-medium text-brand-primary text-sm text-left"
+              onClick={() => {
+                setIsOpen(false);
+                setOptions([]); 
+                onCreate();
+              }}
+            >
+              <Plus className="w-3 h-3" />
+              Create "{searchTerm}"
+            </button>
+          )}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
-
-

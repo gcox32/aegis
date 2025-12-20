@@ -2,6 +2,9 @@
 
 - [x] CreateEditFrom wrapper component; 
     - [x] Save and Cancel buttons at bottom unless editing, then Update, Cancel, Delete
-- [ ] Make WorkoutBlocks draggable and reorderable inside of WorkoutForm
-- [ ] Make WorkoutBlockExercises draggable and reorderable inside of WorkoutBlocks in WorkoutForm
-- [ ] CreateExerciseOverlay for one-off Exercise creations
+- [x] Make WorkoutBlocks draggable and reorderable inside of WorkoutForm
+- [x] Make WorkoutBlockExercises draggable and reorderable inside of WorkoutBlocks in WorkoutForm
+- [x] CreateExerciseOverlay for one-off Exercise creations
+- [ ] Fix bug where scoring_type is not being INSERTed into train.workout_block_exercise
+- [ ] Fix browser warning about form nested inside of form with regards to CreateExerciseForm implementation
+- [ ] Update Session UI to respect scoring_type (i.e. "time" scoring type should not ask user to input external load)

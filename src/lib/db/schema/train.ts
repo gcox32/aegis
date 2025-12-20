@@ -106,6 +106,7 @@ export const workoutBlockExercise = trainSchema.table('workout_block_exercise', 
   order: integer('order').notNull(),
   sets: integer('sets').notNull(),
   measures: jsonb('measures').notNull(),
+  scoringType: text('scoring_type', { enum: ['reps', 'load', 'dist', 'cals', 'time'] }).notNull().default('reps'),
   tempo: jsonb('tempo'),
   restTime: integer('rest_time'),
   rpe: integer('rpe'),
@@ -376,4 +377,3 @@ export const projected1RMRelations = relations(projected1RM, ({ one }) => ({
     references: [exercise.id],
   }),
 }));
-

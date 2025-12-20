@@ -1,19 +1,35 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import Button from '@/components/ui/Button';
 import { 
   FormCard, FormTitle, FormGroup, FormLabel, 
   FormInput, FormTextarea, FormSelect
 } from '@/components/ui/Form';
 import { CreateEditForm } from '@/components/ui/CreateEditForm';
-import { TogglePill } from '@/components/ui/TogglePill';
-import { ExerciseAutocomplete } from '@/components/train/build/exercises/ExerciseAutocomplete';
-import { Exercise, Workout, WorkoutBlockType, WorkoutType } from '@/types/train';
+import { Workout, WorkoutType } from '@/types/train';
 import { CreateWorkoutInput, CreateWorkoutBlockInput, CreateWorkoutBlockExerciseInput } from '@/lib/db/crud/train';
-import { Plus, Trash, ChevronUp, Copy } from 'lucide-react';
-import { WORKOUT_TYPES, BLOCK_TYPES } from './options';
+import { Plus, Copy } from 'lucide-react';
+import { WORKOUT_TYPES } from './options';
+import { 
+  DndContext, 
+  closestCorners, 
+  KeyboardSensor, 
+  PointerSensor, 
+  useSensor, 
+  useSensors,
+  DragEndEvent,
+  CollisionDetection
+} from '@dnd-kit/core';
+import { 
+  arrayMove, 
+  SortableContext, 
+  sortableKeyboardCoordinates, 
+  verticalListSortingStrategy 
+} from '@dnd-kit/sortable';
+import { SortableWorkoutBlock } from './SortableWorkoutBlock';
+import { BlockFormData, ScoringType } from './types';
+import Button from '@/components/ui/Button';
 
 interface WorkoutFormProps {
     workoutId?: string;
@@ -32,8 +48,9 @@ export default function WorkoutForm({ workoutId, isEditing = false }: WorkoutFor
   const [estimatedDuration, setEstimatedDuration] = useState<number>(60);
   const [objectives, setObjectives] = useState<string[]>([]);
   
-  const [blocks, setBlocks] = useState<CreateWorkoutBlockInput[]>([
+  const [blocks, setBlocks] = useState<BlockFormData[]>([
     {
+      clientId: `block-${Math.random().toString(36).substr(2, 9)}`,
       workoutBlockType: 'main',
       name: 'Main Block',
       order: 1,
@@ -42,43 +59,44 @@ export default function WorkoutForm({ workoutId, isEditing = false }: WorkoutFor
     }
   ]);
 
-  // Track which measure type is active for each exercise (null = none, 'load' | 'distance' | 'calories' | 'time')
-  const [activeMeasures, setActiveMeasures] = useState<Map<string, 'load' | 'distance' | 'calories' | 'time' | null>>(new Map());
-  
-  const toggleMeasure = (blockIndex: number, exerciseIndex: number, measureType: 'load' | 'distance' | 'calories' | 'time') => {
-    const key = `${blockIndex}-${exerciseIndex}`;
-    const current = activeMeasures.get(key);
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+        activationConstraint: {
+            distance: 5,
+        },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const customCollisionDetection: CollisionDetection = useCallback((args) => {
+    const { active, droppableContainers } = args;
     
-    // If clicking the same measure type, collapse it
-    if (current === measureType) {
-      setActiveMeasures(prev => {
-        const next = new Map(prev);
-        next.set(key, null);
-        return next;
-      });
-    } else {
-      // Switch to the new measure type and clear other measures
-      setActiveMeasures(prev => {
-        const next = new Map(prev);
-        next.set(key, measureType);
-        return next;
-      });
-      
-      // Clear other measure values when switching
-      const exercise = blocks[blockIndex].exercises[exerciseIndex];
-      const clearedMeasures: any = { ...exercise.measures };
-      
-      if (measureType !== 'load') clearedMeasures.externalLoad = undefined;
-      if (measureType !== 'distance') clearedMeasures.distance = undefined;
-      if (measureType !== 'calories') clearedMeasures.calories = undefined;
-      if (measureType !== 'time') clearedMeasures.time = undefined;
-      
-      updateExercise(blockIndex, exerciseIndex, { measures: clearedMeasures });
-    }
+    // Filter droppables based on active item type
+    const filteredContainers = droppableContainers.filter(container => {
+        if (active.id.toString().startsWith('block-')) {
+            return container.id.toString().startsWith('block-');
+        }
+        if (active.id.toString().startsWith('exercise-')) {
+             return container.id.toString().startsWith('exercise-');
+        }
+        return false;
+    });
+
+    // Use closestCorners with filtered containers for better bounding box detection
+    return closestCorners({
+        ...args,
+        droppableContainers: filteredContainers
+    });
+  }, []);
+
+  const handleScoringTypeChange = (blockIndex: number, exerciseIndex: number, measureType: ScoringType) => {
+    updateExercise(blockIndex, exerciseIndex, { scoringType: measureType });
   };
 
-  const getActiveMeasure = (blockIndex: number, exerciseIndex: number): 'load' | 'distance' | 'calories' | 'time' | null => {
-    return activeMeasures.get(`${blockIndex}-${exerciseIndex}`) ?? null;
+  const getActiveMeasure = (blockIndex: number, exerciseIndex: number): ScoringType => {
+    return blocks[blockIndex].exercises[exerciseIndex].scoringType || 'reps';
   };
 
   const populateForm = (w: Workout) => {
@@ -88,8 +106,9 @@ export default function WorkoutForm({ workoutId, isEditing = false }: WorkoutFor
     setEstimatedDuration(w.estimatedDuration ?? 60);
     setObjectives(w.objectives ?? []);
 
-    const mappedBlocks: CreateWorkoutBlockInput[] =
+    const mappedBlocks: BlockFormData[] =
       (w.blocks ?? []).map((b, blockIndex) => ({
+        clientId: `block-${Math.random().toString(36).substr(2, 9)}`,
         workoutBlockType: b.workoutBlockType,
         name: b.name ?? '',
         order: blockIndex + 1,
@@ -98,9 +117,11 @@ export default function WorkoutForm({ workoutId, isEditing = false }: WorkoutFor
         description: b.description,
         exercises: (b.exercises ?? []).map((ex, exIndex) => ({
           exerciseId: ex.exercise.id,
+          clientId: `exercise-${Math.random().toString(36).substr(2, 9)}`,
           order: exIndex + 1,
           sets: ex.sets,
           measures: ex.measures ?? {},
+          scoringType: ex.scoringType || 'reps',
           tempo: ex.tempo,
           restTime: ex.restTime,
           rpe: ex.rpe,
@@ -110,23 +131,6 @@ export default function WorkoutForm({ workoutId, isEditing = false }: WorkoutFor
 
     if (mappedBlocks.length > 0) {
       setBlocks(mappedBlocks);
-      // Auto-expand measure fields for exercises that already have measure values
-      const measuresToExpand = new Map<string, 'load' | 'distance' | 'calories' | 'time'>();
-      mappedBlocks.forEach((block, blockIndex) => {
-        block.exercises.forEach((ex, exIndex) => {
-          const key = `${blockIndex}-${exIndex}`;
-          if (ex.measures?.externalLoad?.value !== undefined) {
-            measuresToExpand.set(key, 'load');
-          } else if (ex.measures?.distance?.value !== undefined) {
-            measuresToExpand.set(key, 'distance');
-          } else if (ex.measures?.calories?.value !== undefined) {
-            measuresToExpand.set(key, 'calories');
-          } else if (ex.measures?.time?.value !== undefined) {
-            measuresToExpand.set(key, 'time');
-          }
-        });
-      });
-      setActiveMeasures(measuresToExpand);
     }
   };
 
@@ -195,6 +199,7 @@ export default function WorkoutForm({ workoutId, isEditing = false }: WorkoutFor
     setBlocks([
       ...blocks,
       {
+        clientId: `block-${Math.random().toString(36).substr(2, 9)}`,
         workoutBlockType: 'main',
         name: `Block ${blocks.length + 1}`,
         order: blocks.length + 1,
@@ -210,17 +215,87 @@ export default function WorkoutForm({ workoutId, isEditing = false }: WorkoutFor
 
   const updateBlock = (index: number, updates: Partial<CreateWorkoutBlockInput>) => {
     const newBlocks = [...blocks];
-    newBlocks[index] = { ...newBlocks[index], ...updates };
+    newBlocks[index] = { ...newBlocks[index], ...updates } as BlockFormData;
     setBlocks(newBlocks);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (!over) return;
+
+    const activeId = String(active.id);
+    const overId = String(over.id);
+
+    // Check if we're sorting blocks (IDs start with "block-")
+    if (activeId.startsWith('block-') && overId.startsWith('block-')) {
+      if (activeId !== overId) {
+        setBlocks((items) => {
+          const oldIndex = items.findIndex((item) => item.clientId === activeId);
+          const newIndex = items.findIndex((item) => item.clientId === overId);
+          
+          const newItems = arrayMove(items, oldIndex, newIndex);
+          return newItems.map((item, index) => ({ ...item, order: index + 1 }));
+        });
+      }
+      return;
+    }
+
+    // Check if we're sorting exercises (IDs start with "exercise-")
+    if (activeId.startsWith('exercise-') && overId.startsWith('exercise-')) {
+      setBlocks((currentBlocks) => {
+        // Find source and destination blocks
+        let sourceBlockIndex = -1;
+        let destBlockIndex = -1;
+        let sourceExerciseIndex = -1;
+        let destExerciseIndex = -1;
+
+        for (let i = 0; i < currentBlocks.length; i++) {
+          const exerciseIndex = currentBlocks[i].exercises.findIndex(e => e.clientId === activeId);
+          if (exerciseIndex !== -1) {
+            sourceBlockIndex = i;
+            sourceExerciseIndex = exerciseIndex;
+            break;
+          }
+        }
+
+        for (let i = 0; i < currentBlocks.length; i++) {
+          const exerciseIndex = currentBlocks[i].exercises.findIndex(e => e.clientId === overId);
+          if (exerciseIndex !== -1) {
+            destBlockIndex = i;
+            destExerciseIndex = exerciseIndex;
+            break;
+          }
+        }
+
+        // Only allow reordering within the same block for now as per requirements
+        if (sourceBlockIndex !== -1 && destBlockIndex !== -1 && sourceBlockIndex === destBlockIndex) {
+          const newBlocks = [...currentBlocks];
+          const block = newBlocks[sourceBlockIndex];
+          
+          const newExercises = arrayMove(block.exercises, sourceExerciseIndex, destExerciseIndex);
+          newBlocks[sourceBlockIndex] = {
+            ...block,
+            exercises: newExercises.map((e, i) => ({ ...e, order: i + 1 }))
+          };
+          
+          return newBlocks;
+        }
+
+        return currentBlocks;
+      });
+    }
   };
 
   const addExercise = (blockIndex: number) => {
     const newBlocks = [...blocks];
     newBlocks[blockIndex].exercises.push({
+      clientId: `exercise-${Math.random().toString(36).substr(2, 9)}`,
       exerciseId: '',
       order: newBlocks[blockIndex].exercises.length + 1,
       sets: 3,
       measures: { reps: 10 },
+      scoringType: 'reps',
       restTime: 60,
     } as any);
     setBlocks(newBlocks);
@@ -277,6 +352,7 @@ export default function WorkoutForm({ workoutId, isEditing = false }: WorkoutFor
             ...e.measures,
             reps: e.measures.reps || 0,
           },
+          scoringType: e.scoringType || 'reps',
         }))
       }))
     };
@@ -383,400 +459,31 @@ export default function WorkoutForm({ workoutId, isEditing = false }: WorkoutFor
       </FormCard>
 
       <div className="space-y-4">
-        {blocks.map((block, blockIndex) => (
-          <FormCard key={blockIndex}>
-            <div className="flex justify-between items-start mb-4">
-              <div className="flex-1 gap-4 grid grid-cols-1 sm:grid-cols-2 mr-4">
-                <FormInput 
-                  value={block.name || ''} 
-                  onChange={e => updateBlock(blockIndex, { name: e.target.value })}
-                  placeholder="Block Name"
-                  className="border-transparent focus:border-brand-primary font-bold text-lg"
-                />
-                <FormSelect
-                  value={block.workoutBlockType}
-                  onChange={e => updateBlock(blockIndex, { workoutBlockType: e.target.value as WorkoutBlockType })}
-                >
-                  {BLOCK_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                </FormSelect>
-              </div>
-              <Button type="button" variant="ghost" size="sm" onClick={() => removeBlock(blockIndex)} className="hover:bg-red-500/10 text-red-500 hover:text-red-700">
-                <Trash className="w-4 h-4" />
-              </Button>
-            </div>
-            
-            <div className="flex flex-col items-start space-y-1 mb-3 px-1 text-muted-foreground text-xs">
-              <FormLabel>Block Style</FormLabel>
-              <TogglePill
-                leftLabel="Circuit"
-                rightLabel="Straight Sets"
-                value={block.circuit ?? false}
-                onChange={(val) =>
-                  updateBlock(blockIndex, { circuit: val })
-                }
+        <DndContext 
+          sensors={sensors}
+          collisionDetection={customCollisionDetection}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext 
+            items={blocks.map(b => b.clientId)}
+            strategy={verticalListSortingStrategy}
+          >
+            {blocks.map((block, blockIndex) => (
+              <SortableWorkoutBlock
+                key={block.clientId}
+                block={block}
+                blockIndex={blockIndex}
+                removeBlock={removeBlock}
+                updateBlock={updateBlock}
+                addExercise={addExercise}
+                removeExercise={removeExercise}
+                updateExercise={updateExercise}
+                handleScoringTypeChange={handleScoringTypeChange}
+                getActiveMeasure={getActiveMeasure}
               />
-            </div>
-
-            <div className="space-y-3 pl-4 border-border border-l-2">
-              {block.exercises.map((exercise, exerciseIndex) => {
-                const activeMeasure = getActiveMeasure(blockIndex, exerciseIndex);
-                return (
-                <div key={exerciseIndex} className="space-y-2 bg-background/50 p-3 border border-border rounded">
-                  {/* First row: Exercise, Sets, Reps, Rest */}
-                  <div className="items-end gap-2 grid grid-cols-12">
-                    <div className="col-span-12 sm:col-span-6">
-                      <ExerciseAutocomplete
-                        initialExerciseId={exercise.exerciseId || undefined}
-                        onChange={(selected: Exercise | null) =>
-                          updateExercise(blockIndex, exerciseIndex, { exerciseId: selected?.id || '' })
-                        }
-                      />
-                    </div>
-                    <div className="col-span-4 sm:col-span-2">
-                       <FormLabel className="text-xs">Sets</FormLabel>
-                       <FormInput 
-                         type="number" 
-                         value={exercise.sets || ''} 
-                         onChange={e => {
-                           const val = e.target.value === '' ? '' : parseInt(e.target.value, 10);
-                           updateExercise(blockIndex, exerciseIndex, { 
-                             sets: (val === '' || isNaN(val as number)) ? 0 : (val as number)
-                           });
-                         }}
-                         onBlur={e => {
-                           if (e.target.value === '') {
-                             updateExercise(blockIndex, exerciseIndex, { sets: 0 });
-                           }
-                         }}
-                       />
-                    </div>
-                    <div className="col-span-4 sm:col-span-2">
-                       <FormLabel className="text-xs">Reps</FormLabel>
-                       <FormInput 
-                         type="number" 
-                         value={exercise.measures.reps || ''} 
-                         onChange={e => {
-                           const val = e.target.value === '' ? '' : parseInt(e.target.value, 10);
-                           updateExercise(blockIndex, exerciseIndex, { 
-                             measures: { 
-                               ...exercise.measures, 
-                               reps: (val === '' || isNaN(val as number)) ? 0 : (val as number),
-                             } 
-                           });
-                         }}
-                         onBlur={e => {
-                           if (e.target.value === '') {
-                             updateExercise(blockIndex, exerciseIndex, { 
-                               measures: { 
-                                 ...exercise.measures, 
-                                 reps: 0,
-                               } 
-                             });
-                           }
-                         }}
-                       />
-                    </div>
-                    <div className="col-span-4 sm:col-span-2">
-                       <FormLabel className="text-xs">Rest (s)</FormLabel>
-                       <FormSelect
-                         value={exercise.restTime || 0}
-                         onChange={e => {
-                           const val = parseInt(e.target.value, 10);
-                           updateExercise(blockIndex, exerciseIndex, { restTime: (isNaN(val) ? 0 : val) as any });
-                         }}
-                       >
-                         <option value={0}>0</option>
-                         <option value={15}>15</option>
-                         <option value={30}>30</option>
-                         <option value={45}>45</option>
-                         <option value={60}>60</option>
-                         <option value={90}>90</option>
-                         <option value={120}>120</option>
-                         <option value={180}>180</option>
-                         <option value={240}>240</option>
-                         <option value={300}>300</option>
-                       </FormSelect>
-                    </div>
-                  </div>
-                  
-                  {/* Second row: Measure selection (left) and Delete (right) */}
-                  <div className="flex justify-between items-center">
-                    {activeMeasure ? (
-                      <div className="flex-1 max-w-xs">
-                        <div className="flex justify-start items-center gap-2 mb-1">
-                          <FormLabel className="text-xs capitalize">{activeMeasure}</FormLabel>
-                          <button
-                            type="button"
-                            onClick={() => toggleMeasure(blockIndex, exerciseIndex, activeMeasure)}
-                            className="text-muted-foreground hover:text-foreground transition-colors"
-                            title={`Hide ${activeMeasure}`}
-                          >
-                            <ChevronUp className="w-3 h-3" />
-                          </button>
-                        </div>
-                        <div className="flex gap-2">
-                          {activeMeasure === 'load' && (
-                            <>
-                              <FormInput 
-                                type="number" 
-                                value={exercise.measures.externalLoad?.value ?? ''} 
-                                onChange={e => {
-                                  const val = e.target.value === '' ? '' : parseFloat(e.target.value);
-                                  const currentUnit = exercise.measures.externalLoad?.unit || 'kg';
-                                  updateExercise(blockIndex, exerciseIndex, { 
-                                    measures: { 
-                                      ...exercise.measures, 
-                                      externalLoad: (val === '' || isNaN(val as number))
-                                        ? undefined
-                                        : { value: val as number, unit: currentUnit },
-                                      // Clear other measures when setting load
-                                      distance: undefined,
-                                      calories: undefined,
-                                      time: undefined,
-                                    } 
-                                  });
-                                }}
-                                onBlur={e => {
-                                  if (e.target.value === '') {
-                                    updateExercise(blockIndex, exerciseIndex, { 
-                                      measures: { 
-                                        ...exercise.measures, 
-                                        externalLoad: undefined,
-                                      } 
-                                    });
-                                  }
-                                }}
-                                className="flex-1"
-                              />
-                              <FormSelect
-                                value={exercise.measures.externalLoad?.unit || 'kg'}
-                                onChange={e => {
-                                  const unit = e.target.value as 'kg' | 'lbs';
-                                  const currentValue = exercise.measures.externalLoad?.value;
-                                  updateExercise(blockIndex, exerciseIndex, { 
-                                    measures: { 
-                                      ...exercise.measures, 
-                                      externalLoad: currentValue !== undefined
-                                        ? { value: currentValue, unit }
-                                        : { value: 0, unit },
-                                    } 
-                                  });
-                                }}
-                                className="w-20"
-                              >
-                                <option value="kg">kg</option>
-                                <option value="lbs">lbs</option>
-                              </FormSelect>
-                            </>
-                          )}
-                          {activeMeasure === 'distance' && (
-                            <>
-                              <FormInput 
-                                type="number" 
-                                value={exercise.measures.distance?.value ?? ''} 
-                                onChange={e => {
-                                  const val = e.target.value === '' ? '' : parseFloat(e.target.value);
-                                  const currentUnit = exercise.measures.distance?.unit || 'm';
-                                  updateExercise(blockIndex, exerciseIndex, { 
-                                    measures: { 
-                                      ...exercise.measures, 
-                                      distance: (val === '' || isNaN(val as number))
-                                        ? undefined
-                                        : { value: val as number, unit: currentUnit },
-                                      // Clear other measures when setting distance
-                                      externalLoad: undefined,
-                                      calories: undefined,
-                                      time: undefined,
-                                    } 
-                                  });
-                                }}
-                                onBlur={e => {
-                                  if (e.target.value === '') {
-                                    updateExercise(blockIndex, exerciseIndex, { 
-                                      measures: { 
-                                        ...exercise.measures, 
-                                        distance: undefined,
-                                      } 
-                                    });
-                                  }
-                                }}
-                                className="flex-1"
-                              />
-                              <FormSelect
-                                value={exercise.measures.distance?.unit || 'm'}
-                                onChange={e => {
-                                  const unit = e.target.value as 'cm' | 'm' | 'in' | 'ft' | 'yd' | 'mi' | 'km';
-                                  const currentValue = exercise.measures.distance?.value;
-                                  updateExercise(blockIndex, exerciseIndex, { 
-                                    measures: { 
-                                      ...exercise.measures, 
-                                      distance: currentValue !== undefined
-                                        ? { value: currentValue, unit }
-                                        : { value: 0, unit },
-                                    } 
-                                  });
-                                }}
-                                className="w-24"
-                              >
-                                <option value="cm">cm</option>
-                                <option value="m">m</option>
-                                <option value="km">km</option>
-                                <option value="in">in</option>
-                                <option value="ft">ft</option>
-                                <option value="yd">yd</option>
-                                <option value="mi">mi</option>
-                              </FormSelect>
-                            </>
-                          )}
-                          {activeMeasure === 'calories' && (
-                            <>
-                              <FormInput 
-                                type="number" 
-                                value={exercise.measures.calories?.value ?? ''} 
-                                onChange={e => {
-                                  const val = e.target.value === '' ? '' : parseFloat(e.target.value);
-                                  updateExercise(blockIndex, exerciseIndex, { 
-                                    measures: { 
-                                      ...exercise.measures, 
-                                      calories: (val === '' || isNaN(val as number))
-                                        ? undefined
-                                        : { value: val as number, unit: 'cal' },
-                                      // Clear other measures when setting calories
-                                      externalLoad: undefined,
-                                      distance: undefined,
-                                      time: undefined,
-                                    } 
-                                  });
-                                }}
-                                onBlur={e => {
-                                  if (e.target.value === '') {
-                                    updateExercise(blockIndex, exerciseIndex, { 
-                                      measures: { 
-                                        ...exercise.measures, 
-                                        calories: undefined,
-                                      } 
-                                    });
-                                  }
-                                }}
-                                className="flex-1"
-                              />
-                              <span className="self-center px-2 text-muted-foreground text-xs">cal</span>
-                            </>
-                          )}
-                          {activeMeasure === 'time' && (
-                            <>
-                              <FormInput 
-                                type="number" 
-                                value={exercise.measures.time?.value ?? ''} 
-                                onChange={e => {
-                                  const val = e.target.value === '' ? '' : parseFloat(e.target.value);
-                                  const currentUnit = exercise.measures.time?.unit || 's';
-                                  updateExercise(blockIndex, exerciseIndex, { 
-                                    measures: { 
-                                      ...exercise.measures, 
-                                      time: (val === '' || isNaN(val as number))
-                                        ? undefined
-                                        : { value: val as number, unit: currentUnit },
-                                      // Clear other measures when setting time
-                                      externalLoad: undefined,
-                                      distance: undefined,
-                                      calories: undefined,
-                                    } 
-                                  });
-                                }}
-                                onBlur={e => {
-                                  if (e.target.value === '') {
-                                    updateExercise(blockIndex, exerciseIndex, { 
-                                      measures: { 
-                                        ...exercise.measures, 
-                                        time: undefined,
-                                      } 
-                                    });
-                                  }
-                                }}
-                                className="flex-1"
-                              />
-                              <FormSelect
-                                value={exercise.measures.time?.unit || 's'}
-                                onChange={e => {
-                                  const unit = e.target.value as 's' | 'min' | 'hr';
-                                  const currentValue = exercise.measures.time?.value;
-                                  updateExercise(blockIndex, exerciseIndex, { 
-                                    measures: { 
-                                      ...exercise.measures, 
-                                      time: currentValue !== undefined
-                                        ? { value: currentValue, unit }
-                                        : { value: 0, unit },
-                                    } 
-                                  });
-                                }}
-                                className="w-20"
-                              >
-                                <option value="s">s</option>
-                                <option value="min">min</option>
-                                <option value="hr">hr</option>
-                              </FormSelect>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => toggleMeasure(blockIndex, exerciseIndex, 'load')}
-                          className="flex items-center gap-1 text-muted-foreground hover:text-foreground text-xs transition-colors"
-                          title="Add Load"
-                        >
-                          <Plus className="w-3 h-3" />
-                          <span className="text-[10px]">Load</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => toggleMeasure(blockIndex, exerciseIndex, 'distance')}
-                          className="flex items-center gap-1 text-muted-foreground hover:text-foreground text-xs transition-colors"
-                          title="Add Distance"
-                        >
-                          <Plus className="w-3 h-3" />
-                          <span className="text-[10px]">Distance</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => toggleMeasure(blockIndex, exerciseIndex, 'calories')}
-                          className="flex items-center gap-1 text-muted-foreground hover:text-foreground text-xs transition-colors"
-                          title="Add Calories"
-                        >
-                          <Plus className="w-3 h-3" />
-                          <span className="text-[10px]">Calories</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => toggleMeasure(blockIndex, exerciseIndex, 'time')}
-                          className="flex items-center gap-1 text-muted-foreground hover:text-foreground text-xs transition-colors"
-                          title="Add Time"
-                        >
-                          <Plus className="w-3 h-3" />
-                          <span className="text-[10px]">Time</span>
-                        </button>
-                      </div>
-                    )}
-                    <button 
-                      type="button" 
-                      onClick={() => removeExercise(blockIndex, exerciseIndex)} 
-                      className="mr-2 ml-4 text-muted-foreground hover:text-red-500 transition-colors"
-                    >
-                      <Trash className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-                );
-              })}
-              <Button type="button" variant="secondary" size="sm" onClick={() => addExercise(blockIndex)} fullWidth>
-                <Plus className="mr-2 w-4 h-4" /> Add Exercise
-              </Button>
-            </div>
-          </FormCard>
-        ))}
+            ))}
+          </SortableContext>
+        </DndContext>
         
         <Button type="button" variant="outline" onClick={addBlock} fullWidth className="py-4 border-2 border-dashed">
           <Plus className="mr-2 w-5 h-5" /> Add Workout Block

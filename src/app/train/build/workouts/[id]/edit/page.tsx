@@ -11,7 +11,6 @@ export default async function EditWorkoutPage({ params }: PageProps) {
     <PageLayout
       breadcrumbHref="/train/build/workouts"
       breadcrumbText="Workouts"
-      title="Edit Workout"
     >
       <WorkoutForm workoutId={id} isEditing />
     </PageLayout>

@@ -50,28 +50,12 @@ export function CreateEditForm({
 
   return (
     <>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} className="my-4">
         <FormWrapper>
           {children}
 
-          <FormActions className="flex items-center gap-4">
-            <Button type="button" variant="ghost" onClick={handleCancel}>
-              Cancel
-            </Button>
-            
-            {isEditing && onDelete && (
-              <Button 
-                type="button" 
-                variant="danger" 
-                onClick={handleDeleteClick}
-                className="gap-2"
-              >
-                <Trash className="w-4 h-4" />
-                Delete
-              </Button>
-            )}
-
-            <Button type="submit" disabled={loading} className="min-w-[140px]">
+          <FormActions className="flex items-center gap-4 flex-col">
+          <Button type="submit" disabled={loading} className="min-w-[140px] w-full">
               {loading 
                 ? 'Saving...' 
                 : isEditing 
@@ -79,6 +63,25 @@ export function CreateEditForm({
                   : `Create ${entityName}`
               }
             </Button>
+            <Button 
+              type="button" 
+              variant="ghost" 
+              onClick={handleCancel}
+              className="gap-2 w-full"
+            >
+              Cancel
+            </Button>
+            {isEditing && onDelete && (
+              <Button 
+                type="button" 
+                variant="danger" 
+                onClick={handleDeleteClick}
+                className="gap-2 w-full"
+              >
+                <Trash className="w-4 h-4" />
+                Delete
+              </Button>
+            )}
           </FormActions>
         </FormWrapper>
       </form>

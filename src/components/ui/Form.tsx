@@ -11,7 +11,7 @@ export function FormWrapper({ className, children, ...props }: React.HTMLAttribu
 
 export function FormCard({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn("bg-card text-card-foreground p-6 rounded-lg border border-border shadow-sm space-y-4", className)} {...props}>
+    <div className={cn("bg-card text-card-foreground px-2 py-4 rounded-lg border border-border shadow-sm space-y-4", className)} {...props}>
       {children}
     </div>
   );

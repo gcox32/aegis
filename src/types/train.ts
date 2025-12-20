@@ -29,6 +29,8 @@ export type WorkoutType = 'strength' | 'hypertrophy' | 'endurance' | 'power' | '
 
 export type WorkoutBlockType = 'warm-up' | 'prep' | 'main' | 'accessory' | 'finisher' | 'cooldown' | 'other'; 
 
+export type ScoringType = 'reps' | 'load' | 'dist' | 'cals' | 'time';
+
 interface EffectedMuscleGroups {
     primary:    MuscleGroup['id'];
     secondary?: MuscleGroup['id'];
@@ -117,6 +119,7 @@ export interface WorkoutBlockExercise {
     order:      number;
     sets:       number;
     measures:   ExerciseMeasures;
+    scoringType: ScoringType;
     tempo?: {
         eccentric:  TimeMeasurement;
         bottom:     TimeMeasurement;
