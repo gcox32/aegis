@@ -23,6 +23,7 @@ import {
   userImageLog,
   userImage,
   userProfileKeyExercise,
+  exercise, // Added to import exercise
 } from '../schema';
 import type { User, UserProfile, UserGoal, UserGoalComponent, UserStats, TapeMeasurement, UserImage, UserGoalCriteria, GoalComponentType, GoalComponentConditional } from '@/types/user';
 
@@ -214,14 +215,18 @@ export async function updateUserProfile(
 
 async function fetchGoalComponents(goalId: string): Promise<UserGoalComponent[]> {
   const components = await db
-    .select()
+    .select({
+      comp: userGoalComponent,
+      exerciseName: exercise.name, // Select exercise name
+    })
     .from(userGoalComponent)
+    .leftJoin(exercise, eq(userGoalComponent.exerciseId, exercise.id)) // Join exercise table
     .where(eq(userGoalComponent.goalId, goalId))
     .orderBy(userGoalComponent.priority);
 
   // Fetch criteria for each component
   const componentsWithCriteria = await Promise.all(
-    components.map(async (comp) => {
+    components.map(async ({ comp, exerciseName }) => {
       const criteria = await db
         .select()
         .from(userGoalCriteria)
@@ -243,6 +248,7 @@ async function fetchGoalComponents(goalId: string): Promise<UserGoalComponent[]>
         createdAt: new Date(comp.createdAt),
         updatedAt: new Date(comp.updatedAt),
         exerciseId: comp.exerciseId || undefined,
+        exerciseName: exerciseName || undefined, // Map exercise name
         criteria: mappedCriteria,
         // Legacy fields mapping for backward compatibility if needed, else undefined
         conditional: undefined,

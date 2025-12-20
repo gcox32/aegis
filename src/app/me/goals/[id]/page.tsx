@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { UserGoal, UserStats } from '@/types/user';
+import { UserGoal, UserStats, UserGoalComponent, UserGoalCriteria, GoalComponentValue, GoalComponentConditional } from '@/types/user';
 import { GoalForm } from '@/components/goals/GoalForm';
 import Button from '@/components/ui/Button';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
@@ -12,6 +12,164 @@ import { Edit } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CheckCircle, Circle } from 'lucide-react';
 import { evaluateGoalComponents } from '@/lib/goals/evaluateComponent';
+
+const CONDITIONAL_MAP: Record<string, string> = {
+    'equals': '=',
+    'greater than': '>',
+    'less than': '<',
+    'greater than or equal to': '≥',
+    'less than or equal to': '≤',
+    'not equal to': '≠',
+};
+
+const BODY_STAT_CONDITIONAL_MAP: Record<string, string> = {
+    'equals': 'at',
+    'greater than': 'above',
+    'less than': 'below',
+    'greater than or equal to': 'at or above',
+    'less than or equal to': 'at or below',
+    'not equal to': 'not at',
+};
+
+const NATURAL_CONDITIONAL_MAP: Record<string, (val: string) => string> = {
+    'equals': (val) => val,
+    'greater than': (val) => `more than ${val}`,
+    'less than': (val) => `less than ${val}`,
+    'greater than or equal to': (val) => `${val} or more`,
+    'less than or equal to': (val) => `${val} or less`,
+    'not equal to': (val) => `not ${val}`,
+};
+
+function formatValue(value: GoalComponentValue | undefined): string {
+    if (value === undefined || value === null) return '-';
+    if (typeof value === 'string') return value;
+    if ('unit' in value) {
+        let unit = value.unit;
+        if (value.value === 1) {
+            if (typeof unit === 'string' && unit.endsWith('s') && unit.length > 1) {
+                unit = unit.slice(0, -1) as any;
+            }
+        }
+        return `${value.value} ${unit}`;
+    }
+    return String(value);
+}
+
+function formatCriterionNatural(c: UserGoalCriteria): string {
+    const value = formatValue(c.value);
+    const formatter = NATURAL_CONDITIONAL_MAP[c.conditional];
+    
+    // For reps, check if we need to append 'reps' if unit wasn't present
+    // Simple check: if value looks like just a number and type is reps
+    let finalValue = value;
+    if ((c.type === 'repetitions' || c.type === 'reps') && !isNaN(Number(value))) {
+       finalValue = `${value} reps`;
+    }
+
+    return formatter ? formatter(finalValue) : `${c.conditional} ${finalValue}`;
+}
+
+function generateComponentDescription(component: UserGoalComponent): string {
+    if (!component.criteria || component.criteria.length === 0) return '';
+    
+    // If associated with an exercise, use natural language
+    if (component.exerciseName) {
+        const timeCriteria = component.criteria.filter(c => c.type === 'time');
+        const otherCriteria = component.criteria.filter(c => c.type !== 'time');
+        
+        const parts: string[] = [component.exerciseName];
+        
+        if (otherCriteria.length > 0) {
+            const otherDesc = otherCriteria.map(formatCriterionNatural).join(', ');
+            parts.push(otherDesc);
+        }
+        
+        if (timeCriteria.length > 0) {
+            const timeDesc = timeCriteria.map(formatCriterionNatural).join(', ');
+            // If we have other criteria, separate with "in", otherwise "for" or just "in"
+            // User requested "in"
+            parts.push(`in ${timeDesc}`);
+        }
+        
+        return parts.join(' ');
+    }
+    
+    // Fallback/Standard logic for non-exercise components
+    return component.criteria.map(c => {
+        let type = c.type || component.type || 'Generic';
+        
+        // Custom display mappings
+        let displayType = type;
+        if (type === 'bodyweight') displayType = 'body weight';
+        if (type === 'bodycomposition') displayType = 'body fat';
+
+        const site = c.measurementSite ? ` (${c.measurementSite})` : '';
+        
+        let conditionalStr = CONDITIONAL_MAP[c.conditional] || c.conditional;
+        
+        // Use natural language mapping for body stats and tape
+        if (['bodyweight', 'bodycomposition', 'tape'].includes(type as string)) {
+             conditionalStr = BODY_STAT_CONDITIONAL_MAP[c.conditional] || conditionalStr;
+        }
+
+        const value = formatValue(c.value);
+        // capitalize first letter of displayType
+        const typeStr = String(displayType).charAt(0).toUpperCase() + String(displayType).slice(1);
+        return `${typeStr}${site} ${conditionalStr} ${value}`;
+    }).join(' • ');
+}
+
+function GoalComponentCard({ component }: { component: UserGoalComponent }) {
+    const hasCriteria = component.criteria && component.criteria.length > 0;
+    const descriptionText = component.description || (hasCriteria ? generateComponentDescription(component) : 'No description provided');
+
+    return (
+        <div
+            className={cn(
+                "relative p-3 border border-border rounded-lg transition-colors",
+                component.complete && "bg-muted/30"
+            )}
+        >
+            <div className="flex items-start gap-3">
+                <div className={cn(
+                    "mt-0.5",
+                    component.complete ? "text-brand-primary" : "text-muted-foreground"
+                )}>
+                    {component.complete ? (
+                        <CheckCircle size={20} />
+                    ) : (
+                        <Circle size={20} />
+                    )}
+                </div>
+                <div className="flex-1">
+                    <div className="flex justify-between items-start mb-1">
+                        <h4 className={cn(
+                            "font-medium",
+                            component.complete && "line-through text-muted-foreground"
+                        )}>
+                            {component.name}
+                        </h4>
+                        <div className="flex items-center gap-2">
+                            <span className="text-muted-foreground text-xs">
+                                Priority: {component.priority}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <p className="text-muted-foreground text-sm">
+                        {descriptionText}
+                    </p>
+
+                    {component.notes && (
+                        <p className="mt-2 text-muted-foreground text-xs italic">
+                            {component.notes}
+                        </p>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
 
 export default function GoalDetailPage() {
     const params = useParams();
@@ -263,49 +421,7 @@ export default function GoalDetailPage() {
                             {components
                                 .sort((a, b) => a.priority - b.priority)
                                 .map((component) => (
-                                    <div
-                                        key={component.id}
-                                        className={cn(
-                                            "relative p-3 border border-border rounded-lg",
-                                            component.complete && "bg-muted/30"
-                                        )}
-                                    >
-                                        <div className="flex items-start gap-3">
-                                            <div className={cn(
-                                                "mt-0.5",
-                                                component.complete ? "text-brand-primary" : "text-muted-foreground"
-                                            )}>
-                                                {component.complete ? (
-                                                    <CheckCircle size={20} />
-                                                ) : (
-                                                    <Circle size={20} />
-                                                )}
-                                            </div>
-                                            <div className="flex-1">
-                                                <div className="mb-1">
-                                                    <h4 className={cn(
-                                                        "font-medium",
-                                                        component.complete && "line-through text-muted-foreground"
-                                                    )}>
-                                                        {component.name}
-                                                    </h4>
-                                                </div>
-                                                {component.description && (
-                                                    <p className="mb-2 text-muted-foreground text-sm">
-                                                        {component.description}
-                                                    </p>
-                                                )}
-                                                {component.notes && (
-                                                    <p className="text-muted-foreground text-xs italic">
-                                                        {component.notes}
-                                                    </p>
-                                                )}
-                                            </div>
-                                        </div>
-                                        <span className="top-3 right-3 absolute text-muted-foreground text-xs">
-                                            Priority: {component.priority}
-                                        </span>
-                                    </div>
+                                    <GoalComponentCard key={component.id} component={component} />
                                 ))}
                         </div>
                     </div>
@@ -322,4 +438,3 @@ export default function GoalDetailPage() {
         </PageLayout>
     );
 }
-

@@ -82,6 +82,7 @@ export interface UserGoalComponent {
     priority:         number;
     complete:         boolean;
     exerciseId?:      Exercise['id']; // For strength, time, repetitions
+    exerciseName?:    string; // Added for display convenience
     criteria?:        UserGoalCriteria[]; // Multiple conditions
     notes?:           string;
     createdAt:        Date;
