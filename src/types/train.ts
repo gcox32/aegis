@@ -16,7 +16,7 @@ type MovementPattern =
 
 type Equipment = 'barbell' | 'dumbbell' | 'kettlebell' | 'machine' | 'bodyweight' | 'variable' | 'cable' 
                 | 'band' | 'medicine ball' | 'sled' | 'sandbag' | 'wheel' | 'jump rope' | 'pullup bar'
-                | 'rack' | 'box' | 'swiss ball' | 'foam roller' | 'bench' | 'landmine'
+                | 'rack' | 'box' | 'swiss ball' | 'foam roller' | 'bench' | 'landmine'  | 'hip band'
                 | 'other';
 
 type Difficulty = 'beginner' | 'intermediate' | 'advanced';
@@ -25,7 +25,7 @@ type RPE = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
 
 type RestTimer = 0 | 15 | 30 | 45 | 60 | 90 | 120 | 180 | 240 | 300;
 
-export type WorkoutType = 'strength' | 'hypertrophy' | 'endurance' | 'power' | 'skill' | 'other';
+export type WorkoutType = 'strength' | 'hypertrophy' | 'endurance' | 'power' | 'skill' | 'recovery' | 'mobility' | 'other';
 
 export type WorkoutBlockType = 'warm-up' | 'prep' | 'main' | 'accessory' | 'finisher' | 'cooldown' | 'other'; 
 

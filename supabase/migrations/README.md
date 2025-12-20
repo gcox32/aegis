@@ -8,7 +8,7 @@ For **new database setups**, use the consolidated schema file:
 
 **`000_complete_schema.sql`** - Complete database schema initialization
 - Contains all tables, indexes, triggers, and RLS policies in their final state
-- Incorporates all changes from migrations 001-017
+- Incorporates all changes from migrations 001-020
 - Use this for fresh database installations instead of running migrations sequentially
 
 ## Migration Files (For Existing Databases)
@@ -62,6 +62,12 @@ For existing databases, run migrations in numerical order:
 16. **016_add_image_url_to_protocol_phase_workout.sql** - Adds image_url to protocol, phase, and workout
 
 17. **017_replace_phase_workout_with_workout_ids.sql** - Replaces phase_workout junction table with workout_ids array
+
+18. 
+
+19.
+
+20. 
 
 ## Running Migrations
 

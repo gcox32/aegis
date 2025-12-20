@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS public.user_goal (
     name TEXT,
     description TEXT,
     duration JSONB,
+    components JSONB,
     start_date DATE,
     end_date DATE,
     complete BOOLEAN NOT NULL DEFAULT FALSE,
@@ -62,6 +63,7 @@ CREATE TABLE IF NOT EXISTS public.user_goal (
 );
 
 CREATE INDEX idx_user_goal_user_id ON public.user_goal(user_id);
+CREATE INDEX idx_user_goal_components ON public.user_goal USING GIN(components);
 CREATE INDEX idx_user_goal_complete ON public.user_goal(complete);
 
 -- User Stats Log
@@ -205,7 +207,7 @@ CREATE INDEX idx_phase_workout_ids ON train.phase USING GIN(workout_ids);
 CREATE TABLE IF NOT EXISTS train.workout (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES public.user(id) ON DELETE CASCADE,
-    workout_type TEXT NOT NULL CHECK (workout_type IN ('strength', 'hypertrophy', 'endurance', 'power', 'skill', 'other')),
+    workout_type TEXT NOT NULL CHECK (workout_type IN ('strength', 'hypertrophy', 'endurance', 'power', 'skill', 'recovery', 'mobility', 'other')),
     name TEXT,
     objectives TEXT[],
     description TEXT,
@@ -244,7 +246,7 @@ CREATE TABLE IF NOT EXISTS train.exercise (
     muscle_groups JSONB NOT NULL,
     plane_of_motion TEXT CHECK (plane_of_motion IN ('sagittal', 'frontal', 'transverse')),
     bilateral BOOLEAN,
-    equipment TEXT[],
+    equipment TEXT[] CHECK (equipment <@ ARRAY['barbell', 'dumbbell', 'kettlebell', 'machine', 'bodyweight', 'variable', 'cable', 'band', 'medicine ball', 'sled', 'sandbag', 'wheel', 'jump rope', 'pullup bar', 'rack', 'box', 'swiss ball', 'foam roller', 'bench', 'landmine', 'hip band', 'other']::text[]),
     image_url TEXT,
     video_url TEXT,
     work_power_constants JSONB NOT NULL,
@@ -265,6 +267,7 @@ CREATE TABLE IF NOT EXISTS train.workout_block_exercise (
     "order" INTEGER NOT NULL,
     sets INTEGER NOT NULL,
     measures JSONB NOT NULL,
+    scoring_type TEXT NOT NULL DEFAULT 'reps' CHECK (scoring_type IN ('reps', 'load', 'dist', 'cals', 'time')),
     tempo JSONB,
     rest_time INTEGER CHECK (rest_time IN (0, 15, 30, 45, 60, 90, 120, 180, 240, 300)),
     rpe INTEGER CHECK (rpe BETWEEN 1 AND 10),

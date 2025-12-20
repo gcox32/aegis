@@ -49,7 +49,7 @@ export const workout = trainSchema.table('workout', {
   id: uuid('id').defaultRandom().primaryKey(),
   userId: uuid('user_id').notNull().references(() => user.id),
   workoutType: text('workout_type', {
-    enum: ['strength', 'hypertrophy', 'endurance', 'power', 'skill', 'other'],
+    enum: ['strength', 'hypertrophy', 'endurance', 'power', 'skill', 'recovery', 'mobility', 'other'],
   }).notNull(),
   name: text('name'),
   objectives: text('objectives').array(),
