@@ -667,7 +667,7 @@ export default function ActiveSessionPage({
     router.push('/train');
   };
 
-  const finishWorkout = async () => {
+  const finishWorkout = async (additionalNotes?: string) => {
     if (!workoutInstance) return;
     try {
       // Play completion sound before marking complete / navigating
@@ -679,15 +679,23 @@ export default function ActiveSessionPage({
           // ignore
         }
       }
+
+      const payload: any = {
+        complete: true,
+        duration: { value: Math.ceil(elapsedSeconds / 60), unit: 'min' },
+      };
+
+      if (additionalNotes) {
+        const currentNotes = workoutInstance.notes || '';
+        payload.notes = currentNotes ? `${currentNotes}\n${additionalNotes}` : additionalNotes;
+      }
+
        await fetchJson(
         `/api/train/workouts/${workoutInstance.workoutId}/instances/${workoutInstance.id}`,
         {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            complete: true,
-            duration: { value: Math.ceil(elapsedSeconds / 60), unit: 'min' },
-          }),
+          body: JSON.stringify(payload),
         }
       );
       router.push('/train');
@@ -1043,6 +1051,7 @@ export default function ActiveSessionPage({
           setIsMenuOpen(false);
           setIsSwapExerciseOpen(true);
         }}
+        onSubmitEarly={() => finishWorkout('Exited workout early')}
       />
 
       <PauseOverlay 

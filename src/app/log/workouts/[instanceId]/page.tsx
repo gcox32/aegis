@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { WorkoutInstance, WorkoutBlockExerciseInstance } from '@/types/train';
 import BackToLink from '@/components/layout/navigation/BackToLink';
 import { Loader2, Trash } from 'lucide-react';
@@ -15,6 +15,7 @@ import ConfirmationModal from '@/components/ui/ConfirmationModal';
 
 export default function WorkoutInstanceDetailPage() {
     const { instanceId } = useParams();
+    const router = useRouter();
     const [instance, setInstance] = useState<WorkoutInstance | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -35,8 +36,13 @@ export default function WorkoutInstanceDetailPage() {
             await fetchJson(`/api/train/workouts/${workoutInstanceToDelete.workoutId}/instances/${workoutInstanceToDelete.id}`, {
                 method: 'DELETE',
             });
+            showToast({ title: 'Workout deleted', variant: 'success' });
+            router.push('/log/workouts');
         } catch (err) {
             console.error('Failed to delete workout instance', err);
+            showToast({ title: 'Failed to delete workout', variant: 'error' });
+        } finally {
+            setDeleteModalOpen(false);
         }
     };
 
