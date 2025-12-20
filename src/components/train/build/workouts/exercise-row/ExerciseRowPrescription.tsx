@@ -87,18 +87,10 @@ export function ExerciseRowPrescription({
             {/* Sets - Always visible */}
             <div className="w-16 shrink-0">
                <div className="relative">
-                 <FormInput 
-                   type="number" 
-                   value={exercise.sets || ''} 
-                   onChange={e => {
-                     const val = e.target.value === '' ? '' : parseInt(e.target.value, 10);
-                     updateExercise(blockIndex, exerciseIndex, { 
-                       sets: (val === '' || isNaN(val as number)) ? 0 : (val as number)
-                     });
-                   }}
-                   onBlur={e => {
-                     if (e.target.value === '') updateExercise(blockIndex, exerciseIndex, { sets: 0 });
-                   }}
+                 <NumberInput 
+                   value={exercise.sets} 
+                   onValueChange={(val) => updateExercise(blockIndex, exerciseIndex, { sets: val ?? 0 })}
+                   treatZeroAsEmpty
                    className="text-center h-9"
                    placeholder="0"
                  />
@@ -109,15 +101,12 @@ export function ExerciseRowPrescription({
             {/* Reps */}
             {hasMeasure('reps') && (
                 <div className="w-full mr-1">
-                   <FormInput 
-                     type="number" 
-                     value={exercise.measures.reps ?? ''} 
-                     onChange={e => {
-                       const val = e.target.value === '' ? '' : parseInt(e.target.value, 10);
-                       updateExercise(blockIndex, exerciseIndex, { 
-                         measures: { ...exercise.measures, reps: (val === '' || isNaN(val as number)) ? 0 : (val as number) } 
-                       });
-                     }}
+                   <NumberInput 
+                     value={exercise.measures.reps} 
+                     onValueChange={(val) => updateExercise(blockIndex, exerciseIndex, { 
+                       measures: { ...exercise.measures, reps: val ?? 0 } 
+                     })}
+                     treatZeroAsEmpty
                      className="text-center h-9"
                      placeholder="0"
                    />
@@ -129,16 +118,16 @@ export function ExerciseRowPrescription({
             {hasMeasure('load') && (
                 <div className="flex gap-1 w-full">
                   <div className="flex-1">
-                    <FormInput 
-                      type="number" 
-                      value={exercise.measures.externalLoad?.value ?? ''} 
-                      onChange={e => {
-                        const val = e.target.value === '' ? '' : parseFloat(e.target.value);
+                    <NumberInput 
+                      value={exercise.measures.externalLoad?.value} 
+                      onValueChange={(val) => {
                         const currentUnit = exercise.measures.externalLoad?.unit || 'kg';
                         updateExercise(blockIndex, exerciseIndex, { 
-                          measures: { ...exercise.measures, externalLoad: { value: (val === '' || isNaN(val as number)) ? 0 : (val as number), unit: currentUnit } } 
+                          measures: { ...exercise.measures, externalLoad: { value: val ?? 0, unit: currentUnit } } 
                         });
                       }}
+                      allowFloat
+                      treatZeroAsEmpty
                       className="text-center h-9"
                       placeholder="0"
                     />
@@ -167,16 +156,16 @@ export function ExerciseRowPrescription({
             {hasMeasure('dist') && (
                 <div className="flex gap-1 w-full">
                   <div className="flex-1">
-                    <FormInput 
-                      type="number" 
-                      value={exercise.measures.distance?.value ?? ''} 
-                      onChange={e => {
-                        const val = e.target.value === '' ? '' : parseFloat(e.target.value);
+                    <NumberInput 
+                      value={exercise.measures.distance?.value} 
+                      onValueChange={(val) => {
                         const currentUnit = exercise.measures.distance?.unit || 'm';
                         updateExercise(blockIndex, exerciseIndex, { 
-                          measures: { ...exercise.measures, distance: { value: (val === '' || isNaN(val as number)) ? 0 : (val as number), unit: currentUnit } } 
+                          measures: { ...exercise.measures, distance: { value: val ?? 0, unit: currentUnit } } 
                         });
                       }}
+                      allowFloat
+                      treatZeroAsEmpty
                       className="text-center h-9"
                       placeholder="0"
                     />
@@ -208,16 +197,16 @@ export function ExerciseRowPrescription({
             {hasMeasure('time') && (
                 <div className="flex gap-1 w-full">
                   <div className="flex-1">
-                    <FormInput 
-                      type="number" 
-                      value={exercise.measures.time?.value ?? ''} 
-                      onChange={e => {
-                        const val = e.target.value === '' ? '' : parseFloat(e.target.value);
+                    <NumberInput 
+                      value={exercise.measures.time?.value} 
+                      onValueChange={(val) => {
                         const currentUnit = exercise.measures.time?.unit || 's';
                         updateExercise(blockIndex, exerciseIndex, { 
-                          measures: { ...exercise.measures, time: { value: (val === '' || isNaN(val as number)) ? 0 : (val as number), unit: currentUnit } } 
+                          measures: { ...exercise.measures, time: { value: val ?? 0, unit: currentUnit } } 
                         });
                       }}
+                      allowFloat
+                      treatZeroAsEmpty
                       className="text-center h-9"
                       placeholder="0"
                     />
@@ -246,15 +235,15 @@ export function ExerciseRowPrescription({
             {/* Calories */}
             {hasMeasure('cals') && (
                  <div className="w-full mr-1">
-                  <FormInput 
-                    type="number" 
-                    value={exercise.measures.calories?.value ?? ''} 
-                    onChange={e => {
-                      const val = e.target.value === '' ? '' : parseFloat(e.target.value);
+                  <NumberInput 
+                    value={exercise.measures.calories?.value} 
+                    onValueChange={(val) => {
                       updateExercise(blockIndex, exerciseIndex, { 
-                        measures: { ...exercise.measures, calories: { value: (val === '' || isNaN(val as number)) ? 0 : (val as number), unit: 'cal' } } 
+                        measures: { ...exercise.measures, calories: { value: val ?? 0, unit: 'cal' } } 
                       });
                     }}
+                    allowFloat
+                    treatZeroAsEmpty
                     className="text-center h-9"
                     placeholder="0"
                   />
