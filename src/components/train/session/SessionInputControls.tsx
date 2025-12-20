@@ -19,6 +19,15 @@ interface SessionInputControlsProps {
   onTimeUnitChange?: (unit: 's' | 'min' | 'hr') => void;
   calories?: string;
   onCaloriesChange?: (value: string) => void;
+  // New measures
+  height?: string;
+  onHeightChange?: (value: string) => void;
+  heightUnit?: 'cm' | 'm' | 'in' | 'ft';
+  onHeightUnitChange?: (unit: 'cm' | 'm' | 'in' | 'ft') => void;
+  pace?: string;
+  onPaceChange?: (value: string) => void;
+  paceUnit?: 'mph' | 'kph' | 'min/km' | 'min/mile';
+  onPaceUnitChange?: (unit: 'mph' | 'kph' | 'min/km' | 'min/mile') => void;
 }
 
 export function SessionInputControls({
@@ -39,6 +48,14 @@ export function SessionInputControls({
   onTimeUnitChange,
   calories,
   onCaloriesChange,
+  height,
+  onHeightChange,
+  heightUnit = 'in',
+  onHeightUnitChange,
+  pace,
+  onPaceChange,
+  paceUnit = 'min/mile',
+  onPaceUnitChange,
 }: SessionInputControlsProps) {
   // Determine what to show based on exercise definition
   const hasDistance = step.exercise.measures.distance !== undefined;
@@ -46,12 +63,18 @@ export function SessionInputControls({
   const hasCalories = step.exercise.measures.calories !== undefined;
   const hasLoad = step.exercise.measures.externalLoad !== undefined;
   const hasReps = step.exercise.measures.reps !== undefined;
+  const hasHeight = step.exercise.measures.height !== undefined;
+  const hasPace = step.exercise.measures.pace !== undefined;
 
   const scoringType = step.exercise.scoringType;
   const isTimeScore = scoringType === 'time';
   const isDistScore = scoringType === 'dist';
   const isCalsScore = scoringType === 'cals';
-  const isCardioOrDuration = isTimeScore || isDistScore || isCalsScore;
+  const isHeightScore = scoringType === 'height';
+  const isPaceScore = scoringType === 'pace';
+  const isNullScore = scoringType === null;
+  
+  const isCardioOrDuration = isTimeScore || isDistScore || isCalsScore || isPaceScore;
 
   // Show complementary measures:
   // - If distance is defined, show time (to record how long it took)
@@ -60,17 +83,21 @@ export function SessionInputControls({
   // - If load is defined, show reps (existing behavior)
   // - If reps is defined, show load (existing behavior)
 
-  const showTimeInput     = isTimeScore || hasDistance || hasCalories;
-  const showDistanceInput = isDistScore || hasTime || isTimeScore;
+  const showTimeInput     = isTimeScore || hasDistance || hasCalories || isPaceScore || hasTime;
+  const showDistanceInput = isDistScore || hasTime || isTimeScore || isPaceScore || hasDistance;
   const showCaloriesInput = isCalsScore || hasCalories; // Calories replaces reps when defined
+  const showHeightInput   = isHeightScore || hasHeight;
+  const showPaceInput     = isPaceScore || hasPace;
   
-  // Don't show reps/load if we are primarily scoring by time/dist/cals
-  const showRepsInput = (hasLoad || hasReps) && !showCaloriesInput && !isCardioOrDuration; 
-  const showLoadInput = (hasReps || hasLoad) && !showCaloriesInput && !isCardioOrDuration;
+  // Don't show reps/load if we are primarily scoring by time/dist/cals/pace/height
+  // Unless specifically defined?
+  // If null score (warmup), we probably still want to show what's defined (reps/load often defined for warmups)
+  const showRepsInput = (hasLoad || hasReps) && !showCaloriesInput && !isCardioOrDuration && !isHeightScore; 
+  const showLoadInput = (hasReps || hasLoad) && !showCaloriesInput && !isCardioOrDuration && !isHeightScore;
 
   return (
     <div className="gap-4 grid grid-cols-2 mb-8">
-      {/* Reps - show if load or reps is defined (but not if calories is defined) */}
+      {/* Reps */}
       {showRepsInput && (
         <div className="flex flex-col gap-2">
           <label className="pl-1 font-medium text-zinc-400 text-xs uppercase tracking-wider">
@@ -94,7 +121,7 @@ export function SessionInputControls({
         </div>
       )}
 
-      {/* Calories - replaces reps when calories is defined */}
+      {/* Calories */}
       {showCaloriesInput && onCaloriesChange && (
         <div className="flex flex-col gap-2">
           <label className="pl-1 font-medium text-zinc-400 text-xs uppercase tracking-wider">
@@ -121,7 +148,7 @@ export function SessionInputControls({
         </div>
       )}
 
-      {/* Load - show if reps or load is defined (but not if calories is defined) */}
+      {/* Load */}
       {showLoadInput && (
         <div className="flex flex-col gap-2">
           <label className="pl-1 font-medium text-zinc-400 text-xs uppercase tracking-wider">
@@ -166,8 +193,82 @@ export function SessionInputControls({
         </div>
       )}
 
-            {/* Distance - show if time is defined */}
-            {showDistanceInput && onDistanceChange && (
+      {/* Height */}
+      {showHeightInput && onHeightChange && (
+        <div className="flex flex-col gap-2">
+          <label className="pl-1 font-medium text-zinc-400 text-xs uppercase tracking-wider">
+            Height
+          </label>
+          <div className="group relative flex flex-col items-end gap-2">
+            <input
+              type="number"
+              inputMode="numeric"
+              value={height || ''}
+              onChange={(e) => onHeightChange(e.target.value)}
+              className="bg-zinc-900/80 px-4 py-5 border border-zinc-700/50 focus:border-transparent rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand-primary w-full font-bold placeholder:text-zinc-700 text-4xl text-center transition-all"
+              placeholder={step.exercise.measures.height?.value?.toString() || '0'}
+            />
+             {onHeightUnitChange && (
+              <div className="float-right flex items-center gap-1 font-medium text-xs flex-wrap justify-end">
+                {['in', 'cm', 'ft', 'm'].map((u) => (
+                  <button
+                    key={u}
+                    type="button"
+                    onClick={() => onHeightUnitChange(u as any)}
+                    className={`px-2 py-0.5 rounded-full border ${
+                      heightUnit === u
+                        ? 'bg-brand-primary text-black border-brand-primary'
+                        : 'bg-zinc-900/80 text-zinc-400 border-zinc-700'
+                    }`}
+                  >
+                    {u}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Pace */}
+      {showPaceInput && onPaceChange && (
+        <div className="flex flex-col gap-2">
+          <label className="pl-1 font-medium text-zinc-400 text-xs uppercase tracking-wider">
+            Pace
+          </label>
+          <div className="group relative flex flex-col items-end gap-2">
+            <input
+              type="number"
+              inputMode="numeric"
+              value={pace || ''}
+              onChange={(e) => onPaceChange(e.target.value)}
+              className="bg-zinc-900/80 px-4 py-5 border border-zinc-700/50 focus:border-transparent rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand-primary w-full font-bold placeholder:text-zinc-700 text-4xl text-center transition-all"
+              placeholder={step.exercise.measures.pace?.value?.toString() || '0'}
+            />
+            {onPaceUnitChange && (
+              <div className="float-right flex items-center gap-1 font-medium text-xs flex-wrap justify-end">
+                 {['min/mile', 'min/km', 'mph', 'kph'].map((u) => (
+                  <button
+                    key={u}
+                    type="button"
+                    onClick={() => onPaceUnitChange(u as any)}
+                    className={`px-2 py-0.5 rounded-full border ${
+                      paceUnit === u
+                        ? 'bg-brand-primary text-black border-brand-primary'
+                        : 'bg-zinc-900/80 text-zinc-400 border-zinc-700'
+                    }`}
+                  >
+                    {u}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Distance */}
+      {showDistanceInput && onDistanceChange && (
         <div className="flex flex-col gap-2">
           <label className="pl-1 font-medium text-zinc-400 text-xs uppercase tracking-wider">
             Distance
@@ -182,47 +283,28 @@ export function SessionInputControls({
               placeholder="0"
             />
             {onDistanceUnitChange && (
-              <div className="float-right flex items-center gap-1 font-medium text-xs">
-                <button
-                  type="button"
-                  onClick={() => onDistanceUnitChange('m')}
-                  className={`px-2 py-0.5 rounded-full border ${
-                    distanceUnit === 'm'
-                      ? 'bg-brand-primary text-black border-brand-primary'
-                      : 'bg-zinc-900/80 text-zinc-400 border-zinc-700'
-                  }`}
-                >
-                  m
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onDistanceUnitChange('km')}
-                  className={`px-2 py-0.5 rounded-full border ${
-                    distanceUnit === 'km'
-                      ? 'bg-brand-primary text-black border-brand-primary'
-                      : 'bg-zinc-900/80 text-zinc-400 border-zinc-700'
-                  }`}
-                >
-                  km
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onDistanceUnitChange('mi')}
-                  className={`px-2 py-0.5 rounded-full border ${
-                    distanceUnit === 'mi'
-                      ? 'bg-brand-primary text-black border-brand-primary'
-                      : 'bg-zinc-900/80 text-zinc-400 border-zinc-700'
-                  }`}
-                >
-                  mi
-                </button>
+              <div className="float-right flex items-center gap-1 font-medium text-xs flex-wrap justify-end">
+                {['m', 'km', 'mi'].map((u) => (
+                  <button
+                    key={u}
+                    type="button"
+                    onClick={() => onDistanceUnitChange(u as any)}
+                    className={`px-2 py-0.5 rounded-full border ${
+                      distanceUnit === u
+                        ? 'bg-brand-primary text-black border-brand-primary'
+                        : 'bg-zinc-900/80 text-zinc-400 border-zinc-700'
+                    }`}
+                  >
+                    {u}
+                  </button>
+                ))}
               </div>
             )}
           </div>
         </div>
       )}
 
-      {/* Time - show if distance or calories is defined */}
+      {/* Time */}
       {showTimeInput && onTimeChange && (
         <div className="flex flex-col gap-2">
           <label className="pl-1 font-medium text-zinc-400 text-xs uppercase tracking-wider">
@@ -239,47 +321,25 @@ export function SessionInputControls({
             />
             {onTimeUnitChange && (
               <div className="float-right flex items-center gap-1 font-medium text-xs">
-                <button
-                  type="button"
-                  onClick={() => onTimeUnitChange('s')}
-                  className={`px-2 py-0.5 rounded-full border ${
-                    timeUnit === 's'
-                      ? 'bg-brand-primary text-black border-brand-primary'
-                      : 'bg-zinc-900/80 text-zinc-400 border-zinc-700'
-                  }`}
-                >
-                  s
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onTimeUnitChange('min')}
-                  className={`px-2 py-0.5 rounded-full border ${
-                    timeUnit === 'min'
-                      ? 'bg-brand-primary text-black border-brand-primary'
-                      : 'bg-zinc-900/80 text-zinc-400 border-zinc-700'
-                  }`}
-                >
-                  min
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onTimeUnitChange('hr')}
-                  className={`px-2 py-0.5 rounded-full border ${
-                    timeUnit === 'hr'
-                      ? 'bg-brand-primary text-black border-brand-primary'
-                      : 'bg-zinc-900/80 text-zinc-400 border-zinc-700'
-                  }`}
-                >
-                  hr
-                </button>
+                {['s', 'min', 'hr'].map((u) => (
+                  <button
+                    key={u}
+                    type="button"
+                    onClick={() => onTimeUnitChange(u as any)}
+                    className={`px-2 py-0.5 rounded-full border ${
+                      timeUnit === u
+                        ? 'bg-brand-primary text-black border-brand-primary'
+                        : 'bg-zinc-900/80 text-zinc-400 border-zinc-700'
+                    }`}
+                  >
+                    {u}
+                  </button>
+                ))}
               </div>
             )}
           </div>
         </div>
       )}
-
-
     </div>
   );
 }
-

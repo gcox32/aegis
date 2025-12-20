@@ -17,7 +17,7 @@ export default function PageLayout({
   children,
 }: PageLayoutProps) {
   return (
-    <div className="mx-auto px-4 sm:px-6 lg:px-8 py-6 max-w-7xl pb-16">
+    <div className="mx-auto px-4 sm:px-6 lg:px-8 py-6 max-w-7xl pb-16 overscroll-none">
       {breadcrumbHref && breadcrumbText && (
         <BackToLink href={breadcrumbHref} pageName={breadcrumbText} />
       )}

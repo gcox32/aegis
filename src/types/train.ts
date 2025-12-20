@@ -2,7 +2,7 @@ import { MuscleGroup } from "./anatomy";
 import { User } from "./user";
 import { 
     DistanceMeasurement, TimeMeasurement, WeightMeasurement, CaloriesMeasurement, 
-    PaceMeasurement, LongTimeMeasurement, WorkMeasurement, PowerMeasurement, ProjectedMaxMeasurement
+    PaceMeasurement, LongTimeMeasurement, WorkMeasurement, PowerMeasurement, ProjectedMaxMeasurement, HeightMeasurement
 } from "./measures";
 
 // helpers
@@ -29,7 +29,7 @@ export type WorkoutType = 'strength' | 'hypertrophy' | 'endurance' | 'power' | '
 
 export type WorkoutBlockType = 'warm-up' | 'prep' | 'main' | 'accessory' | 'finisher' | 'cooldown' | 'other'; 
 
-export type ScoringType = 'reps' | 'load' | 'dist' | 'cals' | 'time';
+export type ScoringType = 'reps' | 'load' | 'dist' | 'cals' | 'time' | 'height' | 'pace' | null;
 
 interface EffectedMuscleGroups {
     primary:    MuscleGroup['id'];
@@ -52,6 +52,7 @@ export interface ExerciseMeasures {
     distance?:          DistanceMeasurement;
     time?:              TimeMeasurement;
     pace?:              PaceMeasurement;
+    height?:            HeightMeasurement;
     calories?:          CaloriesMeasurement;
 }
 

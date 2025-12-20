@@ -26,15 +26,18 @@ export function ExerciseRowSettings({
         <div className="w-full">
           <FormLabel className="text-xs text-muted-foreground uppercase tracking-wider font-semibold block mb-1">Score By</FormLabel>
           <FormSelect
-            value={activeMeasure}
-            onChange={(e) => handleScoringTypeChange(blockIndex, exerciseIndex, e.target.value as ScoringType)}
+            value={activeMeasure || ""}
+            onChange={(e) => handleScoringTypeChange(blockIndex, exerciseIndex, (e.target.value || null) as ScoringType)}
             className="text-xs h-9 py-1 w-full"
           >
+            <option value="">Completion Only</option>
             <option value="load">Load</option>
             <option value="reps">Reps</option>
             <option value="time">Time</option>
             <option value="dist">Distance</option>
             <option value="cals">Calories</option>
+            <option value="height">Height</option>
+            <option value="pace">Pace</option>
           </FormSelect>
         </div>
         <div className="w-[40%]">

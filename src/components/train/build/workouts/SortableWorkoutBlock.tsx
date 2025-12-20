@@ -101,7 +101,7 @@ export function SortableWorkoutBlock({
                 updateExercise={updateExercise}
                 removeExercise={removeExercise}
                 handleScoringTypeChange={handleScoringTypeChange}
-                activeMeasure={exercise.scoringType || 'reps'}
+                activeMeasure={exercise.scoringType}
               />
             ))}
           </SortableContext>

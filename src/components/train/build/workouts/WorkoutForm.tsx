@@ -96,7 +96,7 @@ export default function WorkoutForm({ workoutId, isEditing = false }: WorkoutFor
   };
 
   const getActiveMeasure = (blockIndex: number, exerciseIndex: number): ScoringType => {
-    return blocks[blockIndex].exercises[exerciseIndex].scoringType || 'reps';
+    return blocks[blockIndex].exercises[exerciseIndex].scoringType;
   };
 
   const populateForm = (w: Workout) => {
@@ -121,7 +121,7 @@ export default function WorkoutForm({ workoutId, isEditing = false }: WorkoutFor
           order: exIndex + 1,
           sets: ex.sets,
           measures: ex.measures ?? {},
-          scoringType: ex.scoringType || 'reps',
+          scoringType: ex.scoringType,
           tempo: ex.tempo,
           restTime: ex.restTime,
           rpe: ex.rpe,
@@ -349,7 +349,7 @@ export default function WorkoutForm({ workoutId, isEditing = false }: WorkoutFor
           order: j + 1,
           sets: e.sets || 0,
           measures: e.measures,
-          scoringType: e.scoringType || 'reps',
+          scoringType: e.scoringType,
         }))
       }))
     };

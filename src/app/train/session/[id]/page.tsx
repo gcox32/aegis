@@ -79,6 +79,10 @@ export default function ActiveSessionPage({
   const [time, setTime] = useState<string>('');
   const [timeUnit, setTimeUnit] = useState<'s' | 'min' | 'hr'>('s');
   const [calories, setCalories] = useState<string>('');
+  const [height, setHeight] = useState<string>('');
+  const [heightUnit, setHeightUnit] = useState<'cm' | 'm' | 'in' | 'ft'>('in');
+  const [pace, setPace] = useState<string>('');
+  const [paceUnit, setPaceUnit] = useState<'mph' | 'kph' | 'min/km' | 'min/mile'>('min/mile');
 
   // Audio refs
   const countdownAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -369,6 +373,10 @@ export default function ActiveSessionPage({
     let defaultTime = currentStep.exercise.measures.time?.value?.toString() || '';
     let defaultTimeUnit: 's' | 'min' | 'hr' = 's';
     let defaultCalories = hasCalories ? (currentStep.exercise.measures.calories?.value?.toString() || '') : '';
+    let defaultHeight = currentStep.exercise.measures.height?.value?.toString() || '';
+    let defaultHeightUnit: 'cm' | 'm' | 'in' | 'ft' = currentStep.exercise.measures.height?.unit || 'in';
+    let defaultPace = currentStep.exercise.measures.pace?.value?.toString() || '';
+    let defaultPaceUnit: 'mph' | 'kph' | 'min/km' | 'min/mile' = currentStep.exercise.measures.pace?.unit || 'min/mile';
 
     // Check previous step for "carry forward" logic
     if (currentStepIndex > 0) {
@@ -406,6 +414,14 @@ export default function ActiveSessionPage({
         if (prevMatch?.measures.calories?.value) {
           defaultCalories = prevMatch.measures.calories.value.toString();
         }
+        if (prevMatch?.measures.height?.value) {
+          defaultHeight = prevMatch.measures.height.value.toString();
+          if (prevMatch.measures.height.unit) defaultHeightUnit = prevMatch.measures.height.unit;
+        }
+        if (prevMatch?.measures.pace?.value) {
+          defaultPace = prevMatch.measures.pace.value.toString();
+          if (prevMatch.measures.pace.unit) defaultPaceUnit = prevMatch.measures.pace.unit;
+        }
       }
     }
 
@@ -417,6 +433,10 @@ export default function ActiveSessionPage({
     setTime(defaultTime);
     setTimeUnit(defaultTimeUnit);
     setCalories(defaultCalories);
+    setHeight(defaultHeight);
+    setHeightUnit(defaultHeightUnit);
+    setPace(defaultPace);
+    setPaceUnit(defaultPaceUnit);
     
     // 2. Override with existing saved data for THIS step
     const blockInsts = exerciseInstances[currentStep.block.id] || [];
@@ -452,6 +472,18 @@ export default function ActiveSessionPage({
       if (match.measures.time?.unit) {
         setTimeUnit(match.measures.time.unit);
       }
+      if (match.measures.height?.value) {
+        setHeight(match.measures.height.value.toString());
+      }
+      if (match.measures.height?.unit) {
+        setHeightUnit(match.measures.height.unit);
+      }
+      if (match.measures.pace?.value) {
+        setPace(match.measures.pace.value.toString());
+      }
+      if (match.measures.pace?.unit) {
+        setPaceUnit(match.measures.pace.unit);
+      }
     }
     
   }, [currentStepIndex, exerciseInstances, currentStep, steps]);
@@ -484,6 +516,12 @@ export default function ActiveSessionPage({
     
     if (distance) {
       measures.distance = { value: Number(distance), unit: distanceUnit };
+    }
+    if (height) {
+      measures.height = { value: Number(height), unit: heightUnit };
+    }
+    if (pace) {
+      measures.pace = { value: Number(pace), unit: paceUnit };
     }
 
     const isCardio = scoringType === 'cals' || scoringType === 'dist' || scoringType === 'time' || hasCalories;
@@ -960,6 +998,14 @@ export default function ActiveSessionPage({
               onTimeUnitChange={(unit) => { setTimeUnit(unit); }}
               calories={calories}
               onCaloriesChange={(val) => { setCalories(val); }}
+              height={height}
+              onHeightChange={(val) => setHeight(val)}
+              heightUnit={heightUnit}
+              onHeightUnitChange={(val) => setHeightUnit(val)}
+              pace={pace}
+              onPaceChange={(val) => setPace(val)}
+              paceUnit={paceUnit}
+              onPaceUnitChange={(val) => setPaceUnit(val)}
             />
 
             <SessionFooter 
