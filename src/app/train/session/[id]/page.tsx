@@ -30,6 +30,9 @@ import { NoteInputOverlay } from '@/components/train/session/overlays/NoteInputO
 import { ExerciseDetailsOverlay } from '@/components/train/session/overlays/ExerciseDetailsOverlay';
 import { SwapExerciseOverlay } from '@/components/train/session/overlays/SwapExerciseOverlay';
 import { fetchJson } from '@/lib/train/helpers';
+import ConfirmationModal from '@/components/ui/ConfirmationModal';
+
+import { WorkoutCompleteView } from '@/components/train/session/WorkoutCompleteView';
 
 type WorkoutInstanceResponse = { workoutInstance: WorkoutInstance };
 type BlockInstancesResponse = { instances: WorkoutBlockInstance[] };
@@ -66,6 +69,9 @@ export default function ActiveSessionPage({
   const [isNoteOpen, setIsNoteOpen] = useState(false);
   const [isExerciseDetailsOpen, setIsExerciseDetailsOpen] = useState(false);
   const [isSwapExerciseOpen, setIsSwapExerciseOpen] = useState(false);
+  const [isSubmitEarlyModalOpen, setIsSubmitEarlyModalOpen] = useState(false);
+  const [isEndSessionModalOpen, setIsEndSessionModalOpen] = useState(false);
+  const [isComplete, setIsComplete] = useState(false);
   const [isResting, setIsResting] = useState(false);
   const [restSecondsRemaining, setRestSecondsRemaining] = useState(0);
   const [timerSoundsEnabled, setTimerSoundsEnabled] = useState(true);
@@ -698,7 +704,7 @@ export default function ActiveSessionPage({
           body: JSON.stringify(payload),
         }
       );
-      router.push('/train');
+      setIsComplete(true);
     } catch (e) {
       console.error('Failed to finish', e);
     }
@@ -935,6 +941,10 @@ export default function ActiveSessionPage({
     );
   }
 
+  if (isComplete) {
+    return <WorkoutCompleteView onContinue={() => router.push('/train')} />;
+  }
+
   return (
     <div 
       className="relative flex flex-col bg-black w-full h-dvh overflow-hidden overscroll-none font-sans text-white touch-none"
@@ -1051,13 +1061,35 @@ export default function ActiveSessionPage({
           setIsMenuOpen(false);
           setIsSwapExerciseOpen(true);
         }}
-        onSubmitEarly={() => finishWorkout('Exited workout early')}
+        onSubmitEarly={() => {
+          setIsMenuOpen(false);
+          setIsSubmitEarlyModalOpen(true);
+        }}
       />
 
       <PauseOverlay 
         isOpen={isPaused} 
         onResume={() => setIsPaused(false)} 
-        onEndSession={handleEndSession} 
+        onEndSession={() => setIsEndSessionModalOpen(true)}
+      />
+
+      <ConfirmationModal
+        isOpen={isSubmitEarlyModalOpen}
+        onClose={() => setIsSubmitEarlyModalOpen(false)}
+        onConfirm={() => finishWorkout('Exited workout early')}
+        title="Submit Workout Early"
+        message="Are you sure you want to finish the workout early? Your progress so far will be saved."
+        confirmText="Submit Early"
+      />
+
+      <ConfirmationModal
+        isOpen={isEndSessionModalOpen}
+        onClose={() => setIsEndSessionModalOpen(false)}
+        onConfirm={handleEndSession}
+        title="Exit Workout"
+        message="Are you sure you want to exit? Your progress will not be marked as complete."
+        confirmText="Exit"
+        confirmVariant="danger"
       />
 
       <SettingsOverlay 

@@ -41,8 +41,8 @@ export default function TrainPage() {
       setIsLoading(true);
       try {
         const now = new Date();
-        const startOfWeek = new Date(now);
-        startOfWeek.setDate(now.getDate() - now.getDay()); // Sunday start
+        const sevenDaysAgo = new Date(now);
+        sevenDaysAgo.setDate(now.getDate() - 7);
 
         const [protocolInstancesRes, workoutsRes, workoutInstancesRes] =
           await Promise.all([
@@ -51,7 +51,7 @@ export default function TrainPage() {
             ),
             fetchJson<ApiListResponse<Workout>>('/api/train/workouts'),
             fetchJson<ApiListResponse<WorkoutInstance>>(
-              `/api/train/workouts/instances?dateFrom=${startOfWeek.toISOString()}`
+              `/api/train/workouts/instances?dateFrom=${sevenDaysAgo.toISOString()}`
             ),
           ]);
 
