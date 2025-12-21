@@ -978,6 +978,7 @@ export async function deleteSupplementInstance(
 // ============================================================================
 
 export async function getOrCreateWaterIntakeLog(userId: string): Promise<string> {
+  // Try to find first
   const [existing] = await db
     .select()
     .from(waterIntakeLog)
@@ -988,8 +989,23 @@ export async function getOrCreateWaterIntakeLog(userId: string): Promise<string>
     return existing.id;
   }
 
-  const [newLog] = await db.insert(waterIntakeLog).values({ userId }).returning();
-  return newLog.id;
+  // Try to insert, handle potential race condition/duplicate
+  try {
+    const [newLog] = await db.insert(waterIntakeLog).values({ userId }).returning();
+    return newLog.id;
+  } catch (e: any) {
+    // If duplicate key error, fetch again
+    if (e.code === '23505') {
+      const [retry] = await db
+        .select()
+        .from(waterIntakeLog)
+        .where(eq(waterIntakeLog.userId, userId))
+        .limit(1);
+      
+      if (retry) return retry.id;
+    }
+    throw e;
+  }
 }
 
 export async function createWaterIntake(
@@ -1100,6 +1116,7 @@ export async function deleteWaterIntake(
 // ============================================================================
 
 export async function getOrCreateSleepLog(userId: string): Promise<string> {
+  // Try to find first
   const [existing] = await db
     .select()
     .from(sleepLog)
@@ -1110,8 +1127,23 @@ export async function getOrCreateSleepLog(userId: string): Promise<string> {
     return existing.id;
   }
 
-  const [newLog] = await db.insert(sleepLog).values({ userId }).returning();
-  return newLog.id;
+  // Try to insert, handle potential race condition/duplicate
+  try {
+    const [newLog] = await db.insert(sleepLog).values({ userId }).returning();
+    return newLog.id;
+  } catch (e: any) {
+    // If duplicate key error, fetch again
+    if (e.code === '23505') {
+      const [retry] = await db
+        .select()
+        .from(sleepLog)
+        .where(eq(sleepLog.userId, userId))
+        .limit(1);
+      
+      if (retry) return retry.id;
+    }
+    throw e;
+  }
 }
 
 export async function createSleepInstance(

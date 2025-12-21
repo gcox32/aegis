@@ -84,11 +84,6 @@ export default function MePage() {
   return (
     <PageLayout
       title="Profile"
-      action={
-        <Link href="/me/preferences" className="text-muted-foreground hover:text-foreground transition-colors">
-          <Settings className="w-6 h-6" />
-        </Link>
-      }
     >
       {/* Tabs */}
       <div className="flex border-b border-border mb-6">

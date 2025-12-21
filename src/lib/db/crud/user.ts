@@ -462,13 +462,26 @@ export async function getOrCreateUserStatsLog(userId: string): Promise<string> {
     return existing.id;
   }
 
-  // Create new stats log
-  const [newLog] = await db
-    .insert(userStatsLog)
-    .values({ userId })
-    .returning();
+  // Create new stats log, handle race condition
+  try {
+    const [newLog] = await db
+      .insert(userStatsLog)
+      .values({ userId })
+      .returning();
 
-  return newLog.id;
+    return newLog.id;
+  } catch (e: any) {
+    if (e.code === '23505') {
+      const [retry] = await db
+        .select()
+        .from(userStatsLog)
+        .where(eq(userStatsLog.userId, userId))
+        .limit(1);
+      
+      if (retry) return retry.id;
+    }
+    throw e;
+  }
 }
 
 export async function createUserStats(
@@ -608,12 +621,25 @@ export async function getOrCreateUserImageLog(userId: string): Promise<string> {
     return existing.id;
   }
 
-  const [newLog] = await db
-    .insert(userImageLog)
-    .values({ userId })
-    .returning();
+  try {
+    const [newLog] = await db
+      .insert(userImageLog)
+      .values({ userId })
+      .returning();
 
-  return newLog.id;
+    return newLog.id;
+  } catch (e: any) {
+    if (e.code === '23505') {
+      const [retry] = await db
+        .select()
+        .from(userImageLog)
+        .where(eq(userImageLog.userId, userId))
+        .limit(1);
+      
+      if (retry) return retry.id;
+    }
+    throw e;
+  }
 }
 
 export async function createUserImage(

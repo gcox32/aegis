@@ -1739,8 +1739,21 @@ export async function getOrCreatePerformanceLog(userId: string): Promise<string>
     return existing.id;
   }
 
-  const [newLog] = await db.insert(performanceLog).values({ userId }).returning();
-  return newLog.id;
+  try {
+    const [newLog] = await db.insert(performanceLog).values({ userId }).returning();
+    return newLog.id;
+  } catch (e: any) {
+    if (e.code === '23505') {
+      const [retry] = await db
+        .select()
+        .from(performanceLog)
+        .where(eq(performanceLog.userId, userId))
+        .limit(1);
+      
+      if (retry) return retry.id;
+    }
+    throw e;
+  }
 }
 
 export async function createPerformance(
@@ -1798,8 +1811,21 @@ export async function getOrCreateProjected1RMLog(userId: string): Promise<string
     return existing.id;
   }
 
-  const [newLog] = await db.insert(projected1RMLog).values({ userId }).returning();
-  return newLog.id;
+  try {
+    const [newLog] = await db.insert(projected1RMLog).values({ userId }).returning();
+    return newLog.id;
+  } catch (e: any) {
+    if (e.code === '23505') {
+      const [retry] = await db
+        .select()
+        .from(projected1RMLog)
+        .where(eq(projected1RMLog.userId, userId))
+        .limit(1);
+      
+      if (retry) return retry.id;
+    }
+    throw e;
+  }
 }
 
 export async function createProjected1RM(

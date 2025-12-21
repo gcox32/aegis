@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { ChevronLeft, ChevronRight, Info } from 'lucide-react';
-
+import Link from 'next/link';
+import { format, isFuture, isToday } from 'date-fns';
 interface ProfileCalendarProps {
   workoutDates?: Date[];
 }
@@ -49,11 +50,8 @@ export default function ProfileCalendar({ workoutDates = [] }: ProfileCalendarPr
       const dateToCheck = new Date(year, month, d);
       dateToCheck.setHours(0, 0, 0, 0);
 
-      const isFuture = dateToCheck > today;
-      const isToday = 
-        d === today.getDate() && 
-        month === today.getMonth() && 
-        year === today.getFullYear();
+      const isFutureDate = isFuture(dateToCheck);
+      const isTodayDate = isToday(dateToCheck);
       
       const hasWorkout = workoutDates.some(date => {
         const d2 = new Date(date);
@@ -61,19 +59,23 @@ export default function ProfileCalendar({ workoutDates = [] }: ProfileCalendarPr
       });
 
       days.push(
-        <div key={d} className="flex justify-center items-center h-10 w-10">
+        <Link 
+          key={d} 
+          href={`/me/log/${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`}
+          className="flex justify-center items-center h-10 w-10 hover:bg-muted/50 rounded-full transition-colors"
+        >
           <div 
             className={`
               flex justify-center items-center w-8 h-8 rounded-full text-sm font-medium
               ${hasWorkout ? 'bg-brand-primary text-black' : 
-                isToday ? 'bg-muted text-foreground' : 
-                isFuture ? 'text-muted-foreground opacity-30' : 
+                isTodayDate ? 'bg-muted text-foreground' : 
+                isFutureDate ? 'text-muted-foreground opacity-30' : 
                 'text-muted-foreground'}
             `}
           >
             {d}
           </div>
-        </div>
+        </Link>
       );
     }
 
