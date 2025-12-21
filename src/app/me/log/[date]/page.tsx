@@ -159,7 +159,7 @@ export default function DayLogPage({ params }: { params: Promise<{ date: string 
                 >
                   <p className="font-medium">{instance.workout?.name || 'Untitled Workout'}</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {format(new Date(instance.date), 'HH:mm')}
+                    {format(new Date(instance.date), 'h:mm a')}
                   </p>
                 </Link>
               ))}
