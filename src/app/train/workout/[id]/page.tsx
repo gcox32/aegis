@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button';
 import { Play, Loader2, Clock } from 'lucide-react';
 import PageLayout from '@/components/layout/PageLayout';
+import { getLocalDateString } from '@/lib/utils';
 import type {
   Workout,
   WorkoutInstance
@@ -75,7 +76,7 @@ export default function ViewWorkoutPage({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             workoutId: workout.id,
-            date: new Date().toISOString().split('T')[0],
+            date: getLocalDateString(),
             complete: false,
           }),
         }

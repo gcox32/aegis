@@ -36,12 +36,12 @@ export function SessionExerciseDisplay({
       <div className="flex items-center gap-2 mt-4">
         {!step.exercise.exercise.bilateral && (
           <span className="px-3 py-1 rounded-full bg-zinc-800/80 border border-zinc-700 text-xs font-medium text-zinc-300 backdrop-blur-sm">
-            Single Sided
+            single-sided
           </span>
         )}
         {step.block.workoutBlockType === 'warm-up' && (
           <span className="px-3 py-1 rounded-full bg-orange-500/20 border border-orange-500/30 text-xs font-medium text-orange-200 backdrop-blur-sm">
-            Warm Up
+            warm up
           </span>
         )}
       </div>

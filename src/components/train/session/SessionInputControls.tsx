@@ -95,13 +95,15 @@ export function SessionInputControls({
   const showRepsInput = (hasLoad || hasReps) && !showCaloriesInput && !isCardioOrDuration && !isHeightScore; 
   const showLoadInput = (hasReps || hasLoad) && !showCaloriesInput && !isCardioOrDuration && !isHeightScore;
 
+  const isUnilateral = step.exercise.exercise.bilateral === false;
+
   return (
     <div className="gap-4 grid grid-cols-2 mb-8">
       {/* Reps */}
       {showRepsInput && (
         <div className="flex flex-col gap-2">
           <label className="pl-1 font-medium text-zinc-400 text-xs uppercase tracking-wider">
-            Reps
+            {isUnilateral ? 'Reps / Side' : 'Reps'}
           </label>
           <div className="group relative">
             <input
@@ -152,7 +154,7 @@ export function SessionInputControls({
       {showLoadInput && (
         <div className="flex flex-col gap-2">
           <label className="pl-1 font-medium text-zinc-400 text-xs uppercase tracking-wider">
-            Weight
+            {isUnilateral ? `${weightUnit} / Side` : 'Weight'}
           </label>
           <div className="group relative flex flex-col items-end gap-2">
             <input

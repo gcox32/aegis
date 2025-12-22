@@ -1425,7 +1425,15 @@ function calculateVolume(
       if (externalLoad.unit === 'lbs') {
         loadKg = loadKg * 0.453592; // Convert lbs to kg
       }
-      totalVolumeKg += reps * loadKg;
+      
+      let setVolume = reps * loadKg;
+      
+      // Double volume for unilateral exercises
+      if (instance.workoutBlockExercise?.exercise.bilateral === false) {
+        setVolume *= 2;
+      }
+      
+      totalVolumeKg += setVolume;
     }
   });
 

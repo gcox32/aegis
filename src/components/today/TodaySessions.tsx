@@ -4,22 +4,11 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button';
 import type { Workout, WorkoutInstance } from '@/types/train';
+import { getLocalDateString } from '@/lib/utils';
 import { CheckCircle2, Loader2, Play } from 'lucide-react';
+import { fetchJson } from '@/lib/train/helpers';
 
 type ApiListResponse<T> = { [key: string]: T[] };
-
-async function fetchJson<T>(input: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(input, {
-    ...init,
-    cache: 'no-store',
-  });
-
-  if (!res.ok) {
-    throw new Error(`Request failed: ${res.status}`);
-  }
-
-  return res.json();
-}
 
 export default function TodaySessions() {
   const router = useRouter();
@@ -89,7 +78,7 @@ export default function TodaySessions() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             workoutId: selectedWorkoutId,
-            date: new Date().toISOString().split('T')[0],
+            date: getLocalDateString(),
             complete: false,
           }),
         }
@@ -111,9 +100,12 @@ export default function TodaySessions() {
   const inProgressInstance = instances.find(i => !i.complete);
   
   // 2. Completed Today: Find instance completed today
-  const todayString = new Date().toISOString().split('T')[0];
+  // We use getLocalDateString to ensure we're comparing apples-to-apples (Local Date vs Local Date)
+  // regardless of how it's stored in the DB (UTC).
+  const todayString = getLocalDateString().split('T')[0];
   const completedTodayInstance = instances.find(i => {
-    const iDate = new Date(i.date).toISOString().split('T')[0];
+    // Convert the stored UTC instance date to a Local String before comparing
+    const iDate = getLocalDateString(new Date(i.date)).split('T')[0];
     return i.complete && iDate === todayString;
   });
 

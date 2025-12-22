@@ -22,11 +22,13 @@ export function calculateOutput(userStats: UserStats, exercises: WorkoutBlockExe
     exercises.forEach((exercise, index) => {
       let constants: WorkPowerConstants = exerciseWorkPowerConstants[index];
       let measures: ExerciseMeasures = exerciseMeasures[index];
+      const isUnilateral = exercise.workoutBlockExercise?.exercise.bilateral === false;
 
       // If using calories (for cardio machines)
       if (constants.useCalories) {
         if (measures.calories) {
-          const work = (measures.calories?.value || 0) * 4184; // 1 calorie = ~4184 Joules
+          let work = (measures.calories?.value || 0) * 4184; // 1 calorie = ~4184 Joules
+          if (isUnilateral) work *= 2;
           totalWork += work;
         }
       } else {
@@ -91,7 +93,8 @@ export function calculateOutput(userStats: UserStats, exercises: WorkoutBlockExe
         const reps = measures.reps || 1;
 
         // Calculate work for this measure (force in N, distance in m, work in J)
-        const work = force * distanceMeters * reps;
+        let work = force * distanceMeters * reps;
+        if (isUnilateral) work *= 2;
         totalWork += work;
       }
     });
