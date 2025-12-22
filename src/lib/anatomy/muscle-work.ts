@@ -1,4 +1,4 @@
-import { WorkoutInstance, WorkoutBlockExerciseInstance } from "@/types/train";
+import { WorkoutInstance, WorkoutBlockExerciseInstance, WorkoutBlockExercise, Exercise } from "@/types/train";
 import { MuscleGroupName } from "@/types/anatomy";
 
 export type MuscleWorkMap = Record<MuscleGroupName, number>;
@@ -6,9 +6,22 @@ export type MuscleWorkMap = Record<MuscleGroupName, number>;
 export function calculateMuscleWorkDistribution(
     instance: WorkoutInstance,
     activeExerciseInstances?: WorkoutBlockExerciseInstance[],
-    muscleGroupMap?: Record<string, MuscleGroupName>
+    muscleGroupMap?: Record<string, MuscleGroupName>,
+    exercisesMap?: Record<string, WorkoutBlockExercise[]>
 ): MuscleWorkMap {
     const muscleWork: Partial<MuscleWorkMap> = {};
+
+    // Create a lookup map from workoutBlockExerciseId to Exercise
+    const exerciseLookup = new Map<string, Exercise>();
+    if (exercisesMap) {
+        Object.values(exercisesMap).forEach((blockExercises) => {
+            blockExercises.forEach((wbe) => {
+                if (wbe.exercise) {
+                    exerciseLookup.set(wbe.id, wbe.exercise);
+                }
+            });
+        });
+    }
 
     let allExerciseInstances: WorkoutBlockExerciseInstance[] = [];
     if (activeExerciseInstances && activeExerciseInstances.length > 0) {
@@ -20,9 +33,16 @@ export function calculateMuscleWorkDistribution(
             }
         });
     }
+    
     allExerciseInstances.forEach(ei => {
-
-        const exercise = ei.workoutBlockExercise?.exercise;
+        // Try to get exercise from hydrated workoutBlockExercise first
+        let exercise = ei.workoutBlockExercise?.exercise;
+        
+        // If not hydrated, look it up using workoutBlockExerciseId
+        if (!exercise && ei.workoutBlockExerciseId && exerciseLookup.has(ei.workoutBlockExerciseId)) {
+            exercise = exerciseLookup.get(ei.workoutBlockExerciseId);
+        }
+        
         if (!exercise) return;
 
         // Determine the "load" of this exercise instance

@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { muscleGroupImages } from './imageConfig';
+import { muscleGroupImages, imageTransforms } from './imageConfig';
 import { MuscleGroupName } from '@/types/anatomy';
 
 // Base SVG paths
@@ -42,31 +42,35 @@ export function MuscleHeatmap({
 
       return (
         <React.Fragment key={groupName}>
-          {viewImages.map((src, index) => (
-            <img
-              key={`${groupName}-${index}`}
-              src={src}
-              alt={groupName}
-              className="absolute inset-0 w-full h-full object-contain mix-blend-multiply transition-opacity duration-500"
-              style={{ 
-                opacity: 0.2 + (opacity * 0.8), // Base opacity + scaled work
-                filter: `sepia(1) hue-rotate(-50deg) saturate(${2 + opacity * 3})` // Reddish tint
-              }} 
-            />
-          ))}
+          {viewImages.map((src, index) => {
+            const transform = imageTransforms[src];
+            return (
+              <img
+                key={`${groupName}-${index}`}
+                src={src}
+                alt={groupName}
+                className="absolute inset-0 w-full h-full object-contain transition-opacity duration-500 mix-blend-multiply"
+                style={{ 
+                  opacity: 0.2 + (opacity * 0.8), // Base opacity + scaled work
+                  filter: `saturate(${2 + opacity * 3})`, // Reddish tint
+                  transform: transform || undefined // Apply transform from config if available
+                }} 
+              />
+            );
+          })}
         </React.Fragment>
       );
     });
   };
 
   return (
-    <div className={`flex gap-4 ${className}`} style={{ width, height }}>
+    <div className={`flex ${className}`} style={{ width, height }}>
       {/* Front View */}
       <div className="relative flex-1 aspect-1/2">
         <img 
           src={BODY_OUTLINE_FRONT} 
           alt="Body Outline Front" 
-          className="absolute inset-0 w-full h-full object-contain opacity-30"
+          className="absolute inset-0 opacity-30 w-full h-full object-contain"
         />
         {renderMuscleLayers('front')}
       </div>
@@ -76,7 +80,7 @@ export function MuscleHeatmap({
         <img 
           src={BODY_OUTLINE_BACK} 
           alt="Body Outline Back" 
-          className="absolute inset-0 w-full h-full object-contain opacity-30"
+          className="absolute inset-0 opacity-30 w-full h-full object-contain"
         />
         {renderMuscleLayers('back')}
       </div>

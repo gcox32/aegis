@@ -3,6 +3,7 @@
 import { useState, use, useMemo } from 'react';
 import { Loader2 } from 'lucide-react';
 import Button from '@/components/ui/Button';
+import type { WorkoutBlockExerciseInstance } from '@/types/train';
 
 import { formatClock } from '@/lib/train/helpers';
 
@@ -123,6 +124,18 @@ export default function ActiveSessionPage({
     return count;
   }, [exerciseInstances]);
 
+  const completedExerciseInstances = useMemo(() => {
+    const completed: WorkoutBlockExerciseInstance[] = [];
+    Object.values(exerciseInstances).forEach((instances) => {
+      instances.forEach((inst) => {
+        if (inst.complete) {
+          completed.push(inst);
+        }
+      });
+    });
+    return completed;
+  }, [exerciseInstances]);
+
   if (loading) {
     return (
       <div className="flex justify-center items-center bg-black w-full h-screen text-white">
@@ -141,7 +154,7 @@ export default function ActiveSessionPage({
   }
 
   if (isComplete) {
-    return <WorkoutCompleteView onContinue={handleEndSession} />;
+    return <WorkoutCompleteView onContinue={handleEndSession} workoutInstance={workoutInstance} exercisesMap={exercisesMap} completedExerciseInstances={completedExerciseInstances} />;
   }
 
   return (
@@ -316,6 +329,7 @@ export default function ActiveSessionPage({
         totalSets={totalSets}
         blocks={blocks}
         exercisesMap={exercisesMap}
+        completedExerciseInstances={completedExerciseInstances}
       />
 
       <NoteInputOverlay

@@ -1,6 +1,8 @@
 import { X, Dumbbell, Clock } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import type { WorkoutInstance, WorkoutBlock, WorkoutBlockExercise } from '@/types/train';
+import { useEffect, useState, useMemo } from 'react';
+import type { WorkoutInstance, WorkoutBlock, WorkoutBlockExercise, WorkoutBlockExerciseInstance } from '@/types/train';
+import { calculateMuscleWorkDistribution } from '@/lib/anatomy/muscle-work';
+import { MuscleHeatmap } from '@/components/anatomy/MuscleHeatmap';
 
 interface WorkoutSummaryOverlayProps {
   isOpen: boolean;
@@ -11,17 +13,19 @@ interface WorkoutSummaryOverlayProps {
   totalSets: number; // calculated in parent
   blocks: WorkoutBlock[];
   exercisesMap: Record<string, WorkoutBlockExercise[]>;
+  completedExerciseInstances?: WorkoutBlockExerciseInstance[];
 }
 
-export function WorkoutSummaryOverlay({ 
-  isOpen, 
-  onClose, 
+export function WorkoutSummaryOverlay({
+  isOpen,
+  onClose,
   workoutInstance,
   totalVolume,
   durationSeconds,
   totalSets,
   blocks,
-  exercisesMap
+  exercisesMap,
+  completedExerciseInstances
 }: WorkoutSummaryOverlayProps) {
   const [shouldRender, setShouldRender] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
@@ -38,6 +42,18 @@ export function WorkoutSummaryOverlay({
     }
   }, [isOpen]);
 
+  const muscleWork = useMemo(() => {
+    if (!workoutInstance) return {} as Record<string, number>;
+    return calculateMuscleWorkDistribution(
+      workoutInstance,
+      completedExerciseInstances && completedExerciseInstances.length > 0
+        ? completedExerciseInstances
+        : undefined,
+      undefined, // muscleGroupMap
+      exercisesMap // exercisesMap for exercise lookup
+    );
+  }, [workoutInstance, completedExerciseInstances, exercisesMap]);
+
   if (!shouldRender) return null;
 
   const formatDuration = (seconds: number) => {
@@ -46,22 +62,20 @@ export function WorkoutSummaryOverlay({
   };
 
   return (
-    <div 
-      className={`absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md transition-all duration-200 ease-out p-4 ${
-        isVisible ? 'opacity-100' : 'opacity-0'
-      }`}
+    <div
+      className={`absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md transition-all duration-200 ease-out p-4 ${isVisible ? 'opacity-100' : 'opacity-0'
+        }`}
       onClick={onClose}
     >
-      <div 
-        className={`w-full max-w-sm max-h-[90vh] bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden shadow-2xl transition-all duration-200 flex flex-col ${
-          isVisible ? 'scale-100 translate-y-0' : 'scale-95 translate-y-4'
-        }`}
+      <div
+        className={`w-full max-w-sm max-h-[90vh] bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden shadow-2xl transition-all duration-200 flex flex-col ${isVisible ? 'scale-100 translate-y-0' : 'scale-95 translate-y-4'
+          }`}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex justify-between items-center p-6 pb-4">
           <h2 className="pl-6 w-full font-bold text-white text-xl text-center">Summary</h2>
-          <button 
+          <button
             onClick={onClose}
             className="-mr-2 p-2 text-zinc-400 hover:text-white transition-colors"
           >
@@ -70,32 +84,40 @@ export function WorkoutSummaryOverlay({
         </div>
 
         {/* Stats Grid */}
-        <div className="gap-px grid grid-cols-2 bg-zinc-800/50 border-y border-zinc-800">
-          <StatBox 
-            icon={Clock} 
-            label="Duration" 
-            value={formatDuration(durationSeconds)} 
-          />
-          <StatBox 
-            icon={Dumbbell} 
-            label="Volume" 
-            value={`${totalVolume}kg`} 
-          />
-          <StatBox 
-            label="Sets" 
-            value={totalSets.toString()} 
-            className="flex flex-col justify-center items-center bg-zinc-900 p-6"
-          />
-        </div>
+        <div className="flex-1 bg-zinc-900 border-zinc-800 border-t overflow-y-auto">
+          <div className="gap-px grid grid-cols-2 bg-zinc-800/50 border-y border-zinc-800">
+            <StatBox
+              icon={Clock}
+              label="Duration"
+              value={formatDuration(durationSeconds)}
+            />
+            <StatBox
+              icon={Dumbbell}
+              label="Volume"
+              value={`${totalVolume}kg`}
+            />
+            <StatBox
+              label="Sets"
+              value={totalSets.toString()}
+              className="flex flex-col justify-center items-center bg-zinc-900 p-6"
+            />
+          </div>
 
-        {/* Workout Outline */}
-        <div className="flex-1 bg-zinc-900 p-6 border-zinc-800 border-t overflow-y-auto">
+          {/* Muscle Heatmap */}
+          {workoutInstance && (
+            <div className="bg-zinc-700 border-zinc-800 border-t">
+              <MuscleHeatmap muscleWork={muscleWork} />
+            </div>
+          )}
+
+          {/* Workout Outline */}
+          <div className="p-6">
           <h3 className="mb-3 font-semibold text-zinc-400 text-sm text-center uppercase tracking-wide">Outline</h3>
           <div className="space-y-4">
             {blocks.map((block) => {
               const exercises = exercisesMap[block.id] || [];
               if (exercises.length === 0) return null;
-              
+
               return (
                 <div key={block.id} className="space-y-2">
                   {block.name && (
@@ -126,7 +148,8 @@ export function WorkoutSummaryOverlay({
                   </div>
                 </div>
               );
-            })}
+              })}
+            </div>
           </div>
         </div>
       </div>
@@ -134,18 +157,18 @@ export function WorkoutSummaryOverlay({
   );
 }
 
-function StatBox({ 
-  icon: Icon, 
-  label, 
-  value, 
+function StatBox({
+  icon: Icon,
+  label,
+  value,
   sublabel,
-  className 
-}: { 
-  icon?: any, 
-  label: string, 
-  value: string, 
+  className
+}: {
+  icon?: any,
+  label: string,
+  value: string,
   sublabel?: string,
-  className?: string 
+  className?: string
 }) {
   if (className) return <div className={className}><span className="mb-1 text-zinc-400 text-sm">{label}</span><span className="font-mono font-bold text-white text-xl">{value}</span></div>;
 
