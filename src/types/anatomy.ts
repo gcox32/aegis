@@ -3,10 +3,9 @@ import { User } from "./user";
 export type MuscleGroupName =
     'chest' | 'anterior delts' | 'lateral delts' | 'posterior delts' |
     'lats' | 'rhomboids' | 'traps' | 'spinal erectors' | 'quadratus lumborum' |
-    'biceps' | 'triceps' | 'forearms' |
-    'anterior core' | 'lateral core' | 'deep core' |
-    'glutes' | 'hip flexors' | 'quadriceps' | 'hamstrings' | 'adductors' | 'abductors' | 'calves' | 'anterior lower leg' |
-    'neck' | 'jaw' | 'other';
+    'biceps' | 'triceps' | 'forearms' | 'anterior core' | 'obliques' | 'deep core' |
+    'glutes' | 'hip flexors' | 'quadriceps' | 'hamstrings' | 'adductors' | 'abductors' | 
+    'calves' | 'anterior tibialis' | 'rotator cuff' | 'neck' | 'jaw' | 'other';
 
 
 type MuscleName =

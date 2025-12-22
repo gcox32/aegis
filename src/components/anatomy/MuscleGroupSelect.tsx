@@ -1,4 +1,3 @@
-import React from 'react';
 import { FormSelect, FormSelectProps } from '@/components/ui/Form';
 import { MuscleGroupName } from '@/types/anatomy';
 
@@ -6,10 +5,9 @@ import { MuscleGroupName } from '@/types/anatomy';
 export const MUSCLE_GROUPS: MuscleGroupName[] = [
   'chest', 'anterior delts', 'lateral delts', 'posterior delts',
   'lats', 'rhomboids', 'traps', 'spinal erectors', 'quadratus lumborum',
-  'biceps', 'triceps', 'forearms',
-  'anterior core', 'lateral core', 'deep core',
-  'glutes', 'hip flexors', 'quadriceps', 'hamstrings', 'adductors', 'abductors', 'calves', 'anterior lower leg',
-  'neck', 'jaw', 'other'
+  'biceps', 'triceps', 'forearms','anterior core', 'obliques', 'deep core',
+  'glutes', 'hip flexors', 'quadriceps', 'hamstrings', 'adductors', 'abductors',
+  'calves', 'anterior tibialis', 'rotator cuff', 'neck', 'jaw', 'other'
 ];
 
 interface MuscleGroupSelectProps extends Omit<FormSelectProps, 'children'> {
