@@ -98,7 +98,7 @@ export default function TodaySessions() {
   // Identify status
   // 1. In Progress: Find most recent incomplete instance
   const inProgressInstance = instances.find(i => !i.complete);
-  
+
   // 2. Completed Today: Find instance completed today
   // We use getLocalDateString to ensure we're comparing apples-to-apples (Local Date vs Local Date)
   // regardless of how it's stored in the DB (UTC).
@@ -110,11 +110,15 @@ export default function TodaySessions() {
   });
 
   if (isLoading) {
-    return <div className="flex justify-center items-center p-8 w-full h-full text-muted-foreground text-center"><Loader2 className="w-8 h-8 text-brand-primary animate-spin" /></div>;
+    <div className="bg-card shadow-sm p-6 border border-border rounded-lg flex justify-center items-center h-[160px]">
+      <Loader2 className="w-8 h-8 text-brand-primary animate-spin" />
+    </div>
   }
 
   if (loadError) {
-    return <div className="p-8 text-destructive text-center">Error: {loadError}</div>;
+    <div className="bg-card shadow-sm p-6 border border-border rounded-lg h-[160px] flex items-center justify-center text-destructive">
+      Error loading workout data
+    </div>
   }
 
   // CASE 1: In Progress
@@ -134,10 +138,10 @@ export default function TodaySessions() {
           </div>
           <Play className="bg-primary/10 p-2 rounded-full w-10 h-10 text-primary" />
         </div>
-        
+
         <div className="flex gap-3">
-          <Button 
-            variant="primary" 
+          <Button
+            variant="primary"
             fullWidth
             onClick={() => router.push(`/train/session/${inProgressInstance.id}`)}
           >
@@ -165,17 +169,17 @@ export default function TodaySessions() {
           </div>
           <CheckCircle2 className="bg-success/10 p-2 rounded-full w-10 h-10 text-success" />
         </div>
-        
+
         <div className="flex flex-col gap-2">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             fullWidth
             onClick={() => router.push(`/log/workouts/${completedTodayInstance.id}`)}
           >
             View Summary
           </Button>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             fullWidth
             onClick={() => setShowPrompt(true)}
           >
