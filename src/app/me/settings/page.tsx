@@ -5,11 +5,24 @@ import PageLayout from '@/components/layout/PageLayout';
 import { useSettings } from '@/lib/settings';
 import { useToast } from '@/components/ui/Toast';
 import { getSettingsConfig, SettingItem } from './settingsConfig';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import ChangePasswordModal from './ChangePasswordModal';
 
 export default function SettingsPage() {
   const { showToast } = useToast();
   const { settings, updateSettings, loading } = useSettings();
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [storageStats, setStorageStats] = useState<{ database: { usedBytes: number }; storage: { usedBytes: number } } | undefined>(undefined);
+
+  useEffect(() => {
+    fetch('/api/me/storage')
+      .then(res => {
+        if (res.ok) return res.json();
+        throw new Error('Failed to fetch storage stats');
+      })
+      .then(setStorageStats)
+      .catch(err => console.error('Error fetching storage stats:', err));
+  }, []);
   
   // Settings like Notifications are operational and should probably take effect immediately (like system settings typically do),
   // whereas Preferences (units, strategies) often benefit from a "batch save" flow if they change view state significantly.
@@ -47,10 +60,18 @@ export default function SettingsPage() {
     );
   }
 
+  const handleDataExport = () => {
+    // Trigger download by navigating to the export API route
+    window.location.href = '/api/me/export';
+  };
+
   const config = getSettingsConfig({
     settings,
+    storageStats,
     handlers: {
       handleSleepReminderChange,
+      handleChangePassword: () => setIsPasswordModalOpen(true),
+      handleDataExport,
     },
     env: {
       version: process.env.APP_VERSION || '1.0.0',
@@ -89,22 +110,17 @@ export default function SettingsPage() {
           <button 
             key={item.id}
             onClick={item.action}
-            className={`w-full bg-card rounded-lg p-4 border border-border flex items-center justify-between hover:bg-hover transition-colors ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`w-full bg-card rounded-lg p-4 border border-border flex items-center hover:bg-hover transition-colors ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             disabled={item.disabled}
           >
             <div>
-              <span className="font-medium block">{item.label}</span>
+              <span className="font-medium flex  items-center">{item.label}</span>
               {item.description && (
-                <span className={`text-sm ${item.variant === 'danger' ? 'text-red-600' : 'text-muted-foreground'}`}>
+                <span className={`text-sm w-full flex items-center ${item.variant === 'danger' ? 'text-red-600' : 'text-muted-foreground'}`}>
                   {item.description}
                 </span>
               )}
             </div>
-            {item.description ? (
-               <span className="text-muted-foreground">→</span>
-            ) : (
-                 <span className="text-muted-foreground">→</span>
-            )}
           </button>
         );
 
@@ -157,6 +173,11 @@ export default function SettingsPage() {
           </div>
         </section>
       ))}
+
+      <ChangePasswordModal 
+        isOpen={isPasswordModalOpen} 
+        onClose={() => setIsPasswordModalOpen(false)} 
+      />
     </PageLayout>
   );
 }

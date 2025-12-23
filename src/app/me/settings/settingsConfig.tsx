@@ -1,6 +1,7 @@
 import React from 'react';
 import { Bell, Shield, Database, Info, LucideIcon } from 'lucide-react';
 import { UserSettings } from '@/lib/settings';
+import { STORAGE_LIMITS, BYTES_PER_GB, BYTES_PER_MB } from '@/lib/config/storage';
 
 export type SettingItemType = 'toggle' | 'button' | 'link' | 'info' | 'component';
 
@@ -55,8 +56,14 @@ export interface SettingSection {
 
 interface SettingsConfigProps {
   settings: UserSettings;
+  storageStats?: {
+    database: { usedBytes: number };
+    storage: { usedBytes: number };
+  };
   handlers: {
     handleSleepReminderChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    handleChangePassword: () => void;
+    handleDataExport: () => void;
   };
   env: {
     version: string;
@@ -64,7 +71,24 @@ interface SettingsConfigProps {
   };
 }
 
-export const getSettingsConfig = ({ settings, handlers, env }: SettingsConfigProps): SettingSection[] => [
+const formatBytes = (bytes: number) => {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+};
+
+export const getSettingsConfig = ({ settings, storageStats, handlers, env }: SettingsConfigProps): SettingSection[] => {
+  const dbUsed = storageStats?.database.usedBytes || 0;
+  const dbLimit = STORAGE_LIMITS.DATABASE_SIZE_MB * BYTES_PER_MB;
+  const dbPercent = Math.min((dbUsed / dbLimit) * 100, 100);
+
+  const storageUsed = storageStats?.storage.usedBytes || 0;
+  const storageLimit = STORAGE_LIMITS.FILE_STORAGE_GB * BYTES_PER_GB;
+  const storagePercent = Math.min((storageUsed / storageLimit) * 100, 100);
+
+  return [
   {
     id: 'notifications',
     title: 'Notifications',
@@ -114,22 +138,14 @@ export const getSettingsConfig = ({ settings, handlers, env }: SettingsConfigPro
         type: 'button',
         label: 'Change Password',
         description: 'Update your account password',
-        action: () => console.log('Change Password clicked'),
+        action: handlers.handleChangePassword,
       },
       {
         id: 'dataExport',
         type: 'button',
         label: 'Data Export',
         description: 'Download your data',
-        action: () => console.log('Data Export clicked'),
-      },
-      {
-        id: 'deleteAccount',
-        type: 'button',
-        label: 'Delete Account',
-        description: 'Permanently delete your account',
-        action: () => console.log('Delete Account clicked'),
-        variant: 'danger',
+        action: handlers.handleDataExport,
       },
     ],
   },
@@ -139,26 +155,45 @@ export const getSettingsConfig = ({ settings, handlers, env }: SettingsConfigPro
     icon: Database,
     items: [
       {
-        id: 'storage',
+        id: 'dbStorage',
         type: 'component',
         component: (
           <div className="w-full">
             <div className="flex justify-between items-center mb-2">
-              <span className="font-medium">Storage Used</span>
-              <span className="text-sm text-muted-foreground">125 MB / 1 GB</span>
+              <span className="font-medium">Database Size</span>
+              <span className="text-sm text-muted-foreground">
+                {formatBytes(dbUsed)} / {STORAGE_LIMITS.DATABASE_SIZE_MB} MB
+              </span>
             </div>
             <div className="w-full bg-input rounded-full h-2">
-              <div className="bg-brand-primary h-2 rounded-full" style={{ width: '12.5%' }}></div>
+              <div 
+                className={`h-2 rounded-full transition-all duration-500 ${dbPercent > 90 ? 'bg-red-500' : 'bg-brand-primary'}`} 
+                style={{ width: `${dbPercent}%` }}
+              ></div>
             </div>
           </div>
         ),
       },
       {
-        id: 'clearCache',
-        type: 'button',
-        label: 'Clear Cache',
-        action: () => console.log('Clear Cache clicked'),
-      },
+        id: 'fileStorage',
+        type: 'component',
+        component: (
+          <div className="w-full">
+            <div className="flex justify-between items-center mb-2">
+              <span className="font-medium">File Storage</span>
+              <span className="text-sm text-muted-foreground">
+                {formatBytes(storageUsed)} / {STORAGE_LIMITS.FILE_STORAGE_GB} GB
+              </span>
+            </div>
+            <div className="w-full bg-input rounded-full h-2">
+              <div 
+                className={`h-2 rounded-full transition-all duration-500 ${storagePercent > 90 ? 'bg-red-500' : 'bg-brand-primary'}`}
+                style={{ width: `${storagePercent}%` }}
+              ></div>
+            </div>
+          </div>
+        ),
+      }
     ],
   },
   {
@@ -193,4 +228,6 @@ export const getSettingsConfig = ({ settings, handlers, env }: SettingsConfigPro
     ],
   },
 ];
+};
+
 
