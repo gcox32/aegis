@@ -26,10 +26,9 @@ export default function LatestSleep() {
         const day = String(now.getDate()).padStart(2, '0');
         const todayString = `${year}-${month}-${day}`;
         const todayDateUTC = new Date(todayString);
-        
         // Fetch sleep logs for today (which represents last night's sleep)
         const res = await fetchJson<{ sleepInstances: SleepInstance[] }>(
-          `/api/fuel/sleep?dateFrom=${todayDateUTC.toISOString()}`
+          `/api/fuel/sleep?dateFrom=${todayString}`
         );
 
         if (cancelled) return;
@@ -37,7 +36,11 @@ export default function LatestSleep() {
         // Find the one for today
         const todaysSleep = res.sleepInstances.find(s => {
           const sDate = new Date(s.date);
-          return sDate.getTime() === todayDateUTC.getTime();
+          const sYear = sDate.getFullYear();
+          const sMonth = String(sDate.getMonth() + 1).padStart(2, '0');
+          const sDay = String(sDate.getDate()).padStart(2, '0');
+          const sDateString = `${sYear}-${sMonth}-${sDay}`;
+          return sDateString === todayString;
         });
 
         setSleep(todaysSleep || null);
