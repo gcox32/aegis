@@ -97,6 +97,16 @@ export function SessionInputControls({
 
   const isUnilateral = step.exercise.exercise.bilateral === false;
 
+  const handleBlur = () => {
+    // When keyboard is dismissed (focus lost from inputs), reset scroll position
+    // Small timeout to check if focus moved to another input
+    setTimeout(() => {
+      if (document.activeElement?.tagName !== 'INPUT') {
+        window.scrollTo(0, 0);
+      }
+    }, 100);
+  };
+
   return (
     <div className="gap-4 grid grid-cols-2 mb-8">
       {/* Reps */}
@@ -110,6 +120,7 @@ export function SessionInputControls({
               type="number"
               inputMode="numeric"
               value={reps}
+              onBlur={handleBlur}
               onChange={(e) => onRepsChange(e.target.value)}
               className="bg-zinc-900/80 px-4 py-5 border border-zinc-700/50 focus:border-transparent rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand-primary w-full font-bold placeholder:text-zinc-700 text-4xl text-center transition-all"
               placeholder={step.exercise.measures.reps?.toString() || '0'}
@@ -134,6 +145,7 @@ export function SessionInputControls({
               type="number"
               inputMode="numeric"
               value={calories || ''}
+              onBlur={handleBlur}
               onChange={(e) => onCaloriesChange(e.target.value)}
               className="bg-zinc-900/80 px-4 py-5 border border-zinc-700/50 focus:border-transparent rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand-primary w-full font-bold placeholder:text-zinc-700 text-4xl text-center transition-all"
               placeholder={step.exercise.measures.calories?.value?.toString() || '0'}
@@ -161,6 +173,7 @@ export function SessionInputControls({
               type="number"
               inputMode="numeric"
               value={weight}
+              onBlur={handleBlur}
               onChange={(e) => onWeightChange(e.target.value)}
               className="bg-zinc-900/80 px-4 py-5 border border-zinc-700/50 focus:border-transparent rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand-primary w-full font-bold placeholder:text-zinc-700 text-4xl text-center transition-all"
               placeholder={
@@ -206,6 +219,7 @@ export function SessionInputControls({
               type="number"
               inputMode="numeric"
               value={height || ''}
+              onBlur={handleBlur}
               onChange={(e) => onHeightChange(e.target.value)}
               className="bg-zinc-900/80 px-4 py-5 border border-zinc-700/50 focus:border-transparent rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand-primary w-full font-bold placeholder:text-zinc-700 text-4xl text-center transition-all"
               placeholder={step.exercise.measures.height?.value?.toString() || '0'}
@@ -243,6 +257,7 @@ export function SessionInputControls({
               type="number"
               inputMode="numeric"
               value={pace || ''}
+              onBlur={handleBlur}
               onChange={(e) => onPaceChange(e.target.value)}
               className="bg-zinc-900/80 px-4 py-5 border border-zinc-700/50 focus:border-transparent rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand-primary w-full font-bold placeholder:text-zinc-700 text-4xl text-center transition-all"
               placeholder={step.exercise.measures.pace?.value?.toString() || '0'}
@@ -280,6 +295,7 @@ export function SessionInputControls({
               type="number"
               inputMode="numeric"
               value={distance || ''}
+              onBlur={handleBlur}
               onChange={(e) => onDistanceChange(e.target.value)}
               className="bg-zinc-900/80 px-4 py-5 border border-zinc-700/50 focus:border-transparent rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand-primary w-full font-bold placeholder:text-zinc-700 text-4xl text-center transition-all"
               placeholder="0"
@@ -317,6 +333,7 @@ export function SessionInputControls({
               type="number"
               inputMode="numeric"
               value={time || ''}
+              onBlur={handleBlur}
               onChange={(e) => onTimeChange(e.target.value)}
               className="bg-zinc-900/80 px-4 py-5 border border-zinc-700/50 focus:border-transparent rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand-primary w-full font-bold placeholder:text-zinc-700 text-4xl text-center transition-all"
               placeholder="0"

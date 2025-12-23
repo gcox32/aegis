@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, use, useMemo } from 'react';
+import { useState, use, useMemo, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import type { WorkoutBlockExerciseInstance } from '@/types/train';
@@ -59,6 +59,8 @@ export default function ActiveSessionPage({
     setTimerSoundsEnabled,
     countdownAudioRef,
     completeAudioRef,
+    isRestComplete,
+    setIsRestComplete,
   } = sessionTimers;
 
   const currentStep = steps[currentStepIndex];
@@ -88,6 +90,14 @@ export default function ActiveSessionPage({
     input: sessionInput,
     sessionId: id,
   });
+
+  // Handle rest timer completion
+  useEffect(() => {
+    if (isRestComplete) {
+      endRestAndAdvance();
+      setIsRestComplete(false);
+    }
+  }, [isRestComplete, endRestAndAdvance, setIsRestComplete]);
 
   // UI State
   const [isMenuOpen, setIsMenuOpen] = useState(false);

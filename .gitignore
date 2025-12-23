@@ -34,6 +34,7 @@ yarn-error.log*
 .env*
 /assets
 /docs
+TODO.md
 
 # vercel
 .vercel
