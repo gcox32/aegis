@@ -44,7 +44,7 @@ export default function PerformanceDashboard({ workoutStats, keyExerciseStats }:
     }));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-6">
       <div className="border-b border-gray-200 w-full">
         <nav className="-mb-px flex space-x-8 w-full" aria-label="Tabs">
           <button

@@ -27,8 +27,8 @@ export function SimpleLineChart({
   const bottomPadding = 30;
   const leftPadding = 40;
 
-  const { points, min, max } = useMemo(() => {
-    if (data.length === 0) return { points: [], min: 0, max: 0 };
+  const { points, min, max, keyPoints } = useMemo(() => {
+    if (data.length === 0) return { points: [], min: 0, max: 0, keyPoints: [] };
 
     const values = data.map(d => d.value);
     const minVal = Math.min(...values);
@@ -39,15 +39,33 @@ export function SimpleLineChart({
     const min = Math.max(0, minVal - range * 0.1);
     const max = maxVal + range * 0.1;
 
+    const mappedPoints = data.map((d, i) => ({
+      x: i,
+      y: d.value,
+      date: d.date,
+      label: d.label
+    }));
+
+    // Identify key indices
+    const latestIndex = mappedPoints.length - 1;
+    // We want specifically the *first* occurrence of min/max if there are ties, or maybe last? 
+    // Let's go with simple indexOf for first occurrence
+    const maxIndex = values.indexOf(maxVal);
+    const minIndex = values.indexOf(minVal);
+
+    // Filter to unique indices to avoid overlapping labels if e.g. latest is also max
+    const keyIndices = new Set([0, latestIndex, maxIndex, minIndex]); // Added 0 (start) as well? The user asked for highest, lowest, latest.
+    // User requested: highest, lowest, and latest.
+    const requestedKeyIndices = new Set([latestIndex, maxIndex, minIndex]);
+
     return { 
-      points: data.map((d, i) => ({
-        x: i,
-        y: d.value,
-        date: d.date,
-        label: d.label
-      })), 
+      points: mappedPoints,
       min, 
-      max 
+      max,
+      keyPoints: Array.from(requestedKeyIndices).sort((a, b) => a - b).map(idx => ({
+        ...mappedPoints[idx],
+        type: idx === latestIndex ? 'Latest' : (idx === maxIndex ? 'High' : 'Low')
+      }))
     };
   }, [data]);
 
@@ -77,7 +95,7 @@ export function SimpleLineChart({
 
   return (
     <div className="w-full">
-      {title && <h3 className="text-sm font-medium text-gray-300 mb-2">{title}</h3>}
+      {title && <h3 className="text-sm font-medium text-gray-300 mb-2 w-full text-center">{title}</h3>}
       <div className="relative w-full" style={{ height }}>
         <svg 
             width="100%" 
@@ -117,13 +135,53 @@ export function SimpleLineChart({
                 <title>{`${p.label || p.date.toLocaleDateString()}: ${p.y} ${unit}`}</title>
              </circle>
           ))}
+
+          {/* Key Point Labels inside SVG */}
+          {keyPoints.map((p, i) => {
+            const x = getX(p.x);
+            const y = getY(p.y);
+            
+            // Determine position: push away from the point towards center of graph vertically
+            // But also consider boundaries.
+            const isTopHalf = y < (graphHeight / 2) + padding;
+            
+            // Increase distance: previously 25/-15, now 40/-30 to give more breathing room
+            const labelYOffset = isTopHalf ? 40 : -30;
+            const subLabelYOffset = isTopHalf ? 20 : -20;
+            
+            return (
+              <g key={`label-${i}`} pointerEvents="none">
+                 <text 
+                  x={x} 
+                  y={y + labelYOffset} 
+                  textAnchor="middle" 
+                  fontSize="20" 
+                  fill="currentColor"
+                  className="text-gray-300 font-medium"
+                >
+                  {Math.round(p.y).toLocaleString()}{unit}
+                </text>
+                
+                <text 
+                  x={x} 
+                  y={y + labelYOffset + subLabelYOffset} 
+                  textAnchor="middle" 
+                  fontSize="16" 
+                  fill="currentColor"
+                  className="text-gray-400 text-sm"
+                >
+                  {p.date.toISOString().split('T')[0]}
+                </text> 
+              </g>
+            );
+          })}
         </svg>
         
         {/* Simple Labels Overlay */}
         <div className="absolute top-0 left-0 bottom-0 flex flex-col justify-between text-xs
          text-gray-500 pointer-events-none" style={{ paddingBottom: '30px', paddingTop: '20px' }}>
-             <div>{Math.round(max)}{unit}</div>
-             <div>{Math.round(min)}{unit}</div>
+             <div>{Math.round(max).toLocaleString()}{unit}</div>
+             <div>{Math.round(min).toLocaleString()}{unit}</div>
         </div>
       </div>
     </div>

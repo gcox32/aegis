@@ -181,7 +181,7 @@ export default function TrainPage() {
 
         {/* Active Program */}
         <section className="px-4 md:px-6 py-6">
-          <h2 className="mb-3 font-semibold text-lg">Active Program</h2>
+          <h2 className="mb-3 font-semibold text-lg">Current Protocol</h2>
           <div className="bg-card p-4 border border-border rounded-lg">
             {isLoading ? (
               <p className="text-muted-foreground text-xs">Loading...</p>
@@ -221,7 +221,7 @@ export default function TrainPage() {
             ) : (
               <div className="flex justify-between items-center gap-3">
                 <div>
-                  <p className="font-medium text-sm">No active program</p>
+                  <p className="font-medium text-sm">No active protocol</p>
                   <p className="mt-1 text-muted-foreground text-xs">
                     When you start a protocol, it will appear here with your
                     weekly structure.
