@@ -201,20 +201,6 @@ export const performance = trainSchema.table('performance', {
   notes: text('notes'),
 });
 
-export const projected1RMLog = trainSchema.table('projected_1rm_log', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id').notNull().unique().references(() => user.id),
-});
-
-export const projected1RM = trainSchema.table('projected_1rm', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  projected1RMLogId: uuid('projected_1rm_log_id').notNull().references(() => projected1RMLog.id),
-  date: timestamp('date', { withTimezone: true }).notNull(),
-  exerciseId: uuid('exercise_id').notNull().references(() => exercise.id),
-  projected1RM: jsonb('projected_1rm').notNull(),
-  notes: text('notes'),
-});
-
 // Relations
 export const protocolRelations = relations(protocol, ({ many }) => ({
   phases: many(phase),
@@ -256,7 +242,6 @@ export const exerciseRelations = relations(exercise, ({ one, many }) => ({
     relationName: 'parentChild',
   }),
   workoutBlockExercises: many(workoutBlockExercise),
-  projected1RMs: many(projected1RM),
 }));
 
 export const workoutBlockExerciseRelations = relations(workoutBlockExercise, ({ one, many }) => ({
@@ -359,21 +344,3 @@ export const performanceRelations = relations(performance, ({ one }) => ({
   }),
 }));
 
-export const projected1RMLogRelations = relations(projected1RMLog, ({ one, many }) => ({
-  user: one(user, {
-    fields: [projected1RMLog.userId],
-    references: [user.id],
-  }),
-  projected1RMs: many(projected1RM),
-}));
-
-export const projected1RMRelations = relations(projected1RM, ({ one }) => ({
-  projected1RMLog: one(projected1RMLog, {
-    fields: [projected1RM.projected1RMLogId],
-    references: [projected1RMLog.id],
-  }),
-  exercise: one(exercise, {
-    fields: [projected1RM.exerciseId],
-    references: [exercise.id],
-  }),
-}));

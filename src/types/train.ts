@@ -241,21 +241,6 @@ export interface Performance {
     notes?:           string;
 }
 
-export interface Projected1RMLog {
-    id:            string;
-    userId:        User['id'];
-    projected1RMs: Projected1RM[]; // hydrated on frontend
-}
-
-export interface Projected1RM {
-    id:                string;
-    projected1RMLogId: Projected1RMLog['id'];
-    date:              Date;
-    exerciseId:        Exercise['id'];
-    projected1RM:      ProjectedMaxMeasurement;
-    notes?:            string;
-}
-
 // Session execution
 export interface SessionStep {
     uniqueId: string;

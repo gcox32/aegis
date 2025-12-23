@@ -8,7 +8,7 @@ import {
     TimeMeasurement, 
     RepetitionsMeasurement
 } from "./measures"; 
-import { Exercise, ExerciseMeasures, ExerciseMeasureType, PerformanceLog, Projected1RMLog } from "./train";
+import { Exercise, ExerciseMeasureType, PerformanceLog } from "./train";
 import { SleepLog, SupplementSchedule, WaterIntakeLog } from "./fuel";
 
 // `user` schema for supabase
@@ -51,7 +51,6 @@ export interface UserProfile {
     statsLog?:                 UserStatsLog; // hydrated on frontend
     imageLog?:                 UserImageLog; // hydrated on frontend
     performanceLog?:           PerformanceLog; // hydrated on frontend
-    projected1RMLog?:          Projected1RMLog; // hydrated on frontend
     waterIntakeLog?:           WaterIntakeLog; // hydrated on frontend
     supplementSchedule?:       SupplementSchedule; // hydrated on frontend
     sleepLog?:                 SleepLog; // hydrated on frontend

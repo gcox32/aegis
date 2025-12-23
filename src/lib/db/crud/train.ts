@@ -28,8 +28,6 @@ import {
   workoutBlockExerciseInstance,
   performanceLog,
   performance,
-  projected1RMLog,
-  projected1RM,
 } from '../schema';
 import type {
   Protocol,
@@ -44,7 +42,6 @@ import type {
   WorkoutBlockInstance,
   WorkoutBlockExerciseInstance,
   Performance,
-  Projected1RM,
 } from '@/types/train';
 
 // ============================================================================
@@ -1804,84 +1801,3 @@ export async function getUserPerformances(userId: string): Promise<Performance[]
   })) as Performance[];
 }
 
-// ============================================================================
-// PROJECTED 1RM LOG CRUD
-// ============================================================================
-
-export async function getOrCreateProjected1RMLog(userId: string): Promise<string> {
-  const [existing] = await db
-    .select()
-    .from(projected1RMLog)
-    .where(eq(projected1RMLog.userId, userId))
-    .limit(1);
-
-  if (existing) {
-    return existing.id;
-  }
-
-  try {
-    const [newLog] = await db.insert(projected1RMLog).values({ userId }).returning();
-    return newLog.id;
-  } catch (e: any) {
-    if (e.code === '23505') {
-      const [retry] = await db
-        .select()
-        .from(projected1RMLog)
-        .where(eq(projected1RMLog.userId, userId))
-        .limit(1);
-      
-      if (retry) return retry.id;
-    }
-    throw e;
-  }
-}
-
-export async function createProjected1RM(
-  userId: string,
-  projected1RMData: Omit<Projected1RM, 'id' | 'projected1RMLogId'>
-): Promise<Projected1RM> {
-  const projected1RMLogId = await getOrCreateProjected1RMLog(userId);
-
-  const [newProjected1RM] = await db
-    .insert(projected1RM)
-    .values({
-      projected1RMLogId,
-      date: projected1RMData.date,
-      exerciseId: projected1RMData.exerciseId,
-      projected1RM: projected1RMData.projected1RM,
-      notes: projected1RMData.notes ?? null,
-    } as any)
-    .returning();
-
-  return {
-    ...newProjected1RM,
-    date: new Date(newProjected1RM.date),
-  } as Projected1RM;
-}
-
-export async function getUserProjected1RMs(
-  userId: string,
-  exerciseId?: string
-): Promise<Projected1RM[]> {
-  const projected1RMLogId = await getOrCreateProjected1RMLog(userId);
-
-  let whereClause = eq(projected1RM.projected1RMLogId, projected1RMLogId);
-  
-  if (exerciseId) {
-    whereClause = and(
-      eq(projected1RM.projected1RMLogId, projected1RMLogId),
-      eq(projected1RM.exerciseId, exerciseId)
-    ) as any;
-  }
-
-  const results = await db
-    .select()
-    .from(projected1RM)
-    .where(whereClause)
-    .orderBy(desc(projected1RM.date));
-  
-  return results.map((r) => ({
-    ...r,
-    date: new Date(r.date),
-  })) as Projected1RM[];
-}
