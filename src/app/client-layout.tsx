@@ -17,7 +17,14 @@ function ProtectedContent({ children }: { children: React.ReactNode }) {
     useSleepReminder();
 
     // Public routes that don't require authentication
-    const publicRoutes = ['/signin', '/terms-of-service', '/privacy-policy'];
+    const publicRoutes = [
+        '/signin', 
+        '/terms-of-service', 
+        '/privacy-policy', 
+        '/methods', 
+        '/methods/training', 
+        '/methods/body-comp',
+    ];
     const isPublicRoute = publicRoutes.includes(pathname);
 
     // Routes where navigation should be hidden (SPA mode)

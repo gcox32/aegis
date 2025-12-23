@@ -22,6 +22,7 @@ import { ExerciseDetailsOverlay } from '@/components/train/session/overlays/Exer
 import { SwapExerciseOverlay } from '@/components/train/session/overlays/SwapExerciseOverlay';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import { WorkoutCompleteView } from '@/components/train/session/WorkoutCompleteView';
+import { StopwatchWidget } from '@/components/train/session/overlays/StopwatchWidget';
 
 import { useSessionData } from '@/hooks/train/session/useSessionData';
 import { useSessionTimers } from '@/hooks/train/session/useSessionTimers';
@@ -131,6 +132,7 @@ export default function ActiveSessionPage({
   const [isSwapExerciseOpen, setIsSwapExerciseOpen] = useState(false);
   const [isSubmitEarlyModalOpen, setIsSubmitEarlyModalOpen] = useState(false);
   const [isEndSessionModalOpen, setIsEndSessionModalOpen] = useState(false);
+  const [isStopwatchOpen, setIsStopwatchOpen] = useState(false);
 
   // Derived Metrics
   const totalVolume = useMemo(() => {
@@ -306,6 +308,10 @@ export default function ActiveSessionPage({
           setIsMenuOpen(false);
           setIsSwapExerciseOpen(true);
         }}
+        onStopwatch={() => {
+          setIsMenuOpen(false);
+          setIsStopwatchOpen(true);
+        }}
         onSubmitEarly={() => {
           setIsMenuOpen(false);
           setIsSubmitEarlyModalOpen(true);
@@ -395,6 +401,11 @@ export default function ActiveSessionPage({
         onClose={() => setIsSwapExerciseOpen(false)}
         currentExercise={currentStep?.exercise.exercise || null}
         onSwap={handleSwapExercise}
+      />
+
+      <StopwatchWidget
+        isOpen={isStopwatchOpen}
+        onClose={() => setIsStopwatchOpen(false)}
       />
 
       {/* Timer sounds */}

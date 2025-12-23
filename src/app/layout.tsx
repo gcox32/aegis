@@ -24,19 +24,19 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Super Soldier Program",
+  title: "The app",
   description: "Training and nutrition app for building the ultimate physique",
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'Super',
+    title: 'The app',
   },
   openGraph: {
-    title: "Super Soldier Program",
-    description: 'Super Soldier Program',
+    title: "The app",
+    description: 'The app',
     url: 'https://super-soldier-app.vercel.app',
-    siteName: 'Super Solider Program',
+    siteName: 'The app',
     images: [{ url: 'https://super-soldier-app.vercel.app/opengraph-evans.png' }]
   },
   icons: {

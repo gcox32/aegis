@@ -5,6 +5,7 @@ import {
   StickyNote,
   Repeat,
   CheckCircle,
+  Timer,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
@@ -16,9 +17,19 @@ interface SessionMenuProps {
   onExerciseDetails: () => void;
   onSwapExercise: () => void;
   onSubmitEarly: () => void;
+  onStopwatch: () => void;
 }
 
-export function SessionMenu({ isOpen, onClose, onSkip, onAddNote, onExerciseDetails, onSwapExercise, onSubmitEarly }: SessionMenuProps) {
+export function SessionMenu({ 
+  isOpen, 
+  onClose, 
+  onSkip, 
+  onAddNote, 
+  onExerciseDetails, 
+  onSwapExercise, 
+  onSubmitEarly,
+  onStopwatch 
+}: SessionMenuProps) {
   const [shouldRender, setShouldRender] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
 
@@ -73,6 +84,14 @@ export function SessionMenu({ isOpen, onClose, onSkip, onAddNote, onExerciseDeta
           icon={StickyNote}
           label="Add Note"
           onClick={onAddNote}
+        />
+        <MenuButton
+          icon={Timer}
+          label="Stopwatch"
+          onClick={() => {
+            onClose();
+            onStopwatch();
+          }}
         />
         <MenuButton
           icon={CheckCircle}

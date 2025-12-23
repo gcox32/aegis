@@ -1,6 +1,6 @@
 {
-  "name": "Super Soldier Program",
-  "short_name": "Super",
+  "name": "The app",
+  "short_name": "The app",
   "description": "Training and nutrition app for building the ultimate physique",
   "start_url": "/",
   "display": "standalone",
