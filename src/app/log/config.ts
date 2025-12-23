@@ -33,7 +33,7 @@ export const logViews = [
         name: 'Sleep',
         href: '/log/sleep',
         icon: Moon,
-        description: 'Coming soon.',
+        description: 'Track your sleep.',
         active: true,
     },
     {
