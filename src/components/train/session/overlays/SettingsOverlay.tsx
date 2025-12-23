@@ -1,4 +1,4 @@
-import { X, Volume2 } from 'lucide-react';
+import { X, Volume2, Timer } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 interface SettingsOverlayProps {
@@ -6,6 +6,8 @@ interface SettingsOverlayProps {
   onClose: () => void;
   timerSoundsEnabled: boolean;
   onTimerSoundsChange: (value: boolean) => void;
+  restEnabled: boolean;
+  onRestEnabledChange: (value: boolean) => void;
 }
 
 export function SettingsOverlay({ 
@@ -13,6 +15,8 @@ export function SettingsOverlay({
   onClose,
   timerSoundsEnabled,
   onTimerSoundsChange,
+  restEnabled,
+  onRestEnabledChange,
 }: SettingsOverlayProps) {
   const [shouldRender, setShouldRender] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
@@ -60,6 +64,12 @@ export function SettingsOverlay({
             label="Timer Sounds" 
             isActive={timerSoundsEnabled} 
             onToggle={() => onTimerSoundsChange(!timerSoundsEnabled)} 
+          />
+          <ToggleRow 
+            icon={Timer} 
+            label="Rest Timer" 
+            isActive={restEnabled} 
+            onToggle={() => onRestEnabledChange(!restEnabled)} 
           />
         </div>
       </div>

@@ -100,8 +100,6 @@ export default function TodaySessions() {
   const inProgressInstance = instances.find(i => !i.complete);
 
   // 2. Completed Today: Find instance completed today
-  // We use getLocalDateString to ensure we're comparing apples-to-apples (Local Date vs Local Date)
-  // regardless of how it's stored in the DB (UTC).
   const todayString = getLocalDateString().split('T')[0];
   const completedTodayInstance = instances.find(i => {
     // Convert the stored UTC instance date to a Local String before comparing
@@ -164,7 +162,7 @@ export default function TodaySessions() {
             </span>
             <h3 className="font-bold text-xl">{workoutName}</h3>
             <p className="text-muted-foreground text-sm">
-              Great job! You finished this workout today.
+              You hit this workout today.
             </p>
           </div>
           <CheckCircle2 className="bg-success/10 p-2 rounded-full w-10 h-10 text-success" />

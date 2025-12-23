@@ -46,6 +46,7 @@ export function useSessionActions({ data, timers, input, sessionId }: UseSession
     completeAudioRef,
     setIsResting,
     setRestSecondsRemaining,
+    restEnabled,
   } = timers;
 
   const currentStep = steps[currentStepIndex];
@@ -86,10 +87,6 @@ export function useSessionActions({ data, timers, input, sessionId }: UseSession
 
   // --- Actions ---
 
-  const handleEndSession = () => {
-    router.push('/train');
-  };
-
   const finishWorkout = async (additionalNotes?: string) => {
     if (!workoutInstance) return;
     try {
@@ -125,6 +122,35 @@ export function useSessionActions({ data, timers, input, sessionId }: UseSession
     } catch (e) {
       console.error('Failed to finish', e);
     }
+  };
+
+  const updateWorkoutDuration = async () => {
+    if (!workoutInstance?.workoutId) return;
+    // Don't save if 0
+    if (elapsedSeconds <= 0) return;
+    
+    try {
+      // Save as seconds for precision, backend likely handles JSON so strict schema matching might depend on implementation
+      // But typically we've seen duration as { value, unit }
+      // We'll stick to 's' (seconds) for intermediate saves.
+      await fetchJson(
+        `/api/train/workouts/${workoutInstance.workoutId}/instances/${workoutInstance.id}`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            duration: { value: elapsedSeconds, unit: 's' }
+          }),
+        }
+      );
+    } catch (e) {
+      console.error('Failed to update duration', e);
+    }
+  };
+
+  const handleEndSession = async () => {
+    await updateWorkoutDuration();
+    router.push('/train');
   };
 
   const handleRestComplete = () => {
@@ -223,6 +249,9 @@ export function useSessionActions({ data, timers, input, sessionId }: UseSession
         return { ...prev, [currentStep.block.id]: nextList };
       });
       
+      // Update duration in background
+      updateWorkoutDuration();
+
     } catch (e) {
       console.error('Failed to save set', e);
     }
@@ -231,6 +260,9 @@ export function useSessionActions({ data, timers, input, sessionId }: UseSession
   const maybeStartRest = () => {
     if (!currentStep) return false;
     if (currentStepIndex >= steps.length - 1) return false;
+
+    // Check if rest is enabled for this session
+    if (!restEnabled) return false;
 
     const rest = currentStep.exercise.restTime;
     if (!rest || rest <= 0) return false;

@@ -6,6 +6,7 @@ export function useSessionTimers() {
   const [isResting, setIsResting] = useState(false);
   const [restSecondsRemaining, setRestSecondsRemaining] = useState(0);
   const [timerSoundsEnabled, setTimerSoundsEnabled] = useState(true);
+  const [restEnabled, setRestEnabled] = useState(true);
   const [isRestComplete, setIsRestComplete] = useState(false);
 
   // Refs for accurate timing (background throttling protection)
@@ -19,18 +20,33 @@ export function useSessionTimers() {
   const completeAudioRef = useRef<HTMLAudioElement | null>(null);
   const audioUnlockedRef = useRef<boolean>(false);
 
-  // Load timer-sound preference
+  // Load timer preferences
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
-      const stored = window.localStorage.getItem('super.timerSoundsEnabled');
-      if (stored !== null) {
-        setTimerSoundsEnabled(stored === 'true');
+      const storedSounds = window.localStorage.getItem('super.timerSoundsEnabled');
+      if (storedSounds !== null) {
+        setTimerSoundsEnabled(storedSounds === 'true');
+      }
+      const storedRest = window.localStorage.getItem('super.restEnabled');
+      if (storedRest !== null) {
+        setRestEnabled(storedRest === 'true');
       }
     } catch {
       // ignore
     }
   }, []);
+
+  const syncElapsedSeconds = (seconds: number) => {
+    setElapsedSeconds(seconds);
+    workoutBaseTimeRef.current = seconds;
+    if (!isPaused) {
+        // Reset start time so next tick calculates diff from now relative to new base
+        workoutStartTimeRef.current = Date.now();
+    } else {
+        workoutStartTimeRef.current = null;
+    }
+  };
 
   // Initialize audio elements
   useEffect(() => {
@@ -158,10 +174,13 @@ export function useSessionTimers() {
     setRestSecondsRemaining,
     timerSoundsEnabled,
     setTimerSoundsEnabled,
+    restEnabled,
+    setRestEnabled,
     countdownAudioRef,
     completeAudioRef,
     isRestComplete,
     setIsRestComplete,
+    syncElapsedSeconds,
   };
 }
 

@@ -57,11 +57,34 @@ export default function ActiveSessionPage({
     restSecondsRemaining,
     timerSoundsEnabled,
     setTimerSoundsEnabled,
+    restEnabled,
+    setRestEnabled,
     countdownAudioRef,
     completeAudioRef,
     isRestComplete,
     setIsRestComplete,
+    syncElapsedSeconds,
   } = sessionTimers;
+
+  // Initialize timer from saved duration on load
+  const [timerInitialized, setTimerInitialized] = useState(false);
+  useEffect(() => {
+    if (workoutInstance && !timerInitialized) {
+      if (workoutInstance.duration && typeof workoutInstance.duration.value === 'number') {
+        const val = workoutInstance.duration.value;
+        const unit = workoutInstance.duration.unit;
+        let seconds = val;
+        // Basic conversion if saved as minutes or hours, though we prefer seconds now
+        if (unit === 'min') seconds = val * 60;
+        else if (unit === 'hr') seconds = val * 3600;
+        
+        if (seconds > 0) {
+           syncElapsedSeconds(seconds);
+        }
+      }
+      setTimerInitialized(true);
+    }
+  }, [workoutInstance, timerInitialized, syncElapsedSeconds]);
 
   const currentStep = steps[currentStepIndex];
   const nextStep = steps[currentStepIndex + 1];
@@ -323,6 +346,17 @@ export default function ActiveSessionPage({
           if (typeof window !== 'undefined') {
             try {
               window.localStorage.setItem('super.timerSoundsEnabled', value ? 'true' : 'false');
+            } catch {
+              // ignore
+            }
+          }
+        }}
+        restEnabled={restEnabled}
+        onRestEnabledChange={(value) => {
+          setRestEnabled(value);
+          if (typeof window !== 'undefined') {
+            try {
+              window.localStorage.setItem('super.restEnabled', value ? 'true' : 'false');
             } catch {
               // ignore
             }
