@@ -29,11 +29,11 @@ export function useSessionTimers() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
-      const storedSounds = window.localStorage.getItem('super.timerSoundsEnabled');
+      const storedSounds = window.localStorage.getItem('aegis.timerSoundsEnabled');
       if (storedSounds !== null) {
         setTimerSoundsEnabled(storedSounds === 'true');
       }
-      const storedRest = window.localStorage.getItem('super.restEnabled');
+      const storedRest = window.localStorage.getItem('aegis.restEnabled');
       if (storedRest !== null) {
         setRestEnabled(storedRest === 'true');
       }

@@ -27,7 +27,7 @@ export function useSleepReminder() {
       // Check if it's morning (e.g. 6:00 - 11:00)
       if (currentHour >= 6 && currentHour <= 11) {
         // Check if we already notified today
-        const lastNotified = localStorage.getItem('super.lastSleepReminder');
+        const lastNotified = localStorage.getItem('aegis.lastSleepReminder');
         const today = now.toDateString();
 
         if (lastNotified !== today) {
@@ -37,7 +37,7 @@ export function useSleepReminder() {
              tag: 'sleep-reminder'
            });
            
-           localStorage.setItem('super.lastSleepReminder', today);
+           localStorage.setItem('aegis.lastSleepReminder', today);
         }
       }
     };

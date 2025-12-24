@@ -351,7 +351,7 @@ export default function ActiveSessionPage({
           setTimerSoundsEnabled(value);
           if (typeof window !== 'undefined') {
             try {
-              window.localStorage.setItem('super.timerSoundsEnabled', value ? 'true' : 'false');
+              window.localStorage.setItem('aegis.timerSoundsEnabled', value ? 'true' : 'false');
             } catch {
               // ignore
             }
@@ -362,7 +362,7 @@ export default function ActiveSessionPage({
           setRestEnabled(value);
           if (typeof window !== 'undefined') {
             try {
-              window.localStorage.setItem('super.restEnabled', value ? 'true' : 'false');
+              window.localStorage.setItem('aegis.restEnabled', value ? 'true' : 'false');
             } catch {
               // ignore
             }
