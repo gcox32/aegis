@@ -20,6 +20,7 @@ export function useSessionTimers() {
   // Audio refs
   const countdownAudioRef = useRef<HTMLAudioElement | null>(null);
   const completeAudioRef = useRef<HTMLAudioElement | null>(null);
+  const silentAudioRef = useRef<HTMLAudioElement | null>(null);
   const audioUnlockedRef = useRef<boolean>(false);
 
   // Load timer preferences
@@ -54,15 +55,27 @@ export function useSessionTimers() {
   useEffect(() => {
     if (countdownAudioRef.current) countdownAudioRef.current.load();
     if (completeAudioRef.current) completeAudioRef.current.load();
+    
+    // Create silent audio element for background keep-alive
+    if (!silentAudioRef.current && typeof Audio !== 'undefined') {
+      silentAudioRef.current = new Audio(
+        'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU2LjE1LjEwMgAAAAAAAAAAAAAA//OEAAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAAEAAABIADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMD//////////////////////////////////////////////////////////////////wAAAP9LaW5mbwAAAA8AAAAEAAABIAAAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA//////////////////////////////////////////////////////////////////8AAAAAAAD/84QAAAAAAAAAAAAAAAAAAAAAAABMYXZjNTYuMTMuMTAwAAAAAAAAAAAAAAD/84QAAAAAAAAAAAAAAAAAAAAAAABMYXZjNTYuMTMuMTAwAAAAAAAAAAAAAAD/84QAAAAAAAAAAAAAAAAAAAAAAABMYXZjNTYuMTMuMTAwAAAAAAAAAAAAAA==');
+      silentAudioRef.current.loop = true;
+    }
 
     const unlockAudio = async () => {
       if (audioUnlockedRef.current) return;
       try {
+        const promises = [];
         if (countdownAudioRef.current) {
-          await countdownAudioRef.current.play();
-          countdownAudioRef.current.pause();
           countdownAudioRef.current.currentTime = 0;
+          promises.push(countdownAudioRef.current.play().then(() => countdownAudioRef.current?.pause()));
         }
+        if (silentAudioRef.current) {
+           promises.push(silentAudioRef.current.play().then(() => silentAudioRef.current?.pause()));
+        }
+        await Promise.all(promises);
+        
         audioUnlockedRef.current = true;
       } catch {
         // ignore
@@ -113,7 +126,16 @@ export function useSessionTimers() {
   useEffect(() => {
     if (!isResting || isPaused) {
       restTargetTimeRef.current = null;
+      if (silentAudioRef.current) {
+        silentAudioRef.current.pause();
+        silentAudioRef.current.currentTime = 0;
+      }
       return;
+    }
+
+    // Play silent audio to keep app active in background
+    if (silentAudioRef.current && silentAudioRef.current.paused) {
+        silentAudioRef.current.play().catch(() => {});
     }
 
     // Calculate target time if not set
@@ -123,7 +145,7 @@ export function useSessionTimers() {
       // Schedule notification for when rest ends
       if (restSecondsRemaining > 0) {
         scheduleNotification('Rest Complete', {
-          body: 'Get back to work!',
+          body: 'Get back to work.',
           icon: '/apple-icon.png',
           tag: 'rest-timer'
         }, restSecondsRemaining * 1000);

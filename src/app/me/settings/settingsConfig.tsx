@@ -214,6 +214,12 @@ export const getSettingsConfig = ({ settings, storageStats, handlers, env }: Set
         value: env.build,
       },
       {
+        id: 'methods',
+        type: 'link',
+        label: 'Methods',
+        href: '/methods',
+      },
+      {
         id: 'tos',
         type: 'link',
         label: 'Terms of Service',
