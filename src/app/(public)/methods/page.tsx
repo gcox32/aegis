@@ -8,7 +8,7 @@ export default function MethodsPage() {
       breadcrumbHref="/"
       breadcrumbText="Home"
       title="Methods"
-      subtitle="The philosophy and the math behind the app."
+      subtitle="The philosophy and the math behind Aegis."
     >
       <div className="md:max-w-4xl md:mx-auto pb-12">
         <section className="px-4 md:px-6 py-6 space-y-8">

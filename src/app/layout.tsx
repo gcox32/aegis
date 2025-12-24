@@ -24,19 +24,19 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "The app",
-  description: "Training and nutrition app for building the ultimate physique",
+  title: "Aegis",
+  description: "Train the will.",
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'The app',
+    title: 'Aegis',
   },
   openGraph: {
-    title: "The app",
-    description: 'The app',
+    title: "Aegis",
+    description: 'Aegis',
     url: 'https://super-soldier-app.vercel.app',
-    siteName: 'The app',
+    siteName: 'Aegis',
     images: [{ url: 'https://super-soldier-app.vercel.app/opengraph-evans.png' }]
   },
   icons: {

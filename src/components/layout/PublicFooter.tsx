@@ -6,7 +6,7 @@ export default function PublicFooter() {
       <div className="md:max-w-4xl md:mx-auto px-4 md:px-6 py-6">
         <div className="flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} The app. All rights reserved.
+            © {new Date().getFullYear()} Aegis. All rights reserved.
           </p>
           <div className="flex gap-6">
             <Link
