@@ -16,7 +16,14 @@ interface SleepFormProps {
 }
 
 const formatDateInput = (date: Date) => format(date, 'yyyy-MM-dd');
+const formatDateInputUTC = (date: Date) => date.toISOString().split('T')[0];
 const formatTimeInput = (date: Date) => format(date, 'HH:mm');
+
+// Parse YYYY-MM-DD string to local Date object (midnight)
+const parseDateInput = (dateStr: string) => {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return new Date(year, month - 1, day);
+};
 
 export function SleepForm({ initialDate, initialData, onSuccess }: SleepFormProps) {
     const router = useRouter();
@@ -53,10 +60,10 @@ export function SleepForm({ initialDate, initialData, onSuccess }: SleepFormProp
         const [endH, endM] = endTime.split(':').map(Number);
         const [startH, startM] = startTime.split(':').map(Number);
         
-        let endD = new Date(selectedDate);
+        let endD = parseDateInput(selectedDate);
         endD.setHours(endH, endM, 0, 0);
         
-        let startD = new Date(selectedDate);
+        let startD = parseDateInput(selectedDate);
         startD.setHours(startH, startM, 0, 0);
         
         if (startD >= endD) {
@@ -85,10 +92,10 @@ export function SleepForm({ initialDate, initialData, onSuccess }: SleepFormProp
                 const [endH, endM] = endTime.split(':').map(Number);
                 const [startH, startM] = startTime.split(':').map(Number);
                 
-                const endD = new Date(selectedDate);
+                const endD = parseDateInput(selectedDate);
                 endD.setHours(endH, endM, 0, 0);
                 
-                let startD = new Date(selectedDate);
+                let startD = parseDateInput(selectedDate);
                 startD.setHours(startH, startM, 0, 0);
                 
                 if (startD >= endD) {
@@ -99,11 +106,11 @@ export function SleepForm({ initialDate, initialData, onSuccess }: SleepFormProp
                 endTimestamp = endD;
                 
                 const diffMs = endD.getTime() - startD.getTime();
-                durationHours = diffMs / (1000 * 60 * 60);
+                durationHours = Math.round((diffMs / (1000 * 60 * 60)) * 100) / 100;
             }
 
             const payload: any = {
-                date: new Date(selectedDate),
+                date: parseDateInput(selectedDate),
                 startTime: startTimestamp,
                 endTime: endTimestamp,
                 timeAsleep: durationHours ? { value: durationHours, unit: 'hr' } : null,
@@ -192,7 +199,7 @@ export function SleepForm({ initialDate, initialData, onSuccess }: SleepFormProp
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                    <FormGroup>
+                    <FormGroup className="max-w-[94%]">
                         <FormLabel>Bed Time</FormLabel>
                         <FormInput
                             type="time"
@@ -200,7 +207,7 @@ export function SleepForm({ initialDate, initialData, onSuccess }: SleepFormProp
                             onChange={(e) => setStartTime(e.target.value)}
                         />
                     </FormGroup>
-                    <FormGroup>
+                    <FormGroup className="max-w-[94%]">
                         <FormLabel>Wake Time</FormLabel>
                         <FormInput
                             type="time"

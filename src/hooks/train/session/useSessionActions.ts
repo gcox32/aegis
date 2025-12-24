@@ -130,16 +130,15 @@ export function useSessionActions({ data, timers, input, sessionId }: UseSession
     if (elapsedSeconds <= 0) return;
     
     try {
-      // Save as seconds for precision, backend likely handles JSON so strict schema matching might depend on implementation
-      // But typically we've seen duration as { value, unit }
-      // We'll stick to 's' (seconds) for intermediate saves.
+      // Save as minutes for consistency
+      // Use round to get nearest minute for resuming
       await fetchJson(
         `/api/train/workouts/${workoutInstance.workoutId}/instances/${workoutInstance.id}`,
         {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            duration: { value: elapsedSeconds, unit: 's' }
+            duration: { value: Math.round(elapsedSeconds / 60), unit: 'min' }
           }),
         }
       );
