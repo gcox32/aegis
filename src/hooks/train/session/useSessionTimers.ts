@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNotifications } from '@/hooks/useNotifications';
+import { useSettings } from '@/lib/settings';
 
 export function useSessionTimers() {
-  const { scheduleNotification } = useNotifications();
+  const { scheduleNotification, requestPermission } = useNotifications();
+  const { settings } = useSettings();
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [isResting, setIsResting] = useState(false);
@@ -66,6 +68,11 @@ export function useSessionTimers() {
     const unlockAudio = async () => {
       if (audioUnlockedRef.current) return;
       try {
+        // Request notification permission on first interaction if setting enabled
+        if (settings.trainingReminders) {
+            requestPermission();
+        }
+
         const promises = [];
         if (countdownAudioRef.current) {
           countdownAudioRef.current.currentTime = 0;
@@ -92,15 +99,12 @@ export function useSessionTimers() {
         document.removeEventListener(event, unlockAudio);
       });
     };
-  }, []);
+  }, [requestPermission, settings.trainingReminders]);
 
   // Workout Timer
   useEffect(() => {
     if (isPaused) {
       workoutStartTimeRef.current = null;
-      // When pausing, we ensure current elapsed is saved as base
-      // But elapsedSeconds state is already up to date from the interval
-      // So we just update the base ref to match the state
       workoutBaseTimeRef.current = elapsedSeconds;
       return;
     }
@@ -143,7 +147,7 @@ export function useSessionTimers() {
       restTargetTimeRef.current = Date.now() + restSecondsRemaining * 1000;
       
       // Schedule notification for when rest ends
-      if (restSecondsRemaining > 0) {
+      if (restSecondsRemaining > 0 && settings.trainingReminders) {
         scheduleNotification('Rest Complete', {
           body: 'Get back to work.',
           icon: '/apple-icon.png',
@@ -194,7 +198,7 @@ export function useSessionTimers() {
     }, 200); // Check more frequently
 
     return () => clearInterval(interval);
-  }, [isResting, isPaused, timerSoundsEnabled, scheduleNotification]); // Removed restSecondsRemaining to use it only for init
+  }, [isResting, isPaused, timerSoundsEnabled, scheduleNotification, settings.trainingReminders]); // Removed restSecondsRemaining to use it only for init
 
   return {
     elapsedSeconds,

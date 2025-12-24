@@ -105,10 +105,9 @@ export const getSettingsConfig = ({ settings, storageStats, handlers, env }: Set
       {
         id: 'sessionReminders',
         type: 'toggle',
-        label: 'Session Reminders',
-        description: 'Get notified before training sessions',
-        settingKey: 'sessionReminders',
-        disabled: true,
+        label: 'Training Reminders',
+        description: 'Get notified when it\'s time to get to work',
+        settingKey: 'trainingReminders',
       },
       {
         id: 'mealReminders',

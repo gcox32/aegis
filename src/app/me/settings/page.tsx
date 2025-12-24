@@ -23,11 +23,7 @@ export default function SettingsPage() {
       .then(setStorageStats)
       .catch(err => console.error('Error fetching storage stats:', err));
   }, []);
-  
-  // Settings like Notifications are operational and should probably take effect immediately (like system settings typically do),
-  // whereas Preferences (units, strategies) often benefit from a "batch save" flow if they change view state significantly.
-  // For now, we will keep the "toggle immediately saves" pattern for Settings, as is common for notification toggles.
-  
+
   const handleSleepReminderChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const checked = e.target.checked;
     

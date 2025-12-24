@@ -4,14 +4,14 @@ import { useState, useEffect } from 'react';
 
 export interface UserSettings {
   sleepReminder: boolean;
-  sessionReminders: boolean;
+  trainingReminders: boolean;
   mealReminders: boolean;
   progressUpdates: boolean;
 }
 
 const DEFAULT_SETTINGS: UserSettings = {
   sleepReminder: false,
-  sessionReminders: false,
+  trainingReminders: false,
   mealReminders: false,
   progressUpdates: false,
 };
