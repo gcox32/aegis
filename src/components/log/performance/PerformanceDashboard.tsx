@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { WorkoutInstance, WorkoutBlockExerciseInstance, Exercise } from '@/types/train';
 import { SimpleLineChart } from './SimpleLineChart';
 import { format } from 'date-fns';
+import { usePreferences } from '@/lib/preferences';
 
 interface PerformanceDashboardProps {
   workoutStats: WorkoutInstance[];
@@ -17,7 +18,7 @@ type Tab = 'workouts' | 'exercises';
 
 export default function PerformanceDashboard({ workoutStats, keyExerciseStats }: PerformanceDashboardProps) {
   const [activeTab, setActiveTab] = useState<Tab>('workouts');
-
+  const { preferences } = usePreferences();
   // Prepare data for Workout Stats
   const volumeData = workoutStats
     .filter(w => w.volume?.value)
@@ -92,8 +93,21 @@ export default function PerformanceDashboard({ workoutStats, keyExerciseStats }:
             </div>
           ) : (
             keyExerciseStats.map(({ exercise, instances }) => {
-              const data = instances
-                .filter(i => i.projected1RM?.value)
+              // Group by date and find max projected1RM per date
+              const maxByDate = instances.reduce((acc, curr) => {
+                if (!curr.projected1RM?.value) return acc;
+                
+                const dateKey = format(new Date(curr.created_at), 'yyyy-MM-dd');
+                const existing = acc.get(dateKey);
+                
+                if (!existing || curr.projected1RM.value.value > existing.projected1RM!.value.value) {
+                  acc.set(dateKey, curr);
+                }
+                return acc;
+              }, new Map<string, WorkoutBlockExerciseInstance>());
+
+              const data = Array.from(maxByDate.values())
+                .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
                 .map(i => ({
                   date: new Date(i.created_at),
                   value: i.projected1RM!.value.value,
@@ -105,7 +119,7 @@ export default function PerformanceDashboard({ workoutStats, keyExerciseStats }:
                   <SimpleLineChart
                     data={data}
                     title={`${exercise.name} - Projected 1RM`}
-                    unit={instances[0].projected1RM!.value.unit}
+                    unit={instances[0].projected1RM?.value.unit  || preferences.preferredWeightUnit}
                     color="#10b981"
                   />
                 </div>

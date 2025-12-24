@@ -169,7 +169,7 @@ export function useSessionTimers() {
       setRestSecondsRemaining(displayValue);
 
       // Play countdown sound (check original diff for exact timing)
-      if (diff === 3 && timerSoundsEnabled && countdownAudioRef.current) {
+      if (diff === 4 && timerSoundsEnabled && countdownAudioRef.current) {
         try {
           const audio = countdownAudioRef.current;
           if (audio.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
