@@ -61,7 +61,7 @@ export default function WorkoutNotesPage() {
     }
   };
 
-  if (loading) return <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>;
+  if (loading) return <div className="flex justify-center p-8 w-full"><Loader2 className="animate-spin" /></div>;
   if (!instance) return <div className="p-8">Workout not found</div>;
 
   return (

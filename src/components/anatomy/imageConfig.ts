@@ -141,7 +141,7 @@ export const imageTransforms: Record<string, string> = {
   [`${imagePathFront}/rectus-femoris.svg`]: 'translateX(2px)',
   [`${imagePathFront}/vastus-lateralis.svg`]: 'translateX(2px)',
   [`${imagePathFront}/vastus-medialis.svg`]: 'translateX(2px)',
-  [`${imagePathFront}/gastrocnemius.svg`]: 'translateX(5px)',
+  [`${imagePathFront}/gastrocnemius.svg`]: 'translateX(4px)',
   [`${imagePathFront}/soleus.svg`]: 'translateX(1px)',
   [`${imagePathFront}/sartorius.svg`]: 'translateX(2px)',
   [`${imagePathFront}/tensor-fascia-latae.svg`]: 'translateX(2px)',
