@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { withAuth, parseBody } from '@/lib/api/helpers';
-import { getMealPlanById, updateMealPlan, deleteMealPlan } from '@/lib/db/crud/fuel';
+import { getMealById, updateMeal, deleteMeal } from '@/lib/db/crud/fuel';
 
 export async function GET(
   request: NextRequest,
@@ -8,11 +8,11 @@ export async function GET(
 ) {
   return withAuth(async (userId) => {
     const { id } = await params;
-    const mealPlan = await getMealPlanById(id, userId);
-    if (!mealPlan) {
-      throw { status: 404, message: 'Meal plan not found' };
+    const meal = await getMealById(id);
+    if (!meal) {
+      throw { status: 404, message: 'Meal not found' };
     }
-    return mealPlan;
+    return meal;
   });
 }
 
@@ -23,13 +23,13 @@ export async function PATCH(
   return withAuth(async (userId) => {
     const { id } = await params;
     const body = await parseBody(request);
-    const updatedMealPlan = await updateMealPlan(id, userId, body);
+    const updatedMeal = await updateMeal(id, body);
 
-    if (!updatedMealPlan) {
-      throw { status: 404, message: 'Meal plan not found' };
+    if (!updatedMeal) {
+      throw { status: 404, message: 'Meal not found' };
     }
 
-    return updatedMealPlan;
+    return updatedMeal;
   });
 }
 
@@ -39,10 +39,10 @@ export async function DELETE(
 ) {
   return withAuth(async (userId) => {
     const { id } = await params;
-    const success = await deleteMealPlan(id, userId);
+    const success = await deleteMeal(id);
 
     if (!success) {
-      throw { status: 404, message: 'Meal plan not found' };
+      throw { status: 404, message: 'Meal not found' };
     }
 
     return { success: true };

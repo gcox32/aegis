@@ -115,8 +115,7 @@ export async function GET() {
         with: {
           meals: {
             with: {
-              mealPortions: true,
-              mealRecipes: true
+              foods: true,
             }
           }
         }
@@ -135,7 +134,7 @@ export async function GET() {
       db.query.groceryList.findMany({
         where: eq(groceryList.userId, userId),
         with: {
-          items: true
+          foods: true
         }
       }),
 

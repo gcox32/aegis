@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { withAuth, parseBody } from '@/lib/api/helpers';
-import { updateMealInstance, deleteMealInstance } from '@/lib/db/crud/fuel';
+import { updatePortionedFood, deletePortionedFood } from '@/lib/db/crud/fuel';
 
 export async function PATCH(
   request: NextRequest,
@@ -9,13 +9,13 @@ export async function PATCH(
   return withAuth(async (userId) => {
     const { id } = await params;
     const body = await parseBody(request);
-    const updatedInstance = await updateMealInstance(id, userId, body);
+    const updatedPortion = await updatePortionedFood(id, body);
 
-    if (!updatedInstance) {
-      throw { status: 404, message: 'Meal instance not found' };
+    if (!updatedPortion) {
+      throw { status: 404, message: 'Portion not found' };
     }
 
-    return updatedInstance;
+    return updatedPortion;
   });
 }
 
@@ -25,10 +25,10 @@ export async function DELETE(
 ) {
   return withAuth(async (userId) => {
     const { id } = await params;
-    const success = await deleteMealInstance(id, userId);
+    const success = await deletePortionedFood(id);
 
     if (!success) {
-      throw { status: 404, message: 'Meal instance not found' };
+      throw { status: 404, message: 'Portion not found' };
     }
 
     return { success: true };

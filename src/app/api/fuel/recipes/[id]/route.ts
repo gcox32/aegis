@@ -1,40 +1,35 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { withAuth, parseBody } from '@/lib/api/helpers';
-import { getRecipeById, updateRecipe } from '@/lib/db/crud';
+import { getRecipeById, updateRecipe } from '@/lib/db/crud/fuel';
 
-// GET /api/fuel/recipes/[id] - Get a specific recipe (public)
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
+  return withAuth(async (userId) => {
     const { id } = await params;
     const recipe = await getRecipeById(id);
     if (!recipe) {
-      return NextResponse.json({ error: 'Recipe not found' }, { status: 404 });
+      throw { status: 404, message: 'Recipe not found' };
     }
-    return NextResponse.json({ recipe });
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || 'Internal server error' },
-      { status: 500 }
-    );
-  }
+    return recipe;
+  });
 }
 
-// PATCH /api/fuel/recipes/[id] - Update a recipe (requires auth)
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  return withAuth(async () => {
+  return withAuth(async (userId) => {
     const { id } = await params;
-    const updates = await parseBody(request);
-    const recipe = await updateRecipe(id, updates);
-    if (!recipe) {
-      return { error: 'Recipe not found' };
+    const body = await parseBody(request);
+    const updatedRecipe = await updateRecipe(id, body);
+
+    if (!updatedRecipe) {
+      throw { status: 404, message: 'Recipe not found' };
     }
-    return { recipe };
+
+    return updatedRecipe;
   });
 }
 

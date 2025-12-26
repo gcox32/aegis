@@ -1,27 +1,13 @@
 import { eq, and, desc, inArray } from 'drizzle-orm';
 import { db } from '../index';
-
-// Helper to convert null to undefined for optional fields
-function nullToUndefined<T extends Record<string, any>>(obj: T): T {
-  const result = { ...obj };
-  for (const key in result) {
-    if (result[key] === null && key !== 'id') {
-      (result as any)[key] = undefined;
-    }
-  }
-  return result;
-}
 import {
   mealPlan,
+  mealWeek,
   meal,
   food,
   portionedFood,
-  mealPortion,
   recipe,
-  mealRecipe,
-  recipeIngredient,
   groceryList,
-  groceryListItem,
   mealPlanInstance,
   mealInstance,
   portionedFoodInstance,
@@ -35,6 +21,7 @@ import {
 } from '../schema';
 import type {
   MealPlan,
+  MealWeek,
   Meal,
   Food,
   PortionedFood,
@@ -50,13 +37,24 @@ import type {
   SleepInstance,
 } from '@/types/fuel';
 
+// Helper to convert null to undefined for optional fields
+function nullToUndefined<T extends Record<string, any>>(obj: T): T {
+  const result = { ...obj };
+  for (const key in result) {
+    if (result[key] === null && key !== 'id') {
+      (result as any)[key] = undefined;
+    }
+  }
+  return result;
+}
+
 // ============================================================================
 // MEAL PLAN CRUD
 // ============================================================================
 
 export async function createMealPlan(
   userId: string,
-  mealPlanData: Omit<MealPlan, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'meals'>
+  mealPlanData: Omit<MealPlan, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'weeks' | 'meals'>
 ): Promise<MealPlan> {
   const [newMealPlan] = await db
     .insert(mealPlan)
@@ -65,7 +63,7 @@ export async function createMealPlan(
       name: mealPlanData.name,
       description: mealPlanData.description,
     })
-    ;
+    .returning();
 
   return newMealPlan as MealPlan;
 }
@@ -96,29 +94,20 @@ export async function getMealPlanById(
 export async function updateMealPlan(
   mealPlanId: string,
   userId: string,
-  updates: Partial<Omit<MealPlan, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'meals'>>
+  updates: Partial<Omit<MealPlan, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'weeks' | 'meals'>>
 ): Promise<MealPlan | null> {
   const [updated] = await db
     .update(mealPlan)
     .set(updates)
     .where(and(eq(mealPlan.id, mealPlanId), eq(mealPlan.userId, userId)))
-    ;
+    .returning();
 
   return (updated as MealPlan) || null;
 }
 
 export async function deleteMealPlan(mealPlanId: string, userId: string): Promise<boolean> {
-  // CASCADE will handle meals
-  // Check if the record exists first
-  const [existing] = await db
-    .select()
-    .from(mealPlan)
-    .where(and(eq(mealPlan.id, mealPlanId), eq(mealPlan.userId, userId)))
-    .limit(1);
-  
-  if (!existing) return false;
-  
-  await db
+  // CASCADE will handle meals and weeks
+  const result = await db
     .delete(mealPlan)
     .where(and(eq(mealPlan.id, mealPlanId), eq(mealPlan.userId, userId)));
   
@@ -126,23 +115,64 @@ export async function deleteMealPlan(mealPlanId: string, userId: string): Promis
 }
 
 // ============================================================================
+// MEAL WEEK CRUD
+// ============================================================================
+
+export async function createMealWeek(
+  mealPlanId: string,
+  weekData: Omit<MealWeek, 'id' | 'mealPlanId' | 'createdAt' | 'updatedAt' | 'meals' | 'groceryList'>
+): Promise<MealWeek> {
+  const [newWeek] = await db
+    .insert(mealWeek)
+    .values({
+      mealPlanId,
+      weekNumber: weekData.weekNumber,
+    })
+    .returning();
+
+  return {
+    ...newWeek,
+    meals: [], // Hydrated separately
+  } as MealWeek;
+}
+
+export async function getMealWeeks(mealPlanId: string): Promise<MealWeek[]> {
+  const results = await db
+    .select()
+    .from(mealWeek)
+    .where(eq(mealWeek.mealPlanId, mealPlanId))
+    .orderBy(mealWeek.weekNumber);
+  
+  return results.map(r => ({
+    ...nullToUndefined(r),
+    meals: [], // Hydrated separately
+  })) as MealWeek[];
+}
+
+// ============================================================================
 // MEAL CRUD
 // ============================================================================
 
 export async function createMeal(
-  mealPlanId: string,
+  mealPlanId: string | null,
   mealData: Omit<Meal, 'id' | 'mealPlanId' | 'createdAt' | 'updatedAt' | 'foods' | 'recipes'>
 ): Promise<Meal> {
   const [newMeal] = await db
     .insert(meal)
     .values({
-      mealPlanId,
+      mealPlanId: mealPlanId || undefined,
       name: mealData.name,
       description: mealData.description,
+      calories: mealData.calories?.toString() || null,
+      macros: mealData.macros,
+      micros: mealData.micros,
     })
-    ;
+    .returning();
 
-  return newMeal as Meal;
+  return {
+    ...newMeal,
+    calories: newMeal.calories ? Number(newMeal.calories) : undefined,
+  } as Meal;
 }
 
 export async function getMeals(mealPlanId: string): Promise<Meal[]> {
@@ -152,7 +182,10 @@ export async function getMeals(mealPlanId: string): Promise<Meal[]> {
     .where(eq(meal.mealPlanId, mealPlanId))
     .orderBy(desc(meal.createdAt));
   
-  return results.map(nullToUndefined) as Meal[];
+  return results.map((r) => ({
+    ...nullToUndefined(r),
+    calories: r.calories ? Number(r.calories) : undefined,
+  })) as Meal[];
 }
 
 export async function getMealById(mealId: string): Promise<Meal | null> {
@@ -162,83 +195,40 @@ export async function getMealById(mealId: string): Promise<Meal | null> {
     .where(eq(meal.id, mealId))
     .limit(1);
 
-  return (found as Meal) || null;
+  if (!found) return null;
+
+  return {
+    ...nullToUndefined(found),
+    calories: found.calories ? Number(found.calories) : undefined,
+  } as Meal;
 }
 
 export async function updateMeal(
   mealId: string,
   updates: Partial<Omit<Meal, 'id' | 'mealPlanId' | 'createdAt' | 'updatedAt' | 'foods' | 'recipes'>>
 ): Promise<Meal | null> {
+  const dbUpdates: any = { ...updates };
+  if (updates.calories !== undefined) {
+    dbUpdates.calories = updates.calories?.toString() || null;
+  }
+
   const [updated] = await db
     .update(meal)
-    .set(updates)
+    .set(dbUpdates)
     .where(eq(meal.id, mealId))
-    ;
+    .returning();
 
-  return (updated as Meal) || null;
+  if (!updated) return null;
+
+  return {
+    ...updated,
+    calories: updated.calories ? Number(updated.calories) : undefined,
+  } as Meal;
 }
 
 export async function deleteMeal(mealId: string): Promise<boolean> {
-  // CASCADE will handle meal_portions, meal_recipes
   await db.delete(meal).where(eq(meal.id, mealId));
   return true;
-}
-
-// Add portioned food to meal
-export async function addPortionedFoodToMeal(
-  mealId: string,
-  portionedFoodId: string,
-  order: number
-): Promise<void> {
-  await db.insert(mealPortion).values({
-    mealId,
-    portionedFoodId,
-    order,
-  }).returning();
-}
-
-export async function getMealPortions(mealId: string): Promise<Array<{ portionedFoodId: string; order: number; portionedFood: PortionedFood }>> {
-  const portions = await db
-    .select()
-    .from(mealPortion)
-    .where(eq(mealPortion.mealId, mealId))
-    .orderBy(mealPortion.order);
-
-  const portionedFoodIds = portions.map(p => p.portionedFoodId);
-  const portionedFoods = await db
-    .select()
-    .from(portionedFood)
-    .where(inArray(portionedFood.id, portionedFoodIds));
-
-  const portionedFoodMap = new Map(portionedFoods.map(pf => [pf.id, pf]));
-
-  return portions.map(p => {
-    const pf = portionedFoodMap.get(p.portionedFoodId);
-    if (!pf) throw new Error(`Portioned food ${p.portionedFoodId} not found`);
-    return {
-      portionedFoodId: p.portionedFoodId,
-      order: p.order,
-      portionedFood: {
-        ...(pf as any),
-        food: pf.foodId,
-        calories: pf.calories ? Number(pf.calories) : undefined,
-      } as PortionedFood,
-    };
-  });
-}
-
-export async function removePortionedFoodFromMeal(
-  mealId: string,
-  portionedFoodId: string
-): Promise<void> {
-  await db
-    .delete(mealPortion)
-    .where(
-      and(
-        eq(mealPortion.mealId, mealId),
-        eq(mealPortion.portionedFoodId, portionedFoodId)
-      )
-    );
 }
 
 // ============================================================================
@@ -253,103 +243,136 @@ export async function createFood(
     .values({
       name: foodData.name,
       description: foodData.description,
+      servingSize: foodData.servingSize,
+      calories: foodData.calories?.toString() || null,
+      macros: foodData.macros,
+      micros: foodData.micros,
       imageUrl: foodData.imageUrl,
     })
-    ;
+    .returning();
 
-  return newFood as Food;
+  return {
+    ...newFood,
+    calories: newFood.calories ? Number(newFood.calories) : undefined,
+  } as Food;
 }
 
 export async function getFoods(): Promise<Food[]> {
   const results = await db.select().from(food).orderBy(food.name);
-  return results.map(nullToUndefined) as Food[];
+  return results.map((r) => ({
+    ...nullToUndefined(r),
+    calories: r.calories ? Number(r.calories) : undefined,
+  })) as Food[];
 }
 
 export async function getFoodById(foodId: string): Promise<Food | null> {
   const [found] = await db.select().from(food).where(eq(food.id, foodId)).limit(1);
 
-  return (found as Food) || null;
+  if (!found) return null;
+
+  return {
+    ...nullToUndefined(found),
+    calories: found.calories ? Number(found.calories) : undefined,
+  } as Food;
 }
 
 export async function searchFoods(query: string): Promise<Food[]> {
+  // Use simple ILIKE search for now
   const results = await db
     .select()
     .from(food)
-    .where(eq(food.name, query))
+    // .where(ilike(food.name, `%${query}%`)) // Using simple eq for now as Drizzle might not have ilike imported
+    // Actually, let's assume we can filter in JS if not using ilike helper
     .orderBy(food.name);
-  return results.map(nullToUndefined) as Food[];
+
+  return results
+    .filter(f => f.name.toLowerCase().includes(query.toLowerCase()))
+    .map((r) => ({
+      ...nullToUndefined(r),
+      calories: r.calories ? Number(r.calories) : undefined,
+    })) as Food[];
 }
 
 export async function updateFood(
   foodId: string,
   updates: Partial<Omit<Food, 'id' | 'createdAt' | 'updatedAt'>>
 ): Promise<Food | null> {
-  const [updated] = await db
-    .update(food)
-    .set(updates)
-    .where(eq(food.id, foodId))
-    ;
-
-  return (updated as Food) || null;
-}
-
-// ============================================================================
-// PORTIONED FOOD CRUD
-// ============================================================================
-
-export async function createPortionedFood(
-  portionedFoodData: Omit<PortionedFood, 'id' | 'createdAt' | 'updatedAt'>
-): Promise<PortionedFood> {
-  const [newPortionedFood] = await db
-    .insert(portionedFood)
-    .values({
-      foodId: portionedFoodData.food,
-      calories: portionedFoodData.calories?.toString() || null,
-      macros: portionedFoodData.macros,
-      micros: portionedFoodData.micros,
-      portionSize: portionedFoodData.portionSize,
-    })
-    .returning();
-
-  return {
-    ...(newPortionedFood as any),
-    food: portionedFoodData.food,
-    calories: newPortionedFood.calories ? Number(newPortionedFood.calories) : undefined,
-  } as PortionedFood;
-}
-
-export async function getPortionedFoodById(portionedFoodId: string): Promise<PortionedFood | null> {
-  const [found] = await db
-    .select()
-    .from(portionedFood)
-    .where(eq(portionedFood.id, portionedFoodId))
-    .limit(1);
-
-  if (!found) return null;
-
-  const [foodData] = await db
-    .select()
-    .from(food)
-    .where(eq(food.id, found.foodId))
-    .limit(1);
-
-  return {
-    ...(found as any),
-    food: found.foodId,
-    calories: found.calories ? Number(found.calories) : undefined,
-  } as PortionedFood;
-}
-
-export async function updatePortionedFood(
-  portionedFoodId: string,
-  updates: Partial<Omit<PortionedFood, 'id' | 'food' | 'createdAt' | 'updatedAt'>>
-): Promise<PortionedFood | null> {
-  // Convert calories to string if provided
   const dbUpdates: any = { ...updates };
   if (updates.calories !== undefined) {
     dbUpdates.calories = updates.calories?.toString() || null;
   }
-  
+
+  const [updated] = await db
+    .update(food)
+    .set(dbUpdates)
+    .where(eq(food.id, foodId))
+    .returning();
+
+  if (!updated) return null;
+
+  return {
+    ...updated,
+    calories: updated.calories ? Number(updated.calories) : undefined,
+  } as Food;
+}
+
+// ============================================================================
+// PORTIONED FOOD CRUD (Unified for Meal, Recipe, GroceryList)
+// ============================================================================
+
+export async function createPortionedFood(
+  parentId: { mealId?: string; recipeId?: string; groceryListId?: string },
+  portionedFoodData: Omit<PortionedFood, 'id' | 'createdAt' | 'updatedAt' | 'mealId' | 'recipeId' | 'groceryListId'>
+): Promise<PortionedFood> {
+  const [newPortionedFood] = await db
+    .insert(portionedFood)
+    .values({
+      foodId: portionedFoodData.foodId,
+      mealId: parentId.mealId,
+      recipeId: parentId.recipeId,
+      groceryListId: parentId.groceryListId,
+      portion: portionedFoodData.portion,
+      calories: portionedFoodData.calories?.toString() || null,
+      macros: portionedFoodData.macros,
+      micros: portionedFoodData.micros,
+    })
+    .returning();
+
+  return {
+    ...newPortionedFood,
+    calories: newPortionedFood.calories ? Number(newPortionedFood.calories) : undefined,
+  } as PortionedFood;
+}
+
+export async function getPortionedFoods(
+  parentId: { mealId?: string; recipeId?: string; groceryListId?: string }
+): Promise<PortionedFood[]> {
+  let whereClause;
+  if (parentId.mealId) whereClause = eq(portionedFood.mealId, parentId.mealId);
+  else if (parentId.recipeId) whereClause = eq(portionedFood.recipeId, parentId.recipeId);
+  else if (parentId.groceryListId) whereClause = eq(portionedFood.groceryListId, parentId.groceryListId);
+  else return [];
+
+  const results = await db
+    .select()
+    .from(portionedFood)
+    .where(whereClause);
+
+  return results.map((r) => ({
+    ...nullToUndefined(r),
+    calories: r.calories ? Number(r.calories) : undefined,
+  })) as PortionedFood[];
+}
+
+export async function updatePortionedFood(
+  portionedFoodId: string,
+  updates: Partial<Omit<PortionedFood, 'id' | 'foodId' | 'createdAt' | 'updatedAt'>>
+): Promise<PortionedFood | null> {
+  const dbUpdates: any = { ...updates };
+  if (updates.calories !== undefined) {
+    dbUpdates.calories = updates.calories?.toString() || null;
+  }
+
   const [updated] = await db
     .update(portionedFood)
     .set(dbUpdates)
@@ -359,10 +382,14 @@ export async function updatePortionedFood(
   if (!updated) return null;
 
   return {
-    ...(updated as any),
-    food: updated.foodId,
+    ...updated,
     calories: updated.calories ? Number(updated.calories) : undefined,
   } as PortionedFood;
+}
+
+export async function deletePortionedFood(portionedFoodId: string): Promise<boolean> {
+  await db.delete(portionedFood).where(eq(portionedFood.id, portionedFoodId));
+  return true;
 }
 
 // ============================================================================
@@ -378,32 +405,21 @@ export async function createRecipe(
       name: recipeData.name,
       text: recipeData.text,
       imageUrl: recipeData.imageUrl,
-      macros: recipeData.macros,
-      micros: recipeData.micros,
-      calories: recipeData.calories,
     })
-    ;
+    .returning();
 
   return newRecipe as Recipe;
 }
 
 export async function getRecipes(): Promise<Recipe[]> {
   const results = await db.select().from(recipe).orderBy(recipe.name);
-  return results.map((r) => ({
-    ...nullToUndefined(r),
-    ingredients: [], // Ingredients are loaded separately via recipe_ingredient junction table
-  })) as Recipe[];
+  return results.map(r => ({ ...nullToUndefined(r), ingredients: [] })) as Recipe[];
 }
 
 export async function getRecipeById(recipeId: string): Promise<Recipe | null> {
   const [found] = await db.select().from(recipe).where(eq(recipe.id, recipeId)).limit(1);
-
   if (!found) return null;
-
-  return {
-    ...nullToUndefined(found),
-    ingredients: [], // Ingredients are loaded separately via recipe_ingredient junction table
-  } as Recipe;
+  return { ...nullToUndefined(found), ingredients: [] } as Recipe;
 }
 
 export async function updateRecipe(
@@ -414,65 +430,9 @@ export async function updateRecipe(
     .update(recipe)
     .set(updates)
     .where(eq(recipe.id, recipeId))
-    ;
+    .returning();
 
   return (updated as Recipe) || null;
-}
-
-export async function getRecipeIngredients(recipeId: string): Promise<Array<{ portionedFoodId: string; order: number; portionedFood: PortionedFood }>> {
-  const ingredients = await db
-    .select()
-    .from(recipeIngredient)
-    .where(eq(recipeIngredient.recipeId, recipeId))
-    .orderBy(recipeIngredient.order);
-
-  const portionedFoodIds = ingredients.map(i => i.portionedFoodId);
-  const portionedFoods = await db
-    .select()
-    .from(portionedFood)
-    .where(inArray(portionedFood.id, portionedFoodIds));
-
-  const portionedFoodMap = new Map(portionedFoods.map(pf => [pf.id, pf]));
-
-  return ingredients.map(i => {
-    const pf = portionedFoodMap.get(i.portionedFoodId);
-    if (!pf) throw new Error(`Portioned food ${i.portionedFoodId} not found`);
-    return {
-      portionedFoodId: i.portionedFoodId,
-      order: i.order,
-      portionedFood: {
-        ...(pf as any),
-        food: pf.foodId,
-        calories: pf.calories ? Number(pf.calories) : undefined,
-      } as PortionedFood,
-    };
-  });
-}
-
-export async function addIngredientToRecipe(
-  recipeId: string,
-  portionedFoodId: string,
-  order: number
-): Promise<void> {
-  await db.insert(recipeIngredient).values({
-    recipeId,
-    portionedFoodId,
-    order,
-  }).returning();
-}
-
-export async function removeIngredientFromRecipe(
-  recipeId: string,
-  portionedFoodId: string
-): Promise<void> {
-  await db
-    .delete(recipeIngredient)
-    .where(
-      and(
-        eq(recipeIngredient.recipeId, recipeId),
-        eq(recipeIngredient.portionedFoodId, portionedFoodId)
-      )
-    );
 }
 
 // ============================================================================
@@ -489,8 +449,9 @@ export async function createGroceryList(
       userId,
       name: groceryListData.name,
       description: groceryListData.description,
+      mealWeekId: groceryListData.mealWeekId,
     })
-    ;
+    .returning();
 
   return newList as GroceryList;
 }
@@ -502,10 +463,7 @@ export async function getUserGroceryLists(userId: string): Promise<GroceryList[]
     .where(eq(groceryList.userId, userId))
     .orderBy(desc(groceryList.createdAt));
   
-  return results.map((r) => ({
-    ...nullToUndefined(r),
-    foods: [], // Foods are loaded separately via grocery_list_item junction table
-  })) as GroceryList[];
+  return results.map(r => ({ ...nullToUndefined(r), foods: [] })) as GroceryList[];
 }
 
 export async function getGroceryListById(
@@ -521,68 +479,11 @@ export async function getGroceryListById(
   return (found as GroceryList) || null;
 }
 
-export async function getGroceryListItems(listId: string): Promise<Array<{ portionedFoodId: string; order: number; portionedFood: PortionedFood }>> {
-  const items = await db
-    .select()
-    .from(groceryListItem)
-    .where(eq(groceryListItem.groceryListId, listId))
-    .orderBy(groceryListItem.order);
-
-  const portionedFoodIds = items.map(i => i.portionedFoodId);
-  const portionedFoods = await db
-    .select()
-    .from(portionedFood)
-    .where(inArray(portionedFood.id, portionedFoodIds));
-
-  const portionedFoodMap = new Map(portionedFoods.map(pf => [pf.id, pf]));
-
-  return items.map(i => {
-    const pf = portionedFoodMap.get(i.portionedFoodId);
-    if (!pf) throw new Error(`Portioned food ${i.portionedFoodId} not found`);
-    return {
-      portionedFoodId: i.portionedFoodId,
-      order: i.order,
-      portionedFood: {
-        ...(pf as any),
-        food: pf.foodId,
-        calories: pf.calories ? Number(pf.calories) : undefined,
-      } as PortionedFood,
-    };
-  });
-}
-
-export async function addPortionedFoodToGroceryList(
-  listId: string,
-  portionedFoodId: string,
-  order: number
-): Promise<void> {
-  await db.insert(groceryListItem).values({
-    groceryListId: listId,
-    portionedFoodId,
-    order,
-  }).returning();
-}
-
-export async function removePortionedFoodFromGroceryList(
-  listId: string,
-  portionedFoodId: string
-): Promise<void> {
-  await db
-    .delete(groceryListItem)
-    .where(
-      and(
-        eq(groceryListItem.groceryListId, listId),
-        eq(groceryListItem.portionedFoodId, portionedFoodId)
-      )
-    );
-}
-
 export async function deleteGroceryList(listId: string, userId: string): Promise<boolean> {
-  // CASCADE will handle grocery_list_items
   const result = await db
     .delete(groceryList)
     .where(and(eq(groceryList.id, listId), eq(groceryList.userId, userId)));
-
+  
   return true;
 }
 
@@ -632,10 +533,7 @@ export async function updateMealPlanInstance(
   userId: string,
   updates: Partial<Omit<MealPlanInstance, 'id' | 'userId' | 'mealPlanId'>>
 ): Promise<MealPlanInstance | null> {
-  // Convert Date objects to strings for database
   const dbUpdates: any = { ...updates };
-  if (updates.startDate) dbUpdates.startDate = updates.startDate;
-  if (updates.endDate !== undefined) dbUpdates.endDate = updates.endDate ?? null;
   
   const [updated] = await db
     .update(mealPlanInstance)
@@ -656,7 +554,6 @@ export async function deleteMealPlanInstance(
   instanceId: string,
   userId: string
 ): Promise<boolean> {
-  // CASCADE will handle meal_instances
   const result = await db
     .delete(mealPlanInstance)
     .where(and(eq(mealPlanInstance.id, instanceId), eq(mealPlanInstance.userId, userId)));
@@ -681,11 +578,19 @@ export async function createMealInstance(
       date: instanceData.date,
       timestamp: instanceData.timestamp ?? null,
       complete: instanceData.complete ?? false,
+      calories: instanceData.calories?.toString() || null,
+      macros: instanceData.macros,
+      micros: instanceData.micros,
       notes: instanceData.notes ?? null,
     } as any)
     .returning();
 
-  return { ...newInstance, date: new Date(newInstance.date), timestamp: newInstance.timestamp ? new Date(newInstance.timestamp) : null } as MealInstance;
+  return { 
+    ...newInstance, 
+    date: new Date(newInstance.date), 
+    timestamp: newInstance.timestamp ? new Date(newInstance.timestamp) : null,
+    calories: newInstance.calories ? Number(newInstance.calories) : undefined,
+  } as MealInstance;
 }
 
 export async function getUserMealInstances(
@@ -707,14 +612,13 @@ export async function getUserMealInstances(
     .where(whereClause)
     .orderBy(desc(mealInstance.date));
 
-  // Convert date strings to Date objects
   const converted = results.map((r) => ({
     ...r,
     date: new Date(r.date),
     timestamp: r.timestamp ? new Date(r.timestamp) : null,
+    calories: r.calories ? Number(r.calories) : undefined,
   })) as MealInstance[];
 
-  // Filter by date range if provided
   if (options?.dateFrom || options?.dateTo) {
     return converted.filter((instance) => {
       const instanceDate = instance.date;
@@ -732,17 +636,28 @@ export async function updateMealInstance(
   userId: string,
   updates: Partial<Omit<MealInstance, 'id' | 'userId' | 'mealPlanInstanceId' | 'mealId' | 'date'>>
 ): Promise<MealInstance | null> {
+  const dbUpdates: any = { ...updates };
+  if (updates.calories !== undefined) {
+    dbUpdates.calories = updates.calories?.toString() || null;
+  }
+
   const [updated] = await db
     .update(mealInstance)
-    .set(updates)
+    .set(dbUpdates)
     .where(and(eq(mealInstance.id, instanceId), eq(mealInstance.userId, userId)))
-    ;
+    .returning();
 
-  return (updated as MealInstance) || null;
+  if (!updated) return null;
+
+  return {
+    ...updated,
+    date: new Date(updated.date),
+    timestamp: updated.timestamp ? new Date(updated.timestamp) : null,
+    calories: updated.calories ? Number(updated.calories) : undefined,
+  } as MealInstance;
 }
 
 export async function deleteMealInstance(instanceId: string, userId: string): Promise<boolean> {
-  // CASCADE will handle portioned_food_instances
   const result = await db
     .delete(mealInstance)
     .where(and(eq(mealInstance.id, instanceId), eq(mealInstance.userId, userId)));
@@ -768,7 +683,7 @@ export async function createPortionedFoodInstance(
       complete: instanceData.complete ?? false,
       notes: instanceData.notes,
     })
-    ;
+    .returning();
 
   return newInstance as PortionedFoodInstance;
 }
@@ -797,7 +712,7 @@ export async function updatePortionedFoodInstance(
     .where(
       and(eq(portionedFoodInstance.id, instanceId), eq(portionedFoodInstance.userId, userId))
     )
-    ;
+    .returning();
 
   return (updated as PortionedFoodInstance) || null;
 }
@@ -829,7 +744,7 @@ export async function createSupplement(
       description: supplementData.description,
       imageUrl: supplementData.imageUrl,
     })
-    ;
+    .returning();
 
   return newSupplement as Supplement;
 }
@@ -855,7 +770,7 @@ export async function createSupplementSchedule(
       scheduleType: scheduleData.scheduleType,
       description: scheduleData.description,
     })
-    ;
+    .returning();
 
   return newSchedule as SupplementSchedule;
 }
@@ -912,13 +827,11 @@ export async function getUserSupplementInstances(
     .where(whereClause)
     .orderBy(desc(supplementInstance.date));
 
-  // Convert date strings to Date objects
   const converted = results.map((r) => ({
     ...r,
     date: new Date(r.date),
   })) as SupplementInstance[];
 
-  // Filter by date range if provided
   if (options?.dateFrom || options?.dateTo) {
     return converted.filter((instance) => {
       const instanceDate = instance.date;
@@ -978,7 +891,6 @@ export async function deleteSupplementInstance(
 // ============================================================================
 
 export async function getOrCreateWaterIntakeLog(userId: string): Promise<string> {
-  // Try to find first
   const [existing] = await db
     .select()
     .from(waterIntakeLog)
@@ -989,12 +901,10 @@ export async function getOrCreateWaterIntakeLog(userId: string): Promise<string>
     return existing.id;
   }
 
-  // Try to insert, handle potential race condition/duplicate
   try {
     const [newLog] = await db.insert(waterIntakeLog).values({ userId }).returning();
     return newLog.id;
   } catch (e: any) {
-    // If duplicate key error, fetch again
     if (e.code === '23505') {
       const [retry] = await db
         .select()
@@ -1041,14 +951,12 @@ export async function getUserWaterIntakes(
     .where(eq(waterIntake.waterIntakeLogId, waterIntakeLogId))
     .orderBy(desc(waterIntake.date));
 
-  // Convert date strings to Date objects
   const converted = results.map((r) => ({
     ...r,
     date: new Date(r.date),
     timestamp: r.timestamp ? new Date(r.timestamp) : null,
   })) as WaterIntake[];
 
-  // Filter by date range if provided
   if (options?.dateFrom || options?.dateTo) {
     return converted.filter((intake) => {
       const intakeDate = intake.date;
@@ -1116,7 +1024,6 @@ export async function deleteWaterIntake(
 // ============================================================================
 
 export async function getOrCreateSleepLog(userId: string): Promise<string> {
-  // Try to find first
   const [existing] = await db
     .select()
     .from(sleepLog)
@@ -1127,12 +1034,10 @@ export async function getOrCreateSleepLog(userId: string): Promise<string> {
     return existing.id;
   }
 
-  // Try to insert, handle potential race condition/duplicate
   try {
     const [newLog] = await db.insert(sleepLog).values({ userId }).returning();
     return newLog.id;
   } catch (e: any) {
-    // If duplicate key error, fetch again
     if (e.code === '23505') {
       const [retry] = await db
         .select()
@@ -1187,14 +1092,12 @@ export async function getUserSleepInstances(
     .where(eq(sleepInstance.sleepLogId, sleepLogId))
     .orderBy(desc(sleepInstance.date));
 
-  // Convert date strings to Date objects and numeric strings to numbers
   const converted = results.map((r) => ({
     ...r,
     date: new Date(r.date),
     sleepScore: r.sleepScore ? Number(r.sleepScore) : undefined,
   })) as unknown as SleepInstance[];
 
-  // Filter by date range if provided
   if (options?.dateFrom || options?.dateTo) {
     return converted.filter((instance) => {
       const instanceDate = instance.date;
@@ -1231,7 +1134,6 @@ export async function updateSleepInstance(
   userId: string,
   updates: Partial<Omit<SleepInstance, 'id' | 'userId' | 'sleepLogId'>>
 ): Promise<SleepInstance | null> {
-  // Convert Date objects to strings and numbers to strings for database
   const dbUpdates: any = { ...updates };
   if (updates.date) {
     dbUpdates.date = updates.date;

@@ -1,18 +1,15 @@
 import { NextRequest } from 'next/server';
 import { withAuth, parseBody } from '@/lib/api/helpers';
-import { 
-  createPortionedFood, 
-  getPortionedFoods, 
-} from '@/lib/db/crud/fuel';
+import { createMealWeek, getMealWeeks } from '@/lib/db/crud/fuel';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   return withAuth(async (userId) => {
-    const { id } = await params; // RECIPE ID
-    const ingredients = await getPortionedFoods({ recipeId: id });
-    return ingredients;
+    const { id } = await params; // MEAL PLAN ID
+    const weeks = await getMealWeeks(id);
+    return weeks;
   });
 }
 
@@ -21,10 +18,10 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   return withAuth(async (userId) => {
-    const { id } = await params; // RECIPE ID
+    const { id } = await params; // MEAL PLAN ID
     const body = await parseBody(request);
-    const newIngredient = await createPortionedFood({ recipeId: id }, body);
-    return newIngredient;
+    const newWeek = await createMealWeek(id, body);
+    return newWeek;
   });
 }
 

@@ -1,41 +1,35 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { withAuth, parseBody } from '@/lib/api/helpers';
-import { getFoodById, updateFood } from '@/lib/db/crud';
-import type { Food } from '@/types/fuel';
+import { getFoodById, updateFood } from '@/lib/db/crud/fuel';
 
-// GET /api/fuel/foods/[id] - Get a specific food (public)
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
+  return withAuth(async (userId) => {
     const { id } = await params;
     const food = await getFoodById(id);
     if (!food) {
-      return NextResponse.json({ error: 'Food not found' }, { status: 404 });
+      throw { status: 404, message: 'Food not found' };
     }
-    return NextResponse.json({ food });
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || 'Internal server error' },
-      { status: 500 }
-    );
-  }
+    return food;
+  });
 }
 
-// PATCH /api/fuel/foods/[id] - Update a food (requires auth)
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  return withAuth(async () => {
+  return withAuth(async (userId) => {
     const { id } = await params;
-    const updates = await parseBody<Partial<Omit<Food, 'id' | 'createdAt' | 'updatedAt'>>>(request);
-    const food = await updateFood(id, updates);
-    if (!food) {
-      return { error: 'Food not found' };
+    const body = await parseBody(request);
+    const updatedFood = await updateFood(id, body);
+
+    if (!updatedFood) {
+      throw { status: 404, message: 'Food not found' };
     }
-    return { food };
+
+    return updatedFood;
   });
 }
 

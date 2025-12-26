@@ -26,11 +26,24 @@ export const mealPlan = fuelSchema.table('meal_plan', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const meal = fuelSchema.table('meal', {
+export const mealWeek = fuelSchema.table('meal_week', {
   id: uuid('id').defaultRandom().primaryKey(),
   mealPlanId: uuid('meal_plan_id').notNull().references(() => mealPlan.id),
+  weekNumber: integer('week_number').notNull(),
+  mealIds: text('meal_ids').array(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const meal = fuelSchema.table('meal', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  mealPlanId: uuid('meal_plan_id').references(() => mealPlan.id),
   name: text('name').notNull(),
   description: text('description'),
+  recipeIds: text('recipe_ids').array(),
+  calories: numeric('calories'),
+  macros: jsonb('macros'),
+  micros: jsonb('micros'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
@@ -39,7 +52,30 @@ export const food = fuelSchema.table('food', {
   id: uuid('id').defaultRandom().primaryKey(),
   name: text('name').notNull(),
   description: text('description'),
+  servingSize: jsonb('serving_size').notNull(),
+  calories: numeric('calories'),
+  macros: jsonb('macros'),
+  micros: jsonb('micros'),
   imageUrl: text('image_url'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const recipe = fuelSchema.table('recipe', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: text('name').notNull(),
+  text: text('text').notNull(),
+  imageUrl: text('image_url'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const groceryList = fuelSchema.table('grocery_list', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull().references(() => user.id),
+  name: text('name').notNull(),
+  description: text('description'),
+  mealWeekId: uuid('meal_week_id').references(() => mealWeek.id),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
@@ -47,65 +83,13 @@ export const food = fuelSchema.table('food', {
 export const portionedFood = fuelSchema.table('portioned_food', {
   id: uuid('id').defaultRandom().primaryKey(),
   foodId: uuid('food_id').notNull().references(() => food.id),
-  calories: numeric('calories'),
-  macros: jsonb('macros'),
-  micros: jsonb('micros'),
-  portionSize: jsonb('portion_size').notNull(),
+  mealId: uuid('meal_id').references(() => meal.id),
+  recipeId: uuid('recipe_id').references(() => recipe.id),
+  groceryListId: uuid('grocery_list_id').references(() => groceryList.id),
+  portion: jsonb('portion').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
-
-export const mealPortion = fuelSchema.table('meal_portion', {
-  mealId: uuid('meal_id').notNull().references(() => meal.id),
-  portionedFoodId: uuid('portioned_food_id').notNull().references(() => portionedFood.id),
-  order: integer('order').notNull(),
-}, (table) => ({
-  pk: unique().on(table.mealId, table.portionedFoodId),
-}));
-
-export const recipe = fuelSchema.table('recipe', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  name: text('name').notNull(),
-  text: text('text').notNull(),
-  imageUrl: text('image_url'),
-  macros: jsonb('macros'),
-  micros: jsonb('micros'),
-  calories: jsonb('calories'),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-});
-
-export const mealRecipe = fuelSchema.table('meal_recipe', {
-  mealId: uuid('meal_id').notNull().references(() => meal.id),
-  recipeId: uuid('recipe_id').notNull().references(() => recipe.id),
-}, (table) => ({
-  pk: unique().on(table.mealId, table.recipeId),
-}));
-
-export const recipeIngredient = fuelSchema.table('recipe_ingredient', {
-  recipeId: uuid('recipe_id').notNull().references(() => recipe.id),
-  portionedFoodId: uuid('portioned_food_id').notNull().references(() => portionedFood.id),
-  order: integer('order').notNull(),
-}, (table) => ({
-  pk: unique().on(table.recipeId, table.portionedFoodId),
-}));
-
-export const groceryList = fuelSchema.table('grocery_list', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id').notNull().references(() => user.id),
-  name: text('name').notNull(),
-  description: text('description'),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-});
-
-export const groceryListItem = fuelSchema.table('grocery_list_item', {
-  groceryListId: uuid('grocery_list_id').notNull().references(() => groceryList.id),
-  portionedFoodId: uuid('portioned_food_id').notNull().references(() => portionedFood.id),
-  order: integer('order').notNull(),
-}, (table) => ({
-  pk: unique().on(table.groceryListId, table.portionedFoodId),
-}));
 
 // Instances
 export const mealPlanInstance = fuelSchema.table('meal_plan_instance', {
@@ -128,6 +112,9 @@ export const mealInstance = fuelSchema.table('meal_instance', {
   date: date('date').notNull(),
   timestamp: timestamp('timestamp', { withTimezone: true }),
   complete: boolean('complete').notNull().default(false),
+  calories: numeric('calories'),
+  macros: jsonb('macros'),
+  micros: jsonb('micros'),
   notes: text('notes'),
 });
 
@@ -229,8 +216,17 @@ export const mealPlanRelations = relations(mealPlan, ({ one, many }) => ({
     fields: [mealPlan.userId],
     references: [user.id],
   }),
-  meals: many(meal),
+  weeks: many(mealWeek),
+  meals: many(meal), // If meals have mealPlanId
   instances: many(mealPlanInstance),
+}));
+
+export const mealWeekRelations = relations(mealWeek, ({ one, many }) => ({
+  mealPlan: one(mealPlan, {
+    fields: [mealWeek.mealPlanId],
+    references: [mealPlan.id],
+  }),
+  groceryList: one(groceryList), // 1:1 or 1:M? GroceryList has mealWeekId.
 }));
 
 export const mealRelations = relations(meal, ({ one, many }) => ({
@@ -238,8 +234,7 @@ export const mealRelations = relations(meal, ({ one, many }) => ({
     fields: [meal.mealPlanId],
     references: [mealPlan.id],
   }),
-  mealPortions: many(mealPortion),
-  mealRecipes: many(mealRecipe),
+  foods: many(portionedFood), // foods that have mealId
   instances: many(mealInstance),
 }));
 
@@ -248,52 +243,8 @@ export const foodRelations = relations(food, ({ many }) => ({
   portionedFoodInstances: many(portionedFoodInstance),
 }));
 
-export const portionedFoodRelations = relations(portionedFood, ({ one, many }) => ({
-  food: one(food, {
-    fields: [portionedFood.foodId],
-    references: [food.id],
-  }),
-  mealPortions: many(mealPortion),
-  recipeIngredients: many(recipeIngredient),
-  groceryListItems: many(groceryListItem),
-}));
-
-export const mealPortionRelations = relations(mealPortion, ({ one }) => ({
-  meal: one(meal, {
-    fields: [mealPortion.mealId],
-    references: [meal.id],
-  }),
-  portionedFood: one(portionedFood, {
-    fields: [mealPortion.portionedFoodId],
-    references: [portionedFood.id],
-  }),
-}));
-
 export const recipeRelations = relations(recipe, ({ many }) => ({
-  mealRecipes: many(mealRecipe),
-  ingredients: many(recipeIngredient),
-}));
-
-export const mealRecipeRelations = relations(mealRecipe, ({ one }) => ({
-  meal: one(meal, {
-    fields: [mealRecipe.mealId],
-    references: [meal.id],
-  }),
-  recipe: one(recipe, {
-    fields: [mealRecipe.recipeId],
-    references: [recipe.id],
-  }),
-}));
-
-export const recipeIngredientRelations = relations(recipeIngredient, ({ one }) => ({
-  recipe: one(recipe, {
-    fields: [recipeIngredient.recipeId],
-    references: [recipe.id],
-  }),
-  portionedFood: one(portionedFood, {
-    fields: [recipeIngredient.portionedFoodId],
-    references: [portionedFood.id],
-  }),
+  ingredients: many(portionedFood), // foods that have recipeId
 }));
 
 export const groceryListRelations = relations(groceryList, ({ one, many }) => ({
@@ -301,17 +252,29 @@ export const groceryListRelations = relations(groceryList, ({ one, many }) => ({
     fields: [groceryList.userId],
     references: [user.id],
   }),
-  items: many(groceryListItem),
+  mealWeek: one(mealWeek, {
+    fields: [groceryList.mealWeekId],
+    references: [mealWeek.id],
+  }),
+  foods: many(portionedFood), // foods that have groceryListId
 }));
 
-export const groceryListItemRelations = relations(groceryListItem, ({ one }) => ({
-  groceryList: one(groceryList, {
-    fields: [groceryListItem.groceryListId],
-    references: [groceryList.id],
+export const portionedFoodRelations = relations(portionedFood, ({ one }) => ({
+  food: one(food, {
+    fields: [portionedFood.foodId],
+    references: [food.id],
   }),
-  portionedFood: one(portionedFood, {
-    fields: [groceryListItem.portionedFoodId],
-    references: [portionedFood.id],
+  meal: one(meal, {
+    fields: [portionedFood.mealId],
+    references: [meal.id],
+  }),
+  recipe: one(recipe, {
+    fields: [portionedFood.recipeId],
+    references: [recipe.id],
+  }),
+  groceryList: one(groceryList, {
+    fields: [portionedFood.groceryListId],
+    references: [groceryList.id],
   }),
 }));
 
@@ -422,4 +385,3 @@ export const sleepInstanceRelations = relations(sleepInstance, ({ one }) => ({
     references: [user.id],
   }),
 }));
-

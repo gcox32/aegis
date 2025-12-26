@@ -1,16 +1,15 @@
 import { User } from "./user";
-import { PortionMeasurement, LiquidMeasurement, DosageMeasurement, PercentageMeasurement, TimeMeasurement, CaloriesMeasurement } from "./measures";
-
+import { LiquidMeasurement, DosageMeasurement, PercentageMeasurement, TimeMeasurement, ServingSizeMeasurement } from "./measures";
 
 type ScheduleType = 'hourly' | 'twice-daily' | 'every-other-day' | 'daily' | 'weekly' | 'bi-weekly' | 'monthly' | 'once' | 'other';
 
-type Macros = {
+export type Macros = {
     protein?: number; // in grams
     carbs?: number; // in grams
     fat?: number; // in grams
 }
 
-type Micros = {
+export type Micros = {
     fiber?: number; // in grams
     sugar?: number; // in grams
     vitaminA?: number; // in IU
@@ -42,19 +41,33 @@ type Micros = {
 }
 
 // `fuel` schema for supabase
+
+// starting here we are reconsidereing the schema and how we want to store the data
+
 export interface MealPlan {
     id:           string;
     userId:       User['id'];
     name:         string;
     description?: string;
+    weeks?:       MealWeek[]; // hydrated in UI
     meals?:       Meal[]; // hydrated in UI
     createdAt:    Date;
     updatedAt:    Date;
 }
 
+export interface MealWeek { // a collection of meals that can be used to create a grocery list and build out a meal plan
+    id: string;
+    mealPlanId: MealPlan['id'];
+    weekNumber: number; // 1-52
+    meals: Meal[];
+    groceryList?: GroceryList; // hydrated in UI
+    createdAt: Date;
+    updatedAt: Date;
+}
+
 export interface Meal {
     id:           string;
-    mealPlanId:   MealPlan['id'];
+    mealPlanId?:  MealPlan['id'] | null; // can belong to a meal plan or can stand alone (i.e. how workout is to protocol)
     name:         string;
     description?: string;
     foods?:       PortionedFood[]; // hydrated in UI
@@ -64,44 +77,26 @@ export interface Meal {
 }
 
 export interface PortionedFood {
-    id:           string;
-    food:         Food['id'];
-    calories?:    number;
-    macros?:      Macros;
-    micros?:      Micros;
-    portionSize:  PortionMeasurement;
-    createdAt:    Date;
-    updatedAt:    Date;
+    id:        string;
+    foodId:    Food['id'];
+    mealId:    Meal['id'];
+    portion:   ServingSizeMeasurement; // math between this field and the corresponding food's serving size gives us the important data for the meal portion
+    calories?:  number; // hydrated using the portion field and the food's calories field
+    macros?:    Macros; // hydrated using the portion field and the food's macros field
+    micros?:    Micros; // hydrated using the portion field and the food's micros field
+    createdAt: Date;
+    updatedAt: Date;
 }
 
 export interface Food {
     id:           string;
     name:         string;
     description?: string;
+    servingSize:  ServingSizeMeasurement;
+    calories?:    number;
+    macros?:      Macros;
+    micros?:      Micros;
     imageUrl?:    string;
-    createdAt:    Date;
-    updatedAt:    Date;
-}
-
-export interface Recipe {
-    id:          string;
-    name:        string;
-    text:        string;
-    imageUrl?:   string;
-    ingredients: PortionedFood[];
-    macros?:     Macros;
-    micros?:     Micros;
-    calories?:   CaloriesMeasurement;
-    createdAt:   Date;
-    updatedAt:   Date;
-}
-
-export interface GroceryList {
-    id:           string;
-    userId:       User['id'];
-    name:         string;
-    description?: string;
-    foods:        PortionedFood[];
     createdAt:    Date;
     updatedAt:    Date;
 }
@@ -133,10 +128,40 @@ export interface PortionedFoodInstance {
     userId:         User['id'];
     mealInstanceId: MealInstance['id'];
     foodId:         Food['id'];
-    portion:        PortionMeasurement;
+    portion:        ServingSizeMeasurement;
+    calories?:      number;
+    macros?:        Macros;
+    micros?:        Micros;
     complete:       boolean; 
     notes?:         string;
 }
+
+// derivates of Meal, MealPlan, and Food
+export interface Recipe {
+    id:          string;
+    name:        string;
+    text:        string;
+    imageUrl?:   string;
+    ingredients: PortionedFood[];
+    calories?:   number; // hydrated using the ingredients field and the corresponding food's calories field
+    macros?:     Macros; // hydrated using the ingredients field and the corresponding food's macros field
+    micros?:     Micros; // hydrated using the ingredients field and the corresponding food's micros field
+    createdAt:   Date;
+    updatedAt:   Date;
+}
+
+export interface GroceryList {
+    id:           string;
+    userId:       User['id'];
+    name:         string;
+    description?: string;
+    mealWeekId?:  MealWeek['id'] | null; // can belong to a meal week or can stand alone
+    foods:        PortionedFood[];
+    createdAt:    Date;
+    updatedAt:    Date;
+}
+
+// here onward is set
 
 // future proofing for tracking water
 export interface WaterIntakeLog {

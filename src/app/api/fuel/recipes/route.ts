@@ -1,26 +1,19 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { withAuth, parseBody } from '@/lib/api/helpers';
-import { getRecipes, createRecipe } from '@/lib/db/crud';
+import { createRecipe, getRecipes } from '@/lib/db/crud/fuel';
 
-// GET /api/fuel/recipes - Get all recipes (public)
-export async function GET() {
-  try {
+export async function GET(request: NextRequest) {
+  return withAuth(async (userId) => {
     const recipes = await getRecipes();
-    return NextResponse.json({ recipes });
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || 'Internal server error' },
-      { status: 500 }
-    );
-  }
+    return recipes;
+  });
 }
 
-// POST /api/fuel/recipes - Create a recipe (requires auth)
 export async function POST(request: NextRequest) {
-  return withAuth(async () => {
-    const recipeData = await parseBody(request);
-    const recipe = await createRecipe(recipeData);
-    return { recipe };
+  return withAuth(async (userId) => {
+    const body = await parseBody(request);
+    const newRecipe = await createRecipe(body);
+    return newRecipe;
   });
 }
 

@@ -1,30 +1,29 @@
 import { NextRequest } from 'next/server';
 import { withAuth, parseBody, getQueryParam } from '@/lib/api/helpers';
-import { getUserMealInstances, createMealInstance } from '@/lib/db/crud';
+import { createMealInstance, getUserMealInstances } from '@/lib/db/crud/fuel';
 
-// GET /api/fuel/meal-instances - Get user's meal instances
 export async function GET(request: NextRequest) {
   return withAuth(async (userId) => {
     const mealPlanInstanceId = getQueryParam(request.url, 'mealPlanInstanceId');
-    const dateFrom = getQueryParam(request.url, 'dateFrom');
-    const dateTo = getQueryParam(request.url, 'dateTo');
+    const dateFromStr = getQueryParam(request.url, 'dateFrom');
+    const dateToStr = getQueryParam(request.url, 'dateTo');
+    const dateFrom = dateFromStr ? new Date(dateFromStr) : undefined;
+    const dateTo = dateToStr ? new Date(dateToStr) : undefined;
 
-    const options: any = {};
-    if (mealPlanInstanceId) options.mealPlanInstanceId = mealPlanInstanceId;
-    if (dateFrom) options.dateFrom = new Date(dateFrom);
-    if (dateTo) options.dateTo = new Date(dateTo);
-
-    const mealInstances = await getUserMealInstances(userId, options);
-    return { mealInstances };
+    const instances = await getUserMealInstances(userId, {
+      mealPlanInstanceId: mealPlanInstanceId || undefined,
+      dateFrom,
+      dateTo,
+    });
+    return instances;
   });
 }
 
-// POST /api/fuel/meal-instances - Create a new meal instance
 export async function POST(request: NextRequest) {
   return withAuth(async (userId) => {
-    const mealInstanceData = await parseBody(request);
-    const mealInstance = await createMealInstance(userId, mealInstanceData);
-    return { mealInstance };
+    const body = await parseBody(request);
+    const newInstance = await createMealInstance(userId, body);
+    return newInstance;
   });
 }
 
