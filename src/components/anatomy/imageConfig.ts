@@ -27,7 +27,7 @@ export const muscleGroupImages: Record<MuscleGroupName, { front: string[], back:
   },
   'rhomboids': {
     front: [],
-    back: [`${imagePathBack}/rhomboid-major.svg`, `${imagePathBack}/trapezius-lower.svg`, `${imagePathBack}/teres-major.svg`]
+    back: [`${imagePathBack}/rhomboid-major.svg`, `${imagePathBack}/trapezius-lower.svg`, `${imagePathBack}/teres-major.svg`, `${imagePathBack}/infraspinatus.svg`]
   },
   'traps': {
     front: [`${imagePathFront}/trapezius.svg`],
@@ -146,7 +146,7 @@ export const imageTransforms: Record<string, string> = {
   [`${imagePathFront}/sartorius.svg`]: 'translateX(2px)',
   [`${imagePathFront}/tensor-fascia-latae.svg`]: 'translateX(2px)',
   [`${imagePathFront}/add-longus.svg`]: 'translateX(-1px) scale(0.6)',
-  [`${imagePathFront}/serratus-anterior.svg`]: 'translateX(3px)',
+  [`${imagePathFront}/serratus-anterior.svg`]: 'translateX(2px)',
   [`${imagePathFront}/trapezius.svg`]: 'translateX(6px)',
   [`${imagePathFront}/sternocleidomastoid.svg`]: 'translateX(6px)',
   [`${imagePathFront}/omohyoid.svg`]: 'translateX(6px)',
