@@ -37,6 +37,7 @@ export const mealWeek = fuelSchema.table('meal_week', {
 
 export const meal = fuelSchema.table('meal', {
   id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull().references(() => user.id),
   mealPlanId: uuid('meal_plan_id').references(() => mealPlan.id),
   name: text('name').notNull(),
   description: text('description'),

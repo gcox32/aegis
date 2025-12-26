@@ -1,0 +1,1 @@
+ALTER TABLE fuel.meal ADD COLUMN user_id UUID NOT NULL REFERENCES public.user(id) ON DELETE CASCADE;

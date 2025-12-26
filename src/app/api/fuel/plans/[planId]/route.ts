@@ -4,11 +4,11 @@ import { getMealPlanById, updateMealPlan, deleteMealPlan } from '@/lib/db/crud/f
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ planId: string }> }
 ) {
   return withAuth(async (userId) => {
-    const { id } = await params;
-    const mealPlan = await getMealPlanById(id, userId);
+    const { planId } = await params;
+    const mealPlan = await getMealPlanById(planId, userId);
     if (!mealPlan) {
       throw { status: 404, message: 'Meal plan not found' };
     }
@@ -18,12 +18,12 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ planId: string }> }
 ) {
   return withAuth(async (userId) => {
-    const { id } = await params;
+    const { planId } = await params;
     const body = await parseBody(request);
-    const updatedMealPlan = await updateMealPlan(id, userId, body);
+    const updatedMealPlan = await updateMealPlan(planId, userId, body);
 
     if (!updatedMealPlan) {
       throw { status: 404, message: 'Meal plan not found' };
@@ -35,11 +35,11 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ planId: string }> }
 ) {
   return withAuth(async (userId) => {
-    const { id } = await params;
-    const success = await deleteMealPlan(id, userId);
+    const { planId } = await params;
+    const success = await deleteMealPlan(planId, userId);
 
     if (!success) {
       throw { status: 404, message: 'Meal plan not found' };

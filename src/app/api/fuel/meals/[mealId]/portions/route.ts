@@ -7,23 +7,23 @@ import {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ mealId: string }> }
 ) {
   return withAuth(async (userId) => {
-    const { id } = await params; // MEAL ID
-    const portions = await getPortionedFoods({ mealId: id });
+    const { mealId } = await params; // MEAL ID
+    const portions = await getPortionedFoods({ mealId });
     return portions;
   });
 }
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ mealId: string }> }
 ) {
   return withAuth(async (userId) => {
-    const { id } = await params; // MEAL ID
+    const { mealId } = await params; // MEAL ID
     const body = await parseBody(request);
-    const newPortion = await createPortionedFood({ mealId: id }, body);
+    const newPortion = await createPortionedFood({ mealId }, body);
     return newPortion;
   });
 }

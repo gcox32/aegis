@@ -2,15 +2,15 @@ import { NextRequest } from 'next/server';
 import { withAuth, parseBody } from '@/lib/api/helpers';
 import { updateMealPlanInstance, deleteMealPlanInstance } from '@/lib/db/crud';
 
-// PATCH /api/fuel/meal-plan-instances/[id] - Update a meal plan instance
+// PATCH /api/fuel/meal-plans/instances/[instanceId] - Update a meal plan instance
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ instanceId: string }> }
 ) {
   return withAuth(async (userId) => {
-    const { id } = await params;
+    const { instanceId } = await params;
     const updates = await parseBody(request);
-    const mealPlanInstance = await updateMealPlanInstance(id, userId, updates);
+    const mealPlanInstance = await updateMealPlanInstance(instanceId, userId, updates);
     if (!mealPlanInstance) {
       return { error: 'Meal plan instance not found' };
     }
@@ -21,11 +21,11 @@ export async function PATCH(
 // DELETE /api/fuel/meal-plan-instances/[id] - Delete a meal plan instance (CASCADE deletes meal instances)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ instanceId: string }> }
 ) {
   return withAuth(async (userId) => {
-    const { id } = await params;
-    const deleted = await deleteMealPlanInstance(id, userId);
+    const { instanceId } = await params;
+    const deleted = await deleteMealPlanInstance(instanceId, userId);
     if (!deleted) {
       return { error: 'Meal plan instance not found' };
     }

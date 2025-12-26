@@ -67,6 +67,7 @@ export interface MealWeek { // a collection of meals that can be used to create 
 
 export interface Meal {
     id:           string;
+    userId:       User['id'];
     mealPlanId?:  MealPlan['id'] | null; // can belong to a meal plan or can stand alone (i.e. how workout is to protocol)
     name:         string;
     description?: string;

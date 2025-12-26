@@ -4,12 +4,12 @@ import { updateMealInstance, deleteMealInstance } from '@/lib/db/crud/fuel';
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ instanceId: string }> }
 ) {
   return withAuth(async (userId) => {
-    const { id } = await params;
+    const { instanceId } = await params;
     const body = await parseBody(request);
-    const updatedInstance = await updateMealInstance(id, userId, body);
+    const updatedInstance = await updateMealInstance(instanceId, userId, body);
 
     if (!updatedInstance) {
       throw { status: 404, message: 'Meal instance not found' };
@@ -21,11 +21,11 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ instanceId: string }> }
 ) {
   return withAuth(async (userId) => {
-    const { id } = await params;
-    const success = await deleteMealInstance(id, userId);
+    const { instanceId } = await params;
+    const success = await deleteMealInstance(instanceId, userId);
 
     if (!success) {
       throw { status: 404, message: 'Meal instance not found' };

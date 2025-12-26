@@ -1,4 +1,5 @@
-import { eq, and, desc, inArray } from 'drizzle-orm';
+import { eq, and, desc, inArray, sql, ilike, isNull } from 'drizzle-orm';
+import type { SQL } from 'drizzle-orm';
 import { db } from '../index';
 import {
   mealPlan,
@@ -154,13 +155,13 @@ export async function getMealWeeks(mealPlanId: string): Promise<MealWeek[]> {
 // ============================================================================
 
 export async function createMeal(
-  mealPlanId: string | null,
+  userId: string,
   mealData: Omit<Meal, 'id' | 'mealPlanId' | 'createdAt' | 'updatedAt' | 'foods' | 'recipes'>
 ): Promise<Meal> {
   const [newMeal] = await db
     .insert(meal)
     .values({
-      mealPlanId: mealPlanId || undefined,
+      userId,
       name: mealData.name,
       description: mealData.description,
       calories: mealData.calories?.toString() || null,
@@ -171,21 +172,50 @@ export async function createMeal(
 
   return {
     ...newMeal,
+    userId: userId,
     calories: newMeal.calories ? Number(newMeal.calories) : undefined,
   } as Meal;
 }
 
-export async function getMeals(mealPlanId: string): Promise<Meal[]> {
+export async function getMeals(
+  userId: string,
+  mealPlanId?: string | null,
+  page: number = 1,
+  limit: number = 20
+): Promise<{ meals: Meal[]; total: number; page: number; limit: number }> {
+  const offset = (page - 1) * limit;
+
+  let whereClause = eq(meal.userId, userId);
+
+  const [{ count }] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(meal)
+    .where(whereClause);
+
+  if (mealPlanId) {
+    whereClause = and(whereClause, eq(meal.mealPlanId, mealPlanId)) as any as SQL<unknown>;
+  } else {
+    whereClause = and(whereClause, isNull(meal.mealPlanId)) as any as SQL<unknown>;
+  }
+
   const results = await db
     .select()
     .from(meal)
-    .where(eq(meal.mealPlanId, mealPlanId))
-    .orderBy(desc(meal.createdAt));
+    .where(whereClause)
+    .orderBy(desc(meal.createdAt))
+    .limit(limit)
+    .offset(offset);
   
-  return results.map((r) => ({
-    ...nullToUndefined(r),
-    calories: r.calories ? Number(r.calories) : undefined,
-  })) as Meal[];
+  return {
+    meals: results.map((r) => ({
+      ...nullToUndefined(r),
+      calories: r.calories ? Number(r.calories) : undefined,
+      userId: r.userId,
+    })) as Meal[],
+    total: Number(count),
+    page,
+    limit,
+  };
 }
 
 export async function getMealById(mealId: string): Promise<Meal | null> {
@@ -201,6 +231,27 @@ export async function getMealById(mealId: string): Promise<Meal | null> {
     ...nullToUndefined(found),
     calories: found.calories ? Number(found.calories) : undefined,
   } as Meal;
+}
+
+export async function searchMeals(query: string, page: number = 1, limit: number = 20): Promise<{ meals: Meal[]; total: number; page: number; limit: number }> {
+  // Use simple ILIKE search for now
+  const offset = (page - 1) * limit;
+
+  const [{ count }] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(meal)
+    .where(ilike(meal.name, `%${query}%`));
+
+  const results = await db.select().from(meal).orderBy(meal.name).limit(limit).offset(offset);
+  return {
+    meals: results.map((r) => ({
+      ...nullToUndefined(r),
+      calories: r.calories ? Number(r.calories) : undefined,
+    })) as Meal[],
+    total: Number(count),
+    page,
+    limit,
+  };
 }
 
 export async function updateMeal(
@@ -257,12 +308,26 @@ export async function createFood(
   } as Food;
 }
 
-export async function getFoods(): Promise<Food[]> {
-  const results = await db.select().from(food).orderBy(food.name);
-  return results.map((r) => ({
-    ...nullToUndefined(r),
-    calories: r.calories ? Number(r.calories) : undefined,
-  })) as Food[];
+export async function getFoods(
+  page: number = 1, 
+  limit: number = 20
+): Promise<{ foods: Food[]; total: number; page: number; limit: number }> {
+  const offset = (page - 1) * limit;
+
+  const [{ count }] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(food);
+
+  const results = await db.select().from(food).orderBy(food.name).limit(limit).offset(offset);
+  return {
+    foods: results.map((r) => ({
+      ...nullToUndefined(r),
+      calories: r.calories ? Number(r.calories) : undefined,
+    })) as Food[],
+    total: Number(count),
+    page,
+    limit,
+  };
 }
 
 export async function getFoodById(foodId: string): Promise<Food | null> {
@@ -276,8 +341,19 @@ export async function getFoodById(foodId: string): Promise<Food | null> {
   } as Food;
 }
 
-export async function searchFoods(query: string): Promise<Food[]> {
+export async function searchFoods(
+  query: string, 
+  page: number = 1, 
+  limit: number = 20
+): Promise<{ foods: Food[]; total: number; page: number; limit: number }> {
   // Use simple ILIKE search for now
+  const offset = (page - 1) * limit;
+
+  const [{ count }] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(food)
+    .where(ilike(food.name, `%${query}%`));
+
   const results = await db
     .select()
     .from(food)
@@ -285,12 +361,17 @@ export async function searchFoods(query: string): Promise<Food[]> {
     // Actually, let's assume we can filter in JS if not using ilike helper
     .orderBy(food.name);
 
-  return results
-    .filter(f => f.name.toLowerCase().includes(query.toLowerCase()))
-    .map((r) => ({
-      ...nullToUndefined(r),
-      calories: r.calories ? Number(r.calories) : undefined,
-    })) as Food[];
+  return {
+    foods: results
+      .filter(f => f.name.toLowerCase().includes(query.toLowerCase()))
+      .map((r) => ({
+        ...nullToUndefined(r),
+        calories: r.calories ? Number(r.calories) : undefined,
+      })) as Food[],
+    total: Number(count),
+    page,
+    limit,
+  };
 }
 
 export async function updateFood(

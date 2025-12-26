@@ -6,18 +6,18 @@ import type { SupplementInstance } from '@/types/fuel';
 // PATCH /api/fuel/supplement-instances/[id] - Update a supplement instance
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ instanceId: string }> }
 ) {
   return withAuth(async (userId) => {
-    const { id } = await params;
+    const { instanceId } = await params;
     
-    const instance = await getSupplementInstanceById(id, userId);
+    const instance = await getSupplementInstanceById(instanceId, userId);
     if (!instance) {
       return { error: 'Supplement instance not found' };
     }
 
     const updates = await parseBody<Partial<Omit<SupplementInstance, 'id' | 'userId' | 'supplementScheduleId' | 'supplementId' | 'date'>>>(request);
-    const updated = await updateSupplementInstance(id, userId, updates);
+    const updated = await updateSupplementInstance(instanceId, userId, updates);
     if (!updated) {
       return { error: 'Failed to update supplement instance' };
     }
@@ -28,17 +28,17 @@ export async function PATCH(
 // DELETE /api/fuel/supplement-instances/[id] - Delete a supplement instance
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ instanceId: string }> }
 ) {
   return withAuth(async (userId) => {
-    const { id } = await params;
+    const { instanceId } = await params;
     
-    const instance = await getSupplementInstanceById(id, userId);
+    const instance = await getSupplementInstanceById(instanceId, userId);
     if (!instance) {
       return { error: 'Supplement instance not found' };
     }
 
-    await deleteSupplementInstance(id, userId);
+    await deleteSupplementInstance(instanceId, userId);
     return { success: true };
   });
 }
