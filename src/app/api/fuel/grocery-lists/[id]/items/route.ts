@@ -16,15 +16,3 @@ export async function GET(
   });
 }
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  return withAuth(async (userId) => {
-    const { id } = await params; // GROCERY LIST ID
-    const body = await parseBody(request);
-    const newItem = await createPortionedFood({ groceryListId: id }, body);
-    return newItem;
-  });
-}
-

@@ -15,16 +15,3 @@ export async function GET(
     return ingredients;
   });
 }
-
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  return withAuth(async (userId) => {
-    const { id } = await params; // RECIPE ID
-    const body = await parseBody(request);
-    const newIngredient = await createPortionedFood({ recipeId: id }, body);
-    return newIngredient;
-  });
-}
-

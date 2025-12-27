@@ -84,9 +84,9 @@ export interface PortionedFood {
     foodId:    Food['id'];
     mealId:    Meal['id'];
     portion:   ServingSizeMeasurement; // math between this field and the corresponding food's serving size gives us the important data for the meal portion
-    calories?:  number; // hydrated using the portion field and the food's calories field
-    macros?:    Macros; // hydrated using the portion field and the food's macros field
-    micros?:    Micros; // hydrated using the portion field and the food's micros field
+    calories?: number; // hydrated using the portion field and the food's calories field
+    macros?:   Macros; // hydrated using the portion field and the food's macros field
+    micros?:   Micros; // hydrated using the portion field and the food's micros field
     createdAt: Date;
     updatedAt: Date;
 }
@@ -145,6 +145,7 @@ export interface PortionedFoodInstance {
 // derivates of Meal, MealPlan, and Food
 export interface Recipe {
     id:          string;
+    mealId:      Meal['id'];
     name:        string;
     text:        string;
     imageUrl?:   string;

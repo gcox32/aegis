@@ -402,7 +402,7 @@ export async function updateFood(
 // ============================================================================
 
 export async function createPortionedFood(
-  parentId: { mealId?: string; recipeId?: string; groceryListId?: string },
+  parentId: { mealId?: string; },
   portionedFoodData: PortionedFood
 ): Promise<PortionedFood> {
   const [newPortionedFood] = await db
@@ -410,13 +410,17 @@ export async function createPortionedFood(
     .values({
       foodId: portionedFoodData.foodId,
       mealId: parentId.mealId,
-      recipeId: parentId.recipeId,
-      groceryListId: parentId.groceryListId,
       portion: portionedFoodData.portion,
+      calories: portionedFoodData.calories?.toString() || null,
+      macros: portionedFoodData.macros,
+      micros: portionedFoodData.micros,
     })
     .returning();
 
-  return newPortionedFood as PortionedFood;
+  return {
+    ...newPortionedFood,
+    calories: newPortionedFood.calories ? Number(newPortionedFood.calories) : undefined,
+  } as PortionedFood;
 }
 
 export async function getPortionedFoods(
@@ -433,7 +437,10 @@ export async function getPortionedFoods(
     .from(portionedFood)
     .where(whereClause);
 
-  return results.map(nullToUndefined) as PortionedFood[];
+  return results.map((r) => ({
+    ...nullToUndefined(r),
+    calories: r.calories ? Number(r.calories) : undefined,
+  })) as PortionedFood[];
 }
 
 export async function updatePortionedFood(
@@ -453,7 +460,10 @@ export async function updatePortionedFood(
 
   if (!updated) return null;
 
-  return updated as PortionedFood;
+  return {
+    ...updated,
+    calories: updated.calories ? Number(updated.calories) : undefined,
+  } as PortionedFood;
 }
 
 export async function deletePortionedFood(portionedFoodId: string): Promise<boolean> {
@@ -477,18 +487,29 @@ export async function createRecipe(
     })
     .returning();
 
-  return newRecipe as Recipe;
+  return {
+    ...newRecipe,
+    calories: newRecipe.calories ? Number(newRecipe.calories) : undefined,
+  } as Recipe;
 }
 
 export async function getRecipes(): Promise<Recipe[]> {
   const results = await db.select().from(recipe).orderBy(recipe.name);
-  return results.map(r => ({ ...nullToUndefined(r), ingredients: [] })) as Recipe[];
+  return results.map(r => ({
+    ...nullToUndefined(r),
+    ingredients: r.ingredients ? (r.ingredients as PortionedFood[]) : [],
+    calories: r.calories ? Number(r.calories) : undefined,
+  })) as Recipe[];
 }
 
 export async function getRecipeById(recipeId: string): Promise<Recipe | null> {
   const [found] = await db.select().from(recipe).where(eq(recipe.id, recipeId)).limit(1);
   if (!found) return null;
-  return { ...nullToUndefined(found), ingredients: [] } as Recipe;
+  return {
+    ...nullToUndefined(found),
+    ingredients: found.ingredients ? (found.ingredients as PortionedFood[]) : [],
+    calories: found.calories ? Number(found.calories) : undefined,
+  } as Recipe;
 }
 
 export async function updateRecipe(
@@ -497,11 +518,19 @@ export async function updateRecipe(
 ): Promise<Recipe | null> {
   const [updated] = await db
     .update(recipe)
-    .set(updates)
+    .set({
+      ...updates,
+      calories: updates.calories?.toString() || null,
+      macros: updates.macros,
+      micros: updates.micros,
+    })
     .where(eq(recipe.id, recipeId))
     .returning();
 
-  return (updated as Recipe) || null;
+  return {
+    ...updated,
+    calories: updated.calories ? Number(updated.calories) : undefined,
+  } as Recipe;
 }
 
 // ============================================================================

@@ -10,6 +10,7 @@ import {
   pgSchema,
   unique,
   numeric,
+  foreignKey,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { user } from './user';
@@ -41,7 +42,6 @@ export const meal = fuelSchema.table('meal', {
   mealPlanId: uuid('meal_plan_id').references(() => mealPlan.id),
   name: text('name').notNull(),
   description: text('description'),
-  recipeIds: text('recipe_ids').array(),
   calories: numeric('calories'),
   macros: jsonb('macros'),
   micros: jsonb('micros'),
@@ -64,9 +64,14 @@ export const food = fuelSchema.table('food', {
 
 export const recipe = fuelSchema.table('recipe', {
   id: uuid('id').defaultRandom().primaryKey(),
+  mealId: uuid('meal_id').references(() => meal.id),
   name: text('name').notNull(),
   text: text('text').notNull(),
   imageUrl: text('image_url'),
+  ingredients: jsonb('ingredients'),
+  calories: numeric('calories'),
+  macros: jsonb('macros'),
+  micros: jsonb('micros'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
@@ -88,6 +93,9 @@ export const portionedFood = fuelSchema.table('portioned_food', {
   recipeId: uuid('recipe_id').references(() => recipe.id),
   groceryListId: uuid('grocery_list_id').references(() => groceryList.id),
   portion: jsonb('portion').notNull(),
+  calories: numeric('calories'),
+  macros: jsonb('macros'),
+  micros: jsonb('micros'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
