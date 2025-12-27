@@ -44,13 +44,32 @@ export default function MealList() {
                 <p className="mb-4 text-gray-500 text-sm line-clamp-2">
                   {meal.description || 'No description provided.'}
                 </p>
-                <div className="flex items-center gap-4 mt-auto text-gray-400 text-xs">
-                  {meal.calories && (
-                    <div className="flex items-center">
-                      <span>{Math.round(meal.calories)} cal</span>
+                <div className="space-y-2 mt-auto">
+                  {(meal.calories || meal.macros) && (
+                    <div className="flex flex-wrap items-center gap-3 text-gray-400 text-xs">
+                      {meal.calories && (
+                        <div className="flex items-center font-medium">
+                          <span>{Math.round(meal.calories)} cal</span>
+                        </div>
+                      )}
+                      {meal.macros?.protein && (
+                        <div className="flex items-center">
+                          <span>P: {Math.round(meal.macros.protein)}g</span>
+                        </div>
+                      )}
+                      {meal.macros?.carbs && (
+                        <div className="flex items-center">
+                          <span>C: {Math.round(meal.macros.carbs)}g</span>
+                        </div>
+                      )}
+                      {meal.macros?.fat && (
+                        <div className="flex items-center">
+                          <span>F: {Math.round(meal.macros.fat)}g</span>
+                        </div>
+                      )}
                     </div>
                   )}
-                  <div className="flex items-center">
+                  <div className="flex items-center text-gray-400 text-xs">
                     <Calendar className="mr-1 w-3 h-3" />
                     {new Date(meal.createdAt).toLocaleDateString()}
                   </div>

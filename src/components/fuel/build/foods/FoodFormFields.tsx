@@ -97,7 +97,7 @@ export function FoodFormFields({
           <FormLabel>Serving Size Value</FormLabel>
           <FormInput
             type="number"
-            step="1"
+            step=".1"
             min="0"
             value={formData.servingSize.value || ''}
             onChange={(e) => handleServingSizeChange('value', e.target.value)}
@@ -146,7 +146,7 @@ export function FoodFormFields({
             <FormLabel className="text-xs">Protein (g)</FormLabel>
             <FormInput
               type="number"
-              step="1"
+              step="0.5"
               min="0"
               value={formData.macros?.protein || ''}
               onChange={(e) => handleMacroChange('protein', e.target.value)}
@@ -158,7 +158,7 @@ export function FoodFormFields({
             <FormLabel className="text-xs">Carbs (g)</FormLabel>
             <FormInput
               type="number"
-              step="1"
+              step="0.5"
               min="0"
               value={formData.macros?.carbs || ''}
               onChange={(e) => handleMacroChange('carbs', e.target.value)}
@@ -170,7 +170,7 @@ export function FoodFormFields({
             <FormLabel className="text-xs">Fat (g)</FormLabel>
             <FormInput
               type="number"
-              step="1"
+              step="0.5"
               min="0"
               value={formData.macros?.fat || ''}
               onChange={(e) => handleMacroChange('fat', e.target.value)}

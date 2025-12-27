@@ -162,7 +162,7 @@ export function MealFormFields({
                         <FormLabel className="text-xs">Portion Value</FormLabel>
                         <FormInput
                           type="number"
-                          step="1"
+                          step=".1"
                           min="0"
                           value={portionedFood.portion.value || ''}
                           onChange={(e) => updatePortion(portionedFood.clientId, 'value', e.target.value)}

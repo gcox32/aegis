@@ -6,9 +6,10 @@ import {
   FormCard, FormTitle
 } from '@/components/ui/Form';
 import { CreateEditForm } from '@/components/ui/CreateEditForm';
-import { Meal, PortionedFood } from '@/types/fuel';
+import { Meal, PortionedFood, Food, Macros, Micros } from '@/types/fuel';
 import { MealFormData, PortionedFoodFormData } from './types';
 import { MealFormFields } from './MealFormFields';
+import { calculateNutrients, aggregateNutrients } from '@/lib/fuel/calculations';
 
 interface MealFormProps {
   mealId?: string;
@@ -125,6 +126,36 @@ export default function MealForm({ mealId, isEditing = false }: MealFormProps) {
     setError(null);
 
     try {
+      // Calculate nutrients for each portioned food
+      const nutrientMap = new Map<string, { calories?: number; macros?: Macros; micros?: Micros }>();
+      for (const portionedFood of portionedFoods) {
+        if (portionedFood.foodId) {
+          try {
+            // Fetch the food data to get its nutritional info
+            const foodRes = await fetch(`/api/fuel/foods/${portionedFood.foodId}`);
+            if (foodRes.ok) {
+              const food: Food = await foodRes.json();
+              // Calculate nutrients for this portion
+              const nutrients = calculateNutrients(food, portionedFood.portion);
+              nutrientMap.set(portionedFood.foodId, nutrients);
+            }
+          } catch (err) {
+            console.error(`Failed to fetch food ${portionedFood.foodId}:`, err);
+          }
+        }
+      }
+
+      // Aggregate all nutrients to get meal totals
+      const nutrientHolders = Array.from(nutrientMap.values());
+      const mealTotals = aggregateNutrients(nutrientHolders);
+
+      // Include calculated totals in meal data
+      const mealDataWithTotals = {
+        ...formData,
+        calories: mealTotals.calories,
+        macros: mealTotals.macros,
+      };
+
       const url = isEditing && mealId
         ? `/api/fuel/meals/${mealId}`
         : '/api/fuel/meals';
@@ -135,7 +166,7 @@ export default function MealForm({ mealId, isEditing = false }: MealFormProps) {
       const mealRes = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(mealDataWithTotals),
       });
 
       if (!mealRes.ok) {
@@ -163,15 +194,18 @@ export default function MealForm({ mealId, isEditing = false }: MealFormProps) {
           }
         }
 
-        // Add new portions
+        // Add new portions with calculated nutrients
         for (const portionedFood of portionedFoods) {
           if (portionedFood.foodId) {
+            const nutrients = nutrientMap.get(portionedFood.foodId);
             await fetch(`/api/fuel/meals/${savedMealId}/portions`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 foodId: portionedFood.foodId,
                 portion: portionedFood.portion,
+                calories: nutrients?.calories,
+                macros: nutrients?.macros,
               }),
             });
           }
