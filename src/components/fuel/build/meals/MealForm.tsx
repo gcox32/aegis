@@ -59,12 +59,29 @@ export default function MealForm({ mealId, isEditing = false }: MealFormProps) {
             const data = await portionsRes.json();
             const portions = data.portions || [];
             if (Array.isArray(portions)) {
-              const portionedFoodsData: PortionedFoodFormData[] = portions.map((pf: PortionedFood, index: number) => ({
-                clientId: `portion-${index}-${Date.now()}`,
-                foodId: pf.foodId,
-                foodName: (pf as any).food?.name || '',
-                portion: pf.portion,
-              }));
+              // Fetch food names for each portion
+              const portionedFoodsData = await Promise.all(
+                portions.map(async (pf: PortionedFood, index: number) => {
+                  let foodName = '';
+                  if (pf.foodId) {
+                    try {
+                      const foodRes = await fetch(`/api/fuel/foods/${pf.foodId}`);
+                      if (foodRes.ok) {
+                        const food = await foodRes.json();
+                        foodName = food.name || '';
+                      }
+                    } catch (err) {
+                      console.error('Failed to fetch food name', err);
+                    }
+                  }
+                  return {
+                    clientId: `portion-${index}-${Date.now()}`,
+                    foodId: pf.foodId,
+                    foodName,
+                    portion: pf.portion,
+                  };
+                })
+              );
               setPortionedFoods(portionedFoodsData);
             }
           }

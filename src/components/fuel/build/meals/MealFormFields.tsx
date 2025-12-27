@@ -50,12 +50,14 @@ export function MealFormFields({
   const updateFood = (clientId: string, food: Food | null) => {
     setPortionedFoods(portionedFoods.map(pf => {
       if (pf.clientId === clientId) {
+        // Only reset portion to food's serving size if this is a new food (no existing foodId)
+        // Otherwise preserve the existing portion when editing
+        const shouldResetPortion = !pf.foodId && food?.servingSize;
         return {
           ...pf,
           foodId: food?.id || '',
           foodName: food?.name || '',
-          // Reset portion to food's serving size if available
-          portion: food?.servingSize || pf.portion,
+          portion: shouldResetPortion ? food.servingSize : pf.portion,
         };
       }
       return pf;

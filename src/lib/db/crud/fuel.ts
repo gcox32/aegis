@@ -783,12 +783,18 @@ export async function createPortionedFoodInstance(
       mealInstanceId: instanceData.mealInstanceId,
       foodId: instanceData.foodId,
       portion: instanceData.portion,
+      calories: instanceData.calories?.toString() || null,
+      macros: instanceData.macros,
+      micros: instanceData.micros,
       complete: instanceData.complete ?? false,
       notes: instanceData.notes,
     })
     .returning();
 
-  return newInstance as PortionedFoodInstance;
+  return {
+    ...newInstance,
+    calories: newInstance.calories ? Number(newInstance.calories) : undefined,
+  } as PortionedFoodInstance;
 }
 
 export async function getPortionedFoodInstances(
@@ -799,25 +805,31 @@ export async function getPortionedFoodInstances(
     .from(portionedFoodInstance)
     .where(eq(portionedFoodInstance.mealInstanceId, mealInstanceId));
   
-  return results as PortionedFoodInstance[];
+  return results.map((r) => ({
+    ...r,
+    calories: r.calories ? Number(r.calories) : undefined,
+  })) as PortionedFoodInstance[];
 }
 
 export async function updatePortionedFoodInstance(
   instanceId: string,
   userId: string,
   updates: Partial<
-    Omit<PortionedFoodInstance, 'id' | 'userId' | 'mealInstanceId' | 'foodId' | 'portion'>
+    Omit<PortionedFoodInstance, 'id' | 'userId' | 'mealInstanceId' | 'foodId' | 'portion' | 'calories' | 'macros' | 'micros'>
   >
 ): Promise<PortionedFoodInstance | null> {
   const [updated] = await db
     .update(portionedFoodInstance)
-    .set(updates)
+    .set({ ...updates})
     .where(
       and(eq(portionedFoodInstance.id, instanceId), eq(portionedFoodInstance.userId, userId))
     )
     .returning();
 
-  return (updated as PortionedFoodInstance) || null;
+  return {
+    ...updated,
+    calories: updated.calories ? Number(updated.calories) : undefined,
+  } as PortionedFoodInstance;
 }
 
 export async function deletePortionedFoodInstance(
