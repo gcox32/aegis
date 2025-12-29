@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
 import { WorkoutInstance, WorkoutBlockExerciseInstance, Exercise } from '@/types/train';
 import { SimpleLineChart } from './SimpleLineChart';
 import { format } from 'date-fns';
 import { usePreferences } from '@/lib/preferences';
+import TabLayout, { Tab } from '@/components/ui/TabLayout';
 
 interface PerformanceDashboardProps {
   workoutStats: WorkoutInstance[];
@@ -14,10 +14,7 @@ interface PerformanceDashboardProps {
   }[];
 }
 
-type Tab = 'workouts' | 'exercises';
-
 export default function PerformanceDashboard({ workoutStats, keyExerciseStats }: PerformanceDashboardProps) {
-  const [activeTab, setActiveTab] = useState<Tab>('workouts');
   const { preferences } = usePreferences();
   // Prepare data for Workout Stats
   const volumeData = workoutStats
@@ -44,34 +41,11 @@ export default function PerformanceDashboard({ workoutStats, keyExerciseStats }:
       label: format(new Date(w.date), 'MMM d'),
     }));
 
-  return (
-    <div className="space-y-6 pb-6">
-      {/* Tabs */}
-      <div className="flex border-b border-border mb-6">
-
-        <button
-          onClick={() => setActiveTab('workouts')}
-          className={`px-4 py-2 font-medium text-sm transition-colors border-b-2 ${
-            activeTab === 'workouts'
-              ? 'border-brand-primary text-foreground'
-              : 'border-transparent text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          Workout Stats
-        </button>
-        <button
-          onClick={() => setActiveTab('exercises')}
-          className={`px-4 py-2 font-medium text-sm transition-colors border-b-2 ${
-            activeTab === 'exercises'
-              ? 'border-brand-primary text-foreground'
-              : 'border-transparent text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          Key Exercises
-        </button>
-      </div>
-
-      {activeTab === 'workouts' && (
+  const tabs: Tab[] = [
+    {
+      id: 'workouts',
+      label: 'Workout Stats',
+      content: (
         <div className="grid gap-6 md:grid-cols-1">
           <div className="bg-zinc-800 p-4 rounded-lg shadow border border-zinc-700">
             <SimpleLineChart data={volumeData} title="Volume (kg)" unit="kg" color="#8b5cf6" />
@@ -83,9 +57,12 @@ export default function PerformanceDashboard({ workoutStats, keyExerciseStats }:
             <SimpleLineChart data={powerData} title="Average Power (W)" unit="W" color="#ef4444" />
           </div>
         </div>
-      )}
-
-      {activeTab === 'exercises' && (
+      ),
+    },
+    {
+      id: 'exercises',
+      label: 'Key Exercises',
+      content: (
         <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
           {keyExerciseStats.length === 0 ? (
             <div className="text-gray-500 col-span-full text-center py-10">
@@ -127,8 +104,10 @@ export default function PerformanceDashboard({ workoutStats, keyExerciseStats }:
             })
           )}
         </div>
-      )}
-    </div>
-  );
+      ),
+    },
+  ];
+
+  return <TabLayout tabs={tabs} defaultTab="workouts" />;
 }
 

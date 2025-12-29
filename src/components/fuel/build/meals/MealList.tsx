@@ -52,11 +52,6 @@ export default function MealList() {
                           <span>{Math.round(meal.calories)} cal</span>
                         </div>
                       )}
-                      {meal.macros?.protein && (
-                        <div className="flex items-center">
-                          <span>P: {Math.round(meal.macros.protein)}g</span>
-                        </div>
-                      )}
                       {meal.macros?.carbs && (
                         <div className="flex items-center">
                           <span>C: {Math.round(meal.macros.carbs)}g</span>
@@ -67,12 +62,13 @@ export default function MealList() {
                           <span>F: {Math.round(meal.macros.fat)}g</span>
                         </div>
                       )}
+                      {meal.macros?.protein && (
+                        <div className="flex items-center">
+                          <span>P: {Math.round(meal.macros.protein)}g</span>
+                        </div>
+                      )}
                     </div>
                   )}
-                  <div className="flex items-center text-gray-400 text-xs">
-                    <Calendar className="mr-1 w-3 h-3" />
-                    {new Date(meal.createdAt).toLocaleDateString()}
-                  </div>
                 </div>
               </div>
             </Link>

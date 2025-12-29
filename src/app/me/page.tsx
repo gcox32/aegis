@@ -7,6 +7,7 @@ import { UserProfile } from '@/types/user';
 import { WorkoutInstance } from '@/types/train';
 import OverviewTab from '@/components/me/OverviewTab';
 import ActivityTab from '@/components/me/ActivityTab';
+import TabLayout, { Tab } from '@/components/ui/TabLayout';
 
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, init);
@@ -17,13 +18,10 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   return res.json();
 }
 
-type Tab = 'overview' | 'activity';
-
 export default function MePage() {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [workoutDates, setWorkoutDates] = useState<Date[]>([]);
-  const [activeTab, setActiveTab] = useState<Tab>('overview');
 
   // Load data
   useEffect(() => {
@@ -79,40 +77,32 @@ export default function MePage() {
     );
   }
 
+  const tabs: Tab[] = [
+    {
+      id: 'overview',
+      label: 'Overview',
+      content: (
+        <div className="min-h-[400px]">
+          <OverviewTab profile={profile} workoutDates={workoutDates} />
+        </div>
+      ),
+    },
+    {
+      id: 'activity',
+      label: 'Activity',
+      content: (
+        <div className="min-h-[400px]">
+          <ActivityTab />
+        </div>
+      ),
+    },
+  ];
+
   return (
     <PageLayout
       title="Profile"
     >
-      {/* Tabs */}
-      <div className="flex border-b border-border mb-6">
-        <button
-          onClick={() => setActiveTab('overview')}
-          className={`px-4 py-2 font-medium text-sm transition-colors border-b-2 ${
-            activeTab === 'overview'
-              ? 'border-brand-primary text-foreground'
-              : 'border-transparent text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          Overview
-        </button>
-        <button
-          onClick={() => setActiveTab('activity')}
-          className={`px-4 py-2 font-medium text-sm transition-colors border-b-2 ${
-            activeTab === 'activity'
-              ? 'border-brand-primary text-foreground'
-              : 'border-transparent text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          Activity
-        </button>
-      </div>
-
-      {/* Tab Content */}
-      <div className="min-h-[400px]">
-        {activeTab === 'overview' && <OverviewTab profile={profile} workoutDates={workoutDates} />}
-        {activeTab === 'activity' && <ActivityTab />}
-      </div>
-
+      <TabLayout tabs={tabs} defaultTab="overview" />
     </PageLayout>
   );
 }

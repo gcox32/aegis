@@ -24,16 +24,16 @@ export const logViews = [
     },
     {
         name: 'Macros',
-        href: '/log/fuel',
+        href: '/log/macros',
         icon: PieChart,
-        description: 'Coming soon.',
-        active: false,
+        description: 'Track your macros.',
+        active: true,
     },
     {
         name: 'Sleep',
         href: '/log/sleep',
         icon: Moon,
-        description: 'Track your sleep.',
+        description: 'Check your sleep.',
         active: true,
     },
     {
