@@ -672,14 +672,27 @@ export async function createMealInstance(
   userId: string,
   instanceData: Omit<MealInstance, 'id' | 'userId'>
 ): Promise<MealInstance> {
+  // Convert date strings to Date objects if needed (from JSON parsing)
+  // TIMESTAMPTZ columns accept Date objects directly
+  const dateValue = typeof instanceData.date === 'string' 
+    ? new Date(instanceData.date) 
+    : instanceData.date;
+  
+  // Convert timestamp to Date object if needed (timestamp column accepts Date)
+  const timestampValue = instanceData.timestamp 
+    ? (typeof instanceData.timestamp === 'string' 
+        ? new Date(instanceData.timestamp) 
+        : instanceData.timestamp)
+    : null;
+
   const [newInstance] = await db
     .insert(mealInstance)
     .values({
       userId,
-      mealPlanInstanceId: instanceData.mealPlanInstanceId,
+      mealPlanInstanceId: instanceData.mealPlanInstanceId ?? null,
       mealId: instanceData.mealId,
-      date: instanceData.date,
-      timestamp: instanceData.timestamp ?? null,
+      date: dateValue,
+      timestamp: timestampValue,
       complete: instanceData.complete ?? false,
       calories: instanceData.calories?.toString() || null,
       macros: instanceData.macros,
@@ -737,9 +750,29 @@ export async function getUserMealInstances(
 export async function updateMealInstance(
   instanceId: string,
   userId: string,
-  updates: Partial<Omit<MealInstance, 'id' | 'userId' | 'mealPlanInstanceId' | 'mealId' | 'date'>>
+  updates: Partial<Omit<MealInstance, 'id' | 'userId' | 'mealPlanInstanceId' | 'mealId'>>
 ): Promise<MealInstance | null> {
   const dbUpdates: any = { ...updates };
+  
+  // Convert date to string format if provided
+  if (updates.date) {
+    const dateInput = updates.date as string | Date;
+    dbUpdates.date = typeof dateInput === 'string' 
+      ? dateInput.split('T')[0]
+      : dateInput instanceof Date
+      ? dateInput.toISOString().split('T')[0]
+      : new Date(dateInput).toISOString().split('T')[0];
+  }
+  
+  // Convert timestamp to Date if provided
+  if (updates.timestamp !== undefined) {
+    dbUpdates.timestamp = updates.timestamp 
+      ? (typeof updates.timestamp === 'string' 
+          ? new Date(updates.timestamp) 
+          : updates.timestamp)
+      : null;
+  }
+  
   if (updates.calories !== undefined) {
     dbUpdates.calories = updates.calories?.toString() || null;
   }
@@ -754,8 +787,8 @@ export async function updateMealInstance(
 
   return {
     ...updated,
-    date: new Date(updated.date),
-    timestamp: updated.timestamp ? new Date(updated.timestamp) : null,
+    date: updated.date instanceof Date ? updated.date : new Date(updated.date),
+    timestamp: updated.timestamp ? (updated.timestamp instanceof Date ? updated.timestamp : new Date(updated.timestamp)) : null,
     calories: updated.calories ? Number(updated.calories) : undefined,
   } as MealInstance;
 }

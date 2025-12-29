@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { calculateFuelRecommendations } from '@/lib/fuel/recommendations';
 import type { UserProfile } from '@/types/user';
 import type { FuelRecommendations } from '@/lib/fuel/recommendations';
@@ -89,7 +89,7 @@ export default function TargetsTab() {
 
   if (error) {
     return (
-      <div className="bg-card border border-border rounded-lg p-6">
+      <div className="bg-card p-6 border border-border rounded-lg">
         <p className="text-muted-foreground text-sm">{error}</p>
       </div>
     );
@@ -97,7 +97,7 @@ export default function TargetsTab() {
 
   if (!recommendations || !recommendations.calorieTarget || !recommendations.macros) {
     return (
-      <div className="bg-card border border-border rounded-lg p-6">
+      <div className="bg-card p-6 border border-border rounded-lg">
         <p className="text-muted-foreground text-sm">
           Unable to calculate recommendations. Please ensure you have completed your profile with height, weight, gender, and birth date.
         </p>
@@ -122,12 +122,12 @@ export default function TargetsTab() {
     if (active && payload && payload.length) {
       const data = payload[0];
       return (
-        <div className="bg-background border border-border rounded-lg p-3 shadow-lg">
+        <div className="bg-background shadow-lg p-3 border border-border rounded-lg">
           <p className="font-medium text-sm">{data.name}</p>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="mt-1 text-muted-foreground text-xs">
             {data.payload.grams}g ({data.value} cal)
           </p>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-muted-foreground text-xs">
             {((data.value / calorieTarget) * 100).toFixed(1)}% of total
           </p>
         </div>
@@ -136,35 +136,59 @@ export default function TargetsTab() {
     return null;
   };
 
+  const CustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, name }: any) => {
+    const RADIAN = Math.PI / 180;
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+    // Only show label if slice is large enough (more than 5%)
+    if ((percent || 0) < 0.05) return null;
+
+    return (
+      <text
+        x={x}
+        y={y}
+        fill="white"
+        textAnchor={x > cx ? 'start' : 'end'}
+        dominantBaseline="central"
+        className="font-semibold text-xs"
+        style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}
+      >
+        {`${name} ${((percent || 0) * 100).toFixed(0)}%`}
+      </text>
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* Calorie Targets */}
-      <div className="bg-card border border-border rounded-lg p-6">
-        <h3 className="font-semibold text-lg mb-4">Daily Calorie Targets</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="bg-card p-6 border border-border rounded-lg">
+        <h3 className="mb-4 font-semibold text-lg">Daily Calorie Targets</h3>
+        <div className="gap-4 grid grid-cols-1 md:grid-cols-3">
           <div>
-            <p className="text-muted-foreground text-sm mb-1">BMR</p>
-            <p className="text-2xl font-bold">{bmr?.toLocaleString() || '—'}</p>
-            <p className="text-xs text-muted-foreground mt-1">Basal Metabolic Rate</p>
+            <p className="mb-1 text-muted-foreground text-sm">BMR</p>
+            <p className="font-bold text-2xl">{bmr?.toLocaleString() || '—'}</p>
+            <p className="mt-1 text-muted-foreground text-xs">Basal Metabolic Rate</p>
           </div>
           <div>
-            <p className="text-muted-foreground text-sm mb-1">TDEE</p>
-            <p className="text-2xl font-bold">{tdee?.toLocaleString() || '—'}</p>
-            <p className="text-xs text-muted-foreground mt-1">Total Daily Energy Expenditure</p>
+            <p className="mb-1 text-muted-foreground text-sm">TDEE</p>
+            <p className="font-bold text-2xl">{tdee?.toLocaleString() || '—'}</p>
+            <p className="mt-1 text-muted-foreground text-xs">Total Daily Energy Expenditure</p>
           </div>
           <div>
-            <p className="text-muted-foreground text-sm mb-1">Target</p>
-            <p className="text-2xl font-bold text-brand-primary">
+            <p className="mb-1 text-muted-foreground text-sm">Target</p>
+            <p className="font-bold text-brand-primary text-2xl">
               {calorieTarget?.toLocaleString() || '—'}
             </p>
-            <p className="text-xs text-muted-foreground mt-1">Daily Calorie Goal</p>
+            <p className="mt-1 text-muted-foreground text-xs">Daily Calorie Goal</p>
           </div>
         </div>
       </div>
 
       {/* Macro Targets */}
-      <div className="bg-card border border-border rounded-lg p-6">
-        <h3 className="font-semibold text-lg mb-4">Macro Targets</h3>
+      <div className="bg-card p-6 border border-border rounded-lg">
+        <h3 className="mb-4 font-semibold text-lg">Macro Targets</h3>
         
         {/* Pie Chart */}
         <div className="mb-6">
@@ -175,7 +199,7 @@ export default function TargetsTab() {
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
+                label={CustomLabel}
                 outerRadius={100}
                 fill="#8884d8"
                 dataKey="value"
@@ -191,42 +215,41 @@ export default function TargetsTab() {
                 })}
               </Pie>
               <Tooltip content={<CustomTooltip />} />
-              <Legend />
             </PieChart>
           </ResponsiveContainer>
         </div>
 
         {/* Macro Breakdown */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="border border-border rounded-lg p-4">
+        <div className="gap-4 grid grid-cols-1 md:grid-cols-3">
+          <div className="p-4 border border-border rounded-lg">
             <div className="flex items-center gap-2 mb-2">
-              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS.protein }} />
+              <div className="rounded-full w-3 h-3" style={{ backgroundColor: COLORS.protein }} />
               <p className="font-medium text-sm">Protein</p>
             </div>
-            <p className="text-2xl font-bold">{macros.protein?.toLocaleString() || '—'}g</p>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="font-bold text-2xl">{macros.protein?.toLocaleString() || '—'}g</p>
+            <p className="mt-1 text-muted-foreground text-xs">
               {proteinCalories} calories ({((proteinCalories / calorieTarget) * 100).toFixed(1)}%)
             </p>
           </div>
 
-          <div className="border border-border rounded-lg p-4">
+          <div className="p-4 border border-border rounded-lg">
             <div className="flex items-center gap-2 mb-2">
-              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS.carbs }} />
+              <div className="rounded-full w-3 h-3" style={{ backgroundColor: COLORS.carbs }} />
               <p className="font-medium text-sm">Carbs</p>
             </div>
-            <p className="text-2xl font-bold">{macros.carbs?.toLocaleString() || '—'}g</p>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="font-bold text-2xl">{macros.carbs?.toLocaleString() || '—'}g</p>
+            <p className="mt-1 text-muted-foreground text-xs">
               {carbsCalories} calories ({((carbsCalories / calorieTarget) * 100).toFixed(1)}%)
             </p>
           </div>
 
-          <div className="border border-border rounded-lg p-4">
+          <div className="p-4 border border-border rounded-lg">
             <div className="flex items-center gap-2 mb-2">
-              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS.fat }} />
+              <div className="rounded-full w-3 h-3" style={{ backgroundColor: COLORS.fat }} />
               <p className="font-medium text-sm">Fat</p>
             </div>
-            <p className="text-2xl font-bold">{macros.fat?.toLocaleString() || '—'}g</p>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="font-bold text-2xl">{macros.fat?.toLocaleString() || '—'}g</p>
+            <p className="mt-1 text-muted-foreground text-xs">
               {fatCalories} calories ({((fatCalories / calorieTarget) * 100).toFixed(1)}%)
             </p>
           </div>

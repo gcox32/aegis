@@ -117,16 +117,16 @@ export interface MealPlanInstance {
 
 export interface MealInstance {
     id: string;
-    userId:             User['id'];
-    mealPlanInstanceId: MealPlanInstance['id'];
-    mealId:             Meal['id'];
-    date:               Date;
-    calories?:          number;
-    macros?:            Macros;
-    micros?:            Micros;
-    timestamp?:         Date | null;
-    complete:           boolean;
-    notes?:             string;
+    userId:              User['id'];
+    mealPlanInstanceId?: MealPlanInstance['id'] | null;
+    mealId:              Meal['id'];
+    date:                Date;
+    calories?:           number;
+    macros?:             Macros;
+    micros?:             Micros;
+    timestamp?:          Date | null;
+    complete:            boolean;
+    notes?:              string;
 }
 
 export interface PortionedFoodInstance {

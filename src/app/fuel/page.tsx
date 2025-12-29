@@ -5,6 +5,8 @@ import Button from '@/components/ui/Button';
 import PageLayout from '@/components/layout/PageLayout';
 import TabLayout, { Tab } from '@/components/ui/TabLayout';
 import TargetsTab from '@/components/fuel/TargetsTab';
+import HistoryTab from '@/components/fuel/HistoryTab';
+import LoggingTab from '@/components/fuel/LoggingTab';
 
 export default function FuelPage() {
   const tabs: Tab[] = [
@@ -12,39 +14,26 @@ export default function FuelPage() {
       id: 'targets',
       label: 'Targets',
       content: (
-        <div className="md:mx-auto md:max-w-4xl px-4 md:px-6">
+        <div className="md:mx-auto px-4 md:px-6 md:max-w-4xl">
           <TargetsTab />
         </div>
       ),
     },
     {
-      id: 'build',
-      label: 'Build',
+      id: 'log',
+      label: 'Log',
       content: (
-        <div className="md:mx-auto md:max-w-4xl">
-          {/* Current Meal Plan */}
-          <section className="px-4 md:px-6 py-6">
-            <h2 className="mb-3 font-semibold text-lg">Current Meal Plan</h2>
-            <div className="bg-card p-4 border border-border rounded-lg">
-              <div className="flex justify-between items-center gap-3">
-                <div>
-                  <p className="font-medium text-sm">No active meal plan</p>
-                  <p className="mt-1 text-muted-foreground text-xs">
-                    When you start a meal plan, it will appear here with your
-                    weekly structure.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <section className="px-4 md:px-6 py-6 border-border border-t">
-            <Link href="/fuel/build">
-              <Button variant="primary" size="lg" className="w-full">
-                Build
-              </Button>
-            </Link>
-          </section>
+        <div className="md:mx-auto px-4 md:px-6 md:max-w-4xl">
+          <LoggingTab />
+        </div>
+      ),
+    },
+    {
+      id: 'history',
+      label: 'History',
+      content: (
+        <div className="md:mx-auto px-4 md:px-6 md:max-w-4xl">
+          <HistoryTab />
         </div>
       ),
     },
@@ -55,7 +44,19 @@ export default function FuelPage() {
       title="Fuel"
       subtitle="Plan and track your nutrition"
     >
-      <TabLayout tabs={tabs} defaultTab="targets" />
+      <div className="space-y-6">
+        {/* Build Button */}
+        <div className="px-4 md:px-6">
+          <Link href="/fuel/build">
+            <Button variant="primary" size="lg" className="w-full md:w-auto">
+              Build
+            </Button>
+          </Link>
+        </div>
+
+        {/* Tabs */}
+        <TabLayout tabs={tabs} defaultTab="targets" />
+      </div>
     </PageLayout>
   );
 }

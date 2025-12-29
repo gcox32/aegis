@@ -26,7 +26,7 @@ export const logViews = [
         name: 'Macros',
         href: '/log/macros',
         icon: PieChart,
-        description: 'Track your macros.',
+        description: 'Gauge your adherence.',
         active: true,
     },
     {

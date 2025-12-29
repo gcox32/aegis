@@ -115,10 +115,9 @@ export const mealInstance = fuelSchema.table('meal_instance', {
   id: uuid('id').defaultRandom().primaryKey(),
   userId: uuid('user_id').notNull().references(() => user.id),
   mealPlanInstanceId: uuid('meal_plan_instance_id')
-    .notNull()
     .references(() => mealPlanInstance.id),
   mealId: uuid('meal_id').notNull().references(() => meal.id),
-  date: date('date').notNull(),
+  date: timestamp('date', { withTimezone: true }).notNull(),
   timestamp: timestamp('timestamp', { withTimezone: true }),
   complete: boolean('complete').notNull().default(false),
   calories: numeric('calories'),
