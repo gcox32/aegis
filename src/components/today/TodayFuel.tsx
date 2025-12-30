@@ -144,7 +144,7 @@ export default function TodayFuel() {
 
             {/* Protein */}
             <div className="flex items-center gap-3">
-              <div className="w-1 h-12 bg-green-500 rounded-full" />
+              <div className="w-1 h-12 bg-brand-primary rounded-full" />
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
                   <Target className="w-2 h-2 text-muted-foreground opacity-30" />
