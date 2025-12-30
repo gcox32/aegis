@@ -199,9 +199,12 @@ export default function RecordTab() {
         instanceCalories = mealNutrients.calories;
         instanceMacros = mealNutrients.macros;
 
-        // Create meal
+        // Create meal - name it after the first food
+        const firstFood = foodMap.get(portionedFoods[0].foodId);
+        const mealName = `Quick Log - ${firstFood?.name}` || 'Quick Log';
+        
         const mealData = {
-          name: `Quick Log - ${new Date().toLocaleDateString()}`,
+          name: mealName,
           description: 'Quick logged meal',
           calories: mealNutrients.calories,
           macros: mealNutrients.macros,
@@ -239,20 +242,21 @@ export default function RecordTab() {
         }
       }
 
-      // Create date with optional time (using local date components to avoid timezone issues)
-      // Parse date string (YYYY-MM-DD) and create Date in local timezone
+      // Create date and timestamp in local timezone
+      // Parse date string (YYYY-MM-DD) and create Date in local timezone at midnight
       const [year, month, day] = date.split('-').map(Number);
-      const dateObj = new Date(year, month - 1, day);
+      const dateObj = new Date(year, month - 1, day, 0, 0, 0, 0);
+      
+      // Create timestamp if time is provided (date + time in local timezone)
       let timestamp: Date | null = null;
       if (time) {
         const [hours, minutes] = time.split(':').map(Number);
-        dateObj.setHours(hours, minutes, 0, 0);
-        timestamp = dateObj;
-      } else {
-        dateObj.setHours(0, 0, 0, 0);
+        timestamp = new Date(year, month - 1, day, hours, minutes, 0, 0);
       }
 
       // Create meal instance with calories and macros
+      // Both date and timestamp are Date objects in local timezone, which will be
+      // properly converted to timestamptz by the database
       const instanceData: Omit<MealInstance, 'id' | 'userId'> = {
         mealPlanInstanceId: selectedMealPlanInstanceId || undefined,
         mealId,

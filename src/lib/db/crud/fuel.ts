@@ -754,14 +754,42 @@ export async function updateMealInstance(
 ): Promise<MealInstance | null> {
   const dbUpdates: any = { ...updates };
   
-  // Convert date to string format if provided
+  // Convert date to Date object (timestamptz) if provided
+  // Date should be at midnight in local timezone
+  // When Date objects are JSON.stringify'd, they become ISO strings (UTC)
+  // We need to extract the date components to preserve the intended local date
   if (updates.date) {
-    const dateInput = updates.date as string | Date;
-    dbUpdates.date = typeof dateInput === 'string' 
-      ? dateInput.split('T')[0]
-      : dateInput instanceof Date
-      ? dateInput.toISOString().split('T')[0]
-      : new Date(dateInput).toISOString().split('T')[0];
+    const dateInput = updates.date;
+    let dateValue: Date;
+    
+    if (dateInput instanceof Date) {
+      // If it's already a Date, use it directly
+      dateValue = dateInput;
+    } else if (typeof dateInput === 'string') {
+      // Parse ISO string or date string
+      // Extract YYYY-MM-DD part to avoid timezone shifts
+      const dateStr = (dateInput as string).split('T')[0]; // Get YYYY-MM-DD part
+      const [year, month, day] = dateStr.split('-').map(Number);
+      // Create Date at midnight in local timezone to preserve the intended date
+      dateValue = new Date(year, month - 1, day, 0, 0, 0, 0);
+    } else {
+      // Fallback: try to create Date from whatever it is
+      try {
+        const tempDate = new Date(dateInput);
+        if (isNaN(tempDate.getTime())) {
+          throw new Error('Invalid date');
+        }
+        // Extract date components to avoid timezone issues
+        const year = tempDate.getFullYear();
+        const month = tempDate.getMonth();
+        const day = tempDate.getDate();
+        dateValue = new Date(year, month, day, 0, 0, 0, 0);
+      } catch {
+        throw new Error(`Invalid date value: ${dateInput}`);
+      }
+    }
+    
+    dbUpdates.date = dateValue;
   }
   
   // Convert timestamp to Date if provided
@@ -769,7 +797,9 @@ export async function updateMealInstance(
     dbUpdates.timestamp = updates.timestamp 
       ? (typeof updates.timestamp === 'string' 
           ? new Date(updates.timestamp) 
-          : updates.timestamp)
+          : updates.timestamp instanceof Date
+          ? updates.timestamp
+          : new Date(updates.timestamp))
       : null;
   }
   
