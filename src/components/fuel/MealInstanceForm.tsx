@@ -111,7 +111,7 @@ export default function MealInstanceForm({ initialData }: MealInstanceFormProps)
         )}
 
         <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
-          <FormGroup className="max-w-[88%]">
+          <FormGroup className="max-w-[92%]">
             <FormLabel>Date</FormLabel>
             <FormInput
               type="date"
@@ -121,7 +121,7 @@ export default function MealInstanceForm({ initialData }: MealInstanceFormProps)
             />
           </FormGroup>
 
-          <FormGroup className="max-w-[88%]">
+          <FormGroup className="max-w-[92%]">
             <FormLabel>Time (optional)</FormLabel>
             <FormInput
               type="time"

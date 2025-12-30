@@ -33,7 +33,7 @@ export default function TodayFuel() {
             `/api/fuel/meals/instances?dateFrom=${startOfDay.toISOString()}&dateTo=${endOfDay.toISOString()}`
           ),
           fetchJson<{ meals: Meal[]; total: number; page: number; limit: number }>(
-            '/api/fuel/meals?limit=1000'
+            '/api/fuel/meals?limit=6'
           )
         ]);
 
@@ -105,9 +105,6 @@ export default function TodayFuel() {
               {sortedInstances.length} {sortedInstances.length === 1 ? 'Meal' : 'Meals'} Logged
             </span>
             <h3 className="font-bold text-xl">Today's Meals</h3>
-            <p className="text-muted-foreground text-sm">
-              Keep up the great work!
-            </p>
           </div>
           <Utensils className="bg-primary/10 p-2 rounded-full w-10 h-10 text-primary" />
         </div>
@@ -156,7 +153,7 @@ export default function TodayFuel() {
         <Button
           variant="primary"
           fullWidth
-          onClick={() => router.push('/fuel')}
+          onClick={() => router.push('/fuel?tab=record')}
         >
           Log More Meals
         </Button>
@@ -179,7 +176,7 @@ export default function TodayFuel() {
       <Button
         variant="primary"
         fullWidth
-        onClick={() => router.push('/fuel')}
+        onClick={() => router.push('/fuel?tab=record')}
       >
         <Plus className="w-4 h-4 mr-2" />
         Log Meals
