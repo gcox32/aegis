@@ -71,7 +71,13 @@ export function SleepForm({ initialDate, initialData, onSuccess }: SleepFormProp
         }
         
         const diffMs = endD.getTime() - startD.getTime();
-        const diffHrs = diffMs / (1000 * 60 * 60);
+        let diffHrs = diffMs / (1000 * 60 * 60);
+        
+        // Subtract time awake if provided
+        if (timeAwake !== undefined && timeAwake !== null) {
+            diffHrs -= timeAwake / 60; // Convert minutes to hours
+        }
+        
         const hours = Math.floor(diffHrs);
         const mins = Math.round((diffHrs - hours) * 60);
         
@@ -106,7 +112,14 @@ export function SleepForm({ initialDate, initialData, onSuccess }: SleepFormProp
                 endTimestamp = endD;
                 
                 const diffMs = endD.getTime() - startD.getTime();
-                durationHours = Math.round((diffMs / (1000 * 60 * 60)) * 100) / 100;
+                let totalHours = diffMs / (1000 * 60 * 60);
+                
+                // Subtract time awake if provided
+                if (timeAwake !== undefined && timeAwake !== null) {
+                    totalHours -= timeAwake / 60; // Convert minutes to hours
+                }
+                
+                durationHours = Math.round(totalHours * 100) / 100;
             }
 
             const payload: any = {

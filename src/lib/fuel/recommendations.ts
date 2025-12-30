@@ -1,6 +1,5 @@
-import type { UserProfile, UserGoal, UserStats } from '@/types/user';
-import type { HeightMeasurement, WeightMeasurement } from '@/types/measures';
-import type { Macros } from '@/types/fuel';
+import type { UserProfile, UserGoal, UserGoalComponent } from '@/types/user';
+import type { HeightMeasurement, WeightMeasurement, PercentageMeasurement } from '@/types/measures';
 
 // Conversion constants
 const IN_TO_CM = 2.54;
@@ -15,9 +14,8 @@ const ACTIVITY_MULTIPLIERS: Record<string, number> = {
   'extra active': 1.9,        // Very hard exercise, physical job
 };
 
-// Calorie deficit/surplus per pound per week
-const CALORIES_PER_LB_PER_WEEK = 3500;
-const CALORIES_PER_KG_PER_WEEK = 7700;
+// Goal type for calorie adjustments
+type GoalType = 'cut' | 'recomp' | 'gain' | 'maintenance';
 
 export interface FuelRecommendations {
   bmr?: number;              // Basal Metabolic Rate (calories/day)
@@ -79,21 +77,55 @@ function calculateAge(birthDate: string | Date): number {
 }
 
 /**
- * Calculate Basal Metabolic Rate (BMR) using the Mifflin-St Jeor equation
- * This is the most accurate and widely used formula
+ * Calculate Lean Body Mass (LBM) from weight and body fat percentage
  */
-function calculateBMR(
+function calculateLBM(weightKg: number, bodyFatPercentage?: number): number {
+  if (bodyFatPercentage !== undefined && bodyFatPercentage > 0 && bodyFatPercentage < 100) {
+    return weightKg * (1 - bodyFatPercentage / 100);
+  }
+  // If body fat is not available, estimate it based on typical values
+  // This is a fallback - ideally body fat should be measured
+  // Rough estimate: assume 15% for males, 25% for females (will be refined if we have gender)
+  return weightKg * 0.85; // Conservative estimate assuming ~15% body fat
+}
+
+/**
+ * Estimate body fat percentage if not available
+ * Uses a simple BMI-based estimation as fallback
+ */
+function estimateBodyFatPercentage(
   weightKg: number,
   heightCm: number,
-  age: number,
-  gender: 'male' | 'female'
+  gender?: 'male' | 'female',
+  bodyFatPercentage?: PercentageMeasurement
 ): number {
-  // Mifflin-St Jeor equation:
-  // Men: BMR = 10 × weight(kg) + 6.25 × height(cm) - 5 × age(years) + 5
-  // Women: BMR = 10 × weight(kg) + 6.25 × height(cm) - 5 × age(years) - 161
+  // If body fat is already provided, use it
+  if (bodyFatPercentage?.value !== undefined) {
+    return bodyFatPercentage.value;
+  }
+
+  // Try to calculate using available stats
+  // This is a simplified fallback - ideally body fat should be measured
+  const heightM = heightCm / 100;
+  const bmi = heightM > 0 ? weightKg / (heightM * heightM) : 0;
   
-  const baseBMR = 10 * weightKg + 6.25 * heightCm - 5 * age;
-  return gender === 'male' ? baseBMR + 5 : baseBMR - 161;
+  // Simple BMI-based estimation (not very accurate, but better than nothing)
+  if (gender === 'male') {
+    return Math.max(5, Math.min(40, 1.2 * bmi + 0.23 * 30 - 10.8 * 1 - 5.4)); // Rough estimate
+  } else if (gender === 'female') {
+    return Math.max(10, Math.min(45, 1.2 * bmi + 0.23 * 30 - 10.8 * 0 - 5.4)); // Rough estimate
+  }
+  
+  // Default to 20% if we can't estimate
+  return 20;
+}
+
+/**
+ * Calculate Basal Metabolic Rate (BMR) using the Katch-McArdle equation
+ * BMR = 370 + 21.6 * LBM_kg
+ */
+function calculateBMR(lbmKg: number): number {
+  return 370 + 21.6 * lbmKg;
 }
 
 /**
@@ -106,45 +138,119 @@ function calculateTDEE(bmr: number, activityLevel: string): number {
 }
 
 /**
- * Extract body weight goal from user goals
- * Returns target weight in kg and whether it's a gain or loss goal
+ * Determine goal type from user goals
+ * Returns 'cut', 'recomp', 'gain', or 'maintenance'
+ * Considers all active goal components and selects the highest priority one
  */
-function extractBodyWeightGoal(
+function determineGoalType(
   goals: UserGoal[] | undefined,
   currentWeightKg: number
-): { targetWeightKg?: number; isWeightLoss?: boolean } | null {
+): GoalType {
+  if (!goals || goals.length === 0) return 'maintenance';
+
+  // Collect all active components from incomplete goals
+  // Include both bodycomposition and bodyweight components
+  const activeComponents: Array<{
+    component: UserGoalComponent;
+    priority: number;
+  }> = [];
+
+  for (const goal of goals) {
+    if (goal.complete) continue;
+
+    for (const component of goal.components || []) {
+      // Only consider bodycomposition and bodyweight components
+      if (component.type === 'bodycomposition' || component.type === 'bodyweight') {
+        activeComponents.push({
+          component,
+          priority: component.priority || 999, // Higher number = lower priority
+        });
+      }
+    }
+  }
+
+  if (activeComponents.length === 0) return 'maintenance';
+
+  // Sort by priority (lower number = higher priority)
+  activeComponents.sort((a, b) => a.priority - b.priority);
+
+  // Get the highest priority component
+  const highestPriorityComponent = activeComponents[0].component;
+
+  // Determine goal type based on component type
+  if (highestPriorityComponent.type === 'bodycomposition') {
+    return 'recomp';
+  }
+
+  if (highestPriorityComponent.type === 'bodyweight') {
+    // Check criteria to determine if it's a cut or gain
+    if (!highestPriorityComponent.criteria || highestPriorityComponent.criteria.length === 0) {
+      return 'maintenance';
+    }
+
+    // Find the target weight from criteria
+    for (const criteria of highestPriorityComponent.criteria) {
+      if (criteria.value && typeof criteria.value === 'object' && 'value' in criteria.value && 'unit' in criteria.value) {
+        const weightValue = criteria.value as WeightMeasurement;
+        const targetWeightKg = weightToKg(weightValue);
+        
+        if (targetWeightKg < currentWeightKg) {
+          return 'cut';
+        } else if (targetWeightKg > currentWeightKg) {
+          return 'gain';
+        }
+      }
+    }
+  }
+
+  return 'maintenance';
+}
+
+/**
+ * Extract target weight from user goals
+ * Uses the same priority logic as determineGoalType to find the highest priority bodyweight component
+ */
+function extractTargetWeight(
+  goals: UserGoal[] | undefined
+): number | null {
   if (!goals || goals.length === 0) return null;
 
-  // Find active bodyweight goals
-  const bodyweightGoals = goals.filter(
-    goal => !goal.complete && 
-    goal.components?.some(component => component.type === 'bodyweight')
-  );
+  // Collect all active bodyweight components from incomplete goals
+  const activeBodyweightComponents: Array<{
+    component: UserGoalComponent;
+    priority: number;
+  }> = [];
 
-  if (bodyweightGoals.length === 0) return null;
+  for (const goal of goals) {
+    if (goal.complete) continue;
 
-  // Get the highest priority bodyweight goal
-  const sortedGoals = bodyweightGoals.sort((a, b) => {
-    const aPriority = Math.min(...(a.components?.map(c => c.priority || 0) || [0]));
-    const bPriority = Math.min(...(b.components?.map(c => c.priority || 0) || [0]));
-    return aPriority - bPriority;
-  });
+    for (const component of goal.components || []) {
+      if (component.type === 'bodyweight') {
+        activeBodyweightComponents.push({
+          component,
+          priority: component.priority || 999,
+        });
+      }
+    }
+  }
 
-  const goal = sortedGoals[0];
-  const bodyweightComponent = goal.components?.find(c => c.type === 'bodyweight');
-  
-  if (!bodyweightComponent?.criteria || bodyweightComponent.criteria.length === 0) {
+  if (activeBodyweightComponents.length === 0) return null;
+
+  // Sort by priority (lower number = higher priority)
+  activeBodyweightComponents.sort((a, b) => a.priority - b.priority);
+
+  // Get the highest priority bodyweight component
+  const highestPriorityComponent = activeBodyweightComponents[0].component;
+
+  if (!highestPriorityComponent.criteria || highestPriorityComponent.criteria.length === 0) {
     return null;
   }
 
   // Find the target weight from criteria
-  for (const criteria of bodyweightComponent.criteria) {
+  for (const criteria of highestPriorityComponent.criteria) {
     if (criteria.value && typeof criteria.value === 'object' && 'value' in criteria.value && 'unit' in criteria.value) {
       const weightValue = criteria.value as WeightMeasurement;
-      const targetWeightKg = weightToKg(weightValue);
-      const isWeightLoss = targetWeightKg < currentWeightKg;
-      
-      return { targetWeightKg, isWeightLoss };
+      return weightToKg(weightValue);
     }
   }
 
@@ -152,85 +258,48 @@ function extractBodyWeightGoal(
 }
 
 /**
- * Calculate calorie target based on body weight goal
- * Assumes a safe rate of 0.5-1 lb (0.23-0.45 kg) per week
+ * Calculate calorie target based on goal type
+ * cut: TDEE - 100
+ * recomp: TDEE + 100
+ * gain: TDEE + ~200
+ * maintenance: TDEE
  */
 function calculateCalorieTarget(
   tdee: number,
-  bmr: number,
-  currentWeightKg: number,
-  targetWeightKg?: number,
-  isWeightLoss?: boolean
+  goalType: GoalType
 ): number {
-  if (!targetWeightKg) {
-    return tdee; // Maintenance calories
-  }
-
-  const weightDifference = Math.abs(targetWeightKg - currentWeightKg);
-  
-  // If already at or very close to target (within 0.5 kg), use maintenance
-  if (weightDifference < 0.5) {
-    return tdee;
-  }
-
-  // Calculate safe weekly rate: 0.5-1 lb per week (0.23-0.45 kg per week)
-  // Use 0.75 lb/week (0.34 kg/week) as a moderate rate
-  const weeklyWeightChangeKg = 0.34;
-  const weeklyCalorieAdjustment = weeklyWeightChangeKg * CALORIES_PER_KG_PER_WEEK;
-  const dailyCalorieAdjustment = weeklyCalorieAdjustment / 7;
-
-  if (isWeightLoss) {
-    return Math.max(tdee - dailyCalorieAdjustment, bmr * 1.1); // Don't go below 110% of BMR
-  } else {
-    return tdee + dailyCalorieAdjustment;
+  switch (goalType) {
+    case 'cut':
+      return tdee - 100;
+    case 'recomp':
+      return tdee + 100;
+    case 'gain':
+      return tdee + 200;
+    case 'maintenance':
+    default:
+      return tdee;
   }
 }
 
 /**
  * Calculate protein target
- * Recommendations:
- * - General: 0.8-1.0 g/kg body weight
- * - Active individuals: 1.2-2.2 g/kg body weight
- * - For body composition goals: 1.6-2.2 g/kg body weight
- * - Or 20-30% of total calories
+ * Protein (g/day) = 1.8–2.2 × LeanMass_target_kg
+ * Using 2.0 as the middle value for simplicity
  */
-function calculateProteinTarget(
-  weightKg: number,
-  calorieTarget: number,
-  hasBodyCompositionGoal: boolean
-): number {
-  // Use higher protein for body composition goals
-  const proteinPerKg = hasBodyCompositionGoal ? 2.0 : 1.6;
-  const proteinFromWeight = weightKg * proteinPerKg;
-  
-  // Also calculate as percentage of calories (25% is a good middle ground)
-  const caloriesFromProtein = calorieTarget * 0.25;
-  const proteinFromCalories = caloriesFromProtein / 4; // 4 calories per gram of protein
-  
-  // Use the higher of the two to ensure adequate protein
-  return Math.max(proteinFromWeight, proteinFromCalories);
+function calculateProteinTarget(lbmTargetKg: number): number {
+  // Use 2.0 g per kg of target lean mass (middle of 1.8-2.2 range)
+  console.log('lbmtargetkg', lbmTargetKg);
+  return lbmTargetKg * 2.0;
 }
 
 /**
  * Calculate fat target
- * Recommendations:
- * - Minimum: 0.5-1.0 g/kg body weight for essential fat
- * - Optimal: 20-35% of total calories
- * - For active individuals: 0.8-1.0 g/kg body weight minimum
+ * Fat_min = 0.6–0.8 g per kg of LeanMass_target
+ * Using 0.7 as the middle value for simplicity
  */
-function calculateFatTarget(
-  weightKg: number,
-  calorieTarget: number
-): number {
-  // Minimum fat requirement: 0.8 g/kg body weight
-  const minFatFromWeight = weightKg * 0.8;
-  
-  // Optimal: 25% of total calories
-  const caloriesFromFat = calorieTarget * 0.25;
-  const fatFromCalories = caloriesFromFat / 9; // 9 calories per gram of fat
-  
-  // Use the higher of the two to ensure adequate fat intake
-  return Math.max(minFatFromWeight, fatFromCalories);
+function calculateFatTarget(lbmTargetKg: number): number {
+  // Use 0.7 g per kg of target lean mass (middle of 0.6-0.8 range)
+  return lbmTargetKg * 0.7;
 }
 
 /**
@@ -251,6 +320,44 @@ function calculateCarbTarget(
 }
 
 /**
+ * Calculate target lean body mass based on goal type
+ */
+function calculateTargetLBM(
+  currentWeightKg: number,
+  currentLBMKg: number,
+  targetWeightKg: number | null,
+  goalType: GoalType,
+  bodyFatPercentage?: number
+): number {
+  console.log('currentLBMKg', currentLBMKg);
+  if (goalType === 'recomp') {
+    // For recomp, maintain current LBM while losing fat
+    return currentLBMKg;
+  }
+
+  if (targetWeightKg === null) {
+    // No target weight, use current LBM
+    return currentLBMKg;
+  }
+
+  // For cut/gain, estimate body fat at target weight
+  // For cut: body fat typically decreases slightly (assume 1-2% improvement)
+  // For gain: body fat might increase slightly (assume 1-2% increase)
+  let estimatedBodyFatAtTarget = bodyFatPercentage || 20;
+  
+  if (goalType === 'cut' && bodyFatPercentage !== undefined) {
+    // Assume slight improvement in body composition during cut
+    estimatedBodyFatAtTarget = Math.max(8, bodyFatPercentage - 1.5);
+  } else if (goalType === 'gain' && bodyFatPercentage !== undefined) {
+    // Assume slight increase in body fat during gain (but try to minimize)
+    estimatedBodyFatAtTarget = Math.min(30, bodyFatPercentage + 1.5);
+  }
+
+  // Calculate target LBM from target weight and estimated body fat
+  return targetWeightKg * (1 - estimatedBodyFatAtTarget / 100);
+}
+
+/**
  * Main function to calculate fuel recommendations
  */
 export function calculateFuelRecommendations(
@@ -268,34 +375,45 @@ export function calculateFuelRecommendations(
   const heightCm = heightToCm(latestStats.height);
   const age = calculateAge(birthDate);
 
-  // Calculate BMR
-  const bmr = calculateBMR(weightKg, heightCm, age, gender);
+  // Estimate or get body fat percentage
+  const bodyFatPercentage = estimateBodyFatPercentage(
+    weightKg,
+    heightCm,
+    gender,
+    latestStats.bodyFatPercentage
+  );
+
+  // Calculate current LBM
+  const currentLBMKg = calculateLBM(weightKg, bodyFatPercentage);
+
+  // Calculate BMR using Katch-McArdle
+  const bmr = calculateBMR(currentLBMKg);
   
   // Calculate TDEE
   const defaultActivityLevel = activityLevel || 'sedentary';
   const tdee = calculateTDEE(bmr, defaultActivityLevel);
 
-  // Extract body weight goal if available
-  const weightGoal = extractBodyWeightGoal(goals, weightKg);
+  // Determine goal type
+  const goalType = determineGoalType(goals, weightKg);
   
-  // Calculate calorie target
-  const calorieTarget = calculateCalorieTarget(
-    tdee,
-    bmr,
+  // Get target weight if available
+  const targetWeightKg = extractTargetWeight(goals);
+  
+  // Calculate target LBM
+  const targetLBMKg = calculateTargetLBM(
     weightKg,
-    weightGoal?.targetWeightKg,
-    weightGoal?.isWeightLoss
+    currentLBMKg,
+    targetWeightKg,
+    goalType,
+    bodyFatPercentage
   );
+  
+  // Calculate calorie target based on goal type
+  const calorieTarget = calculateCalorieTarget(tdee, goalType);
 
-  // Check if user has body composition goals
-  const hasBodyCompositionGoal = goals?.some(
-    goal => !goal.complete && 
-    goal.components?.some(component => component.type === 'bodycomposition')
-  ) || false;
-
-  // Calculate macro targets
-  const protein = calculateProteinTarget(weightKg, calorieTarget, hasBodyCompositionGoal);
-  const fat = calculateFatTarget(weightKg, calorieTarget);
+  // Calculate macro targets based on target LBM
+  const protein = calculateProteinTarget(targetLBMKg);
+  const fat = calculateFatTarget(targetLBMKg);
   const carbs = calculateCarbTarget(calorieTarget, protein, fat);
 
   return {
