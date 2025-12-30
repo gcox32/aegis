@@ -3,9 +3,10 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button';
+import { TodayCard, TodayCardHeader, TodayCardContent } from '@/components/ui/TodayCard';
 import type { Workout, WorkoutInstance } from '@/types/train';
 import { getLocalDateString } from '@/lib/utils';
-import { CheckCircle2, Loader2, Play } from 'lucide-react';
+import { CheckCircle2, Play } from 'lucide-react';
 import { fetchJson } from '@/lib/train/helpers';
 
 type ApiListResponse<T> = { [key: string]: T[] };
@@ -107,46 +108,30 @@ export default function TodaySessions() {
     return i.complete && iDate === todayString;
   });
 
-  if (isLoading) {
-    <div className="bg-card shadow-sm p-6 border border-border rounded-lg flex justify-center items-center h-[160px]">
-      <Loader2 className="w-8 h-8 text-brand-primary animate-spin" />
-    </div>
-  }
-
-  if (loadError) {
-    <div className="bg-card shadow-sm p-6 border border-border rounded-lg h-[160px] flex items-center justify-center text-destructive">
-      Error loading workout data
-    </div>
-  }
-
   // CASE 1: In Progress
   if (inProgressInstance) {
     const workoutName = inProgressInstance.workout?.name || 'Workout';
     return (
-      <div className="bg-card shadow-sm p-6 border border-border rounded-lg">
-        <div className="flex justify-between items-start mb-4">
-          <div>
-            <span className="inline-block bg-primary/10 mb-2 px-2 py-1 rounded font-medium text-primary text-xs">
-              In Progress
-            </span>
-            <h3 className="font-bold text-xl">{workoutName}</h3>
-            <p className="text-muted-foreground text-sm">
-              Started {new Date(inProgressInstance.date).toLocaleDateString()}
-            </p>
+      <TodayCard isLoading={isLoading} error={loadError || undefined}>
+        <TodayCardHeader
+          badge={{ label: 'In Progress', variant: 'primary' }}
+          title={workoutName}
+          subtitle={`Started ${new Date(inProgressInstance.date).toLocaleDateString()}`}
+          icon={Play}
+          iconVariant="primary"
+        />
+        <TodayCardContent>
+          <div className="flex gap-3">
+            <Button
+              variant="primary"
+              fullWidth
+              onClick={() => router.push(`/train/session/${inProgressInstance.id}`)}
+            >
+              Resume Workout
+            </Button>
           </div>
-          <Play className="bg-primary/10 p-2 rounded-full w-10 h-10 text-primary" />
-        </div>
-
-        <div className="flex gap-3">
-          <Button
-            variant="primary"
-            fullWidth
-            onClick={() => router.push(`/train/session/${inProgressInstance.id}`)}
-          >
-            Resume Workout
-          </Button>
-        </div>
-      </div>
+        </TodayCardContent>
+      </TodayCard>
     );
   }
 
@@ -154,81 +139,75 @@ export default function TodaySessions() {
   if (completedTodayInstance && !showPrompt) {
     const workoutName = completedTodayInstance.workout?.name || 'Workout';
     return (
-      <div className="bg-card shadow-sm p-6 border border-border rounded-lg">
-        <div className="flex justify-between items-start mb-4">
-          <div>
-            <span className="inline-block bg-success/10 mb-2 px-2 py-1 rounded font-medium text-success text-xs">
-              Completed
-            </span>
-            <h3 className="font-bold text-xl">{workoutName}</h3>
-            <p className="text-muted-foreground text-sm">
-              You hit this workout today.
-            </p>
+      <TodayCard isLoading={isLoading} error={loadError || undefined}>
+        <TodayCardHeader
+          badge={{ label: 'Completed', variant: 'success' }}
+          title={workoutName}
+          subtitle="You hit this workout today."
+          icon={CheckCircle2}
+          iconVariant="success"
+        />
+        <TodayCardContent>
+          <div className="flex flex-col gap-2">
+            <Button
+              variant="outline"
+              fullWidth
+              onClick={() => router.push(`/log/workouts/${completedTodayInstance.id}`)}
+            >
+              View Summary
+            </Button>
+            <Button
+              variant="outline"
+              fullWidth
+              onClick={() => setShowPrompt(true)}
+            >
+              Start New
+            </Button>
           </div>
-          <CheckCircle2 className="bg-success/10 p-2 rounded-full w-10 h-10 text-success" />
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <Button
-            variant="outline"
-            fullWidth
-            onClick={() => router.push(`/log/workouts/${completedTodayInstance.id}`)}
-          >
-            View Summary
-          </Button>
-          <Button
-            variant="outline"
-            fullWidth
-            onClick={() => setShowPrompt(true)}
-          >
-            Start New
-          </Button>
-        </div>
-      </div>
+        </TodayCardContent>
+      </TodayCard>
     );
   }
 
   // CASE 3: Prompt to start (Default)
-  // Simplified single card
   const selected = selectedWorkoutId ? workoutsById.get(selectedWorkoutId) : null;
   const isStarting = selectedWorkoutId && startingWorkoutId === selectedWorkoutId;
 
   return (
-    <div className="bg-card p-4 border border-border rounded-lg">
-      <div className="mb-3">
-        <h3 className="mb-1 font-semibold">
-          Get to Work
-        </h3>
-        <p className="text-muted-foreground text-sm">
-          Pick something
-        </p>
-      </div>
+    <TodayCard isLoading={isLoading} error={loadError || undefined}>
+      <TodayCardHeader
+        title="Get to Work"
+        subtitle="Pick something"
+        icon={Play}
+        iconVariant="muted"
+      />
+      <TodayCardContent>
+        <div className="space-y-3">
+          <select
+            className="bg-background px-3 py-2 border border-border rounded w-full text-sm"
+            disabled={isLoading || !!startingWorkoutId}
+            value={selectedWorkoutId || ''}
+            onChange={(e) => handleSelect(e.target.value)}
+          >
+            <option value="">Choose a workout...</option>
+            {workouts.map((w) => (
+              <option key={w.id} value={w.id}>
+                {w.name || `${w.workoutType} Workout`}
+                {w.estimatedDuration ? ` (${w.estimatedDuration} min)` : ''}
+              </option>
+            ))}
+          </select>
 
-      <div className="space-y-3">
-        <select
-          className="bg-background px-3 py-2 border border-border rounded w-full text-sm"
-          disabled={isLoading || !!startingWorkoutId}
-          value={selectedWorkoutId || ''}
-          onChange={(e) => handleSelect(e.target.value)}
-        >
-          <option value="">Choose a workout...</option>
-          {workouts.map((w) => (
-            <option key={w.id} value={w.id}>
-              {w.name || `${w.workoutType} Workout`}
-              {w.estimatedDuration ? ` (${w.estimatedDuration} min)` : ''}
-            </option>
-          ))}
-        </select>
-
-        <Button
-          variant="primary"
-          fullWidth
-          disabled={!selectedWorkoutId || !!startingWorkoutId}
-          onClick={handleStart}
-        >
-          {isStarting ? 'Starting...' : 'Start Session'}
-        </Button>
-      </div>
-    </div>
+          <Button
+            variant="primary"
+            fullWidth
+            disabled={!selectedWorkoutId || !!startingWorkoutId}
+            onClick={handleStart}
+          >
+            {isStarting ? 'Starting...' : 'Start Session'}
+          </Button>
+        </div>
+      </TodayCardContent>
+    </TodayCard>
   );
 }
