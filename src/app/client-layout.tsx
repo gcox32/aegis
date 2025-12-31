@@ -30,6 +30,7 @@ function ProtectedContent({ children }: { children: React.ReactNode }) {
 
     // Routes where navigation should be hidden (SPA mode)
     const isSessionView = pathname.startsWith('/train/session/');
+    const isVoiceJournalView = pathname.startsWith('/fuel/voice-journal');
     useEffect(() => {
         if (!isLoading && !isAuthenticated && !isPublicRoute) {
             router.push('/signin');
@@ -56,9 +57,9 @@ function ProtectedContent({ children }: { children: React.ReactNode }) {
 
     return (
         <>
-            {!isSessionView && <FloatingMenu />}
+            {!isSessionView && !isVoiceJournalView && <FloatingMenu />}
             {children}
-            {!isSessionView && <BottomNav />}
+            {!isSessionView && !isVoiceJournalView && <BottomNav />}
         </>
     );
 }

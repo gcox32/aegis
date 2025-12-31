@@ -7,6 +7,7 @@ import TabLayout, { Tab } from '@/components/ui/TabLayout';
 import TargetsTab from '@/components/fuel/TargetsTab';
 import HistoryTab from '@/components/fuel/HistoryTab';
 import RecordTab from '@/components/fuel/RecordTab';
+import { Mic } from 'lucide-react';
 
 export default function FuelPage() {
   const tabs: Tab[] = [
@@ -46,10 +47,15 @@ export default function FuelPage() {
     >
       <div className="space-y-6">
         {/* Build Button */}
-        <div className="px-4 md:px-6">
-          <Link href="/fuel/build">
-            <Button variant="primary" size="lg" className="w-full md:w-auto">
+        <div className="flex gap-8 px-4 md:px-6 w-full">
+          <Link href="/fuel/build" className="w-full">
+            <Button variant="primary" size="lg" className="w-full">
               Build
+            </Button>
+          </Link>
+          <Link href="/fuel/voice-journal">
+            <Button variant="secondary" className="w-auto aspect-square">
+              <Mic className="w-4 h-4" />
             </Button>
           </Link>
         </div>

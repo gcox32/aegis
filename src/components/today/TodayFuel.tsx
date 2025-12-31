@@ -6,7 +6,7 @@ import Button from '@/components/ui/Button';
 import { TodayCard, TodayCardHeader, TodayCardContent } from '@/components/ui/TodayCard';
 import type { MealInstance } from '@/types/fuel';
 import type { UserProfile } from '@/types/user';
-import { Utensils, Target } from 'lucide-react';
+import { Utensils, Target, Mic } from 'lucide-react';
 import { fetchJson } from '@/lib/train/helpers';
 import { calculateFuelRecommendations } from '@/lib/fuel/recommendations';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
@@ -127,13 +127,13 @@ export default function TodayFuel() {
           <div className="flex-1 space-y-4">
             {/* Calories */}
             <div className="flex items-center gap-3">
-              <div className="w-1 h-12 bg-white rounded-full" />
+              <div className="bg-white rounded-full w-1 h-12" />
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
-                  <Target className="w-2 h-2 text-muted-foreground opacity-30" />
+                  <Target className="opacity-30 w-2 h-2 text-muted-foreground" />
                   <span className="text-muted-foreground text-xs">{caloriePercentage.toFixed(0)}%</span>
                 </div>
-                <div className="font-bold text-2xl text-white">
+                <div className="font-bold text-white text-2xl">
                   {Math.round(caloriesLeft)}
                 </div>
                 <div className="text-muted-foreground text-xs">
@@ -144,13 +144,13 @@ export default function TodayFuel() {
 
             {/* Protein */}
             <div className="flex items-center gap-3">
-              <div className="w-1 h-12 bg-brand-primary rounded-full" />
+              <div className="bg-brand-primary rounded-full w-1 h-12" />
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
-                  <Target className="w-2 h-2 text-muted-foreground opacity-30" />
+                  <Target className="opacity-30 w-2 h-2 text-muted-foreground" />
                   <span className="text-muted-foreground text-xs">{proteinPercentage.toFixed(0)}%</span>
                 </div>
-                <div className="font-bold text-2xl text-white">
+                <div className="font-bold text-white text-2xl">
                   {Math.round(proteinLeft)}
                 </div>
                 <div className="text-muted-foreground text-xs">
@@ -162,7 +162,7 @@ export default function TodayFuel() {
 
           {/* Right side: Donut Chart */}
           <div className="relative w-32 h-32 shrink-0">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width={128} height={128}>
               <PieChart>
                 {/* Outer ring: Calories */}
                 <Pie
@@ -199,13 +199,22 @@ export default function TodayFuel() {
           </div>
         </div>
 
-        <div className="mt-4">
+        <div className="flex gap-8 mt-4 w-full">
           <Button
             variant="primary"
             fullWidth
             onClick={() => router.push('/fuel?tab=record')}
+            className="flex-1"
           >
-            Log Meals
+            Manual Log
+          </Button>
+          <Button
+            variant="primary"
+            fullWidth
+            onClick={() => router.push('/fuel/voice-journal')}
+            className="w-auto aspect-square"
+          >
+            <Mic className="w-4 h-4" />
           </Button>
         </div>
       </TodayCardContent>

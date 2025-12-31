@@ -182,10 +182,10 @@ export default function TrainPage() {
         {/* Active Program */}
         <section className="px-4 md:px-6 py-6">
           <h2 className="mb-3 font-semibold text-lg">Current Protocol</h2>
-          <div className="bg-card p-4 border border-border rounded-(--radius)">
+          <div className="bg-card p-6 border border-border rounded-(--radius)">
             {isLoading ? (
               <div className="flex justify-center p-8">
-                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+                <Loader2 className="w-8 h-8 text-muted-foreground animate-spin" />
               </div>
             ) : activeProtocolInstance && activeProtocol ? (
               <>

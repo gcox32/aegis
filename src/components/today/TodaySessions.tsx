@@ -197,7 +197,7 @@ export default function TodaySessions() {
             disabled={!selectedWorkoutId || !!startingWorkoutId}
             onClick={handleStart}
           >
-            {isStarting ? 'Starting...' : 'Start Session'}
+            {isStarting ? 'Starting...' : 'Start Workout'}
           </Button>
         </div>
       </TodayCardContent>
