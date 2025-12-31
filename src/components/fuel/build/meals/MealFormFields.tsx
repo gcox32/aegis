@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import {
   FormGroup, FormLabel,
   FormInput, FormTextarea, FormSelect
 } from '@/components/ui/Form';
 import { MealFormData, PortionedFoodFormData } from './types';
 import { FoodAutocomplete } from '../foods/FoodAutocomplete';
+import { CreateFoodOverlay } from '../foods/CreateFoodOverlay';
 import { Food } from '@/types/fuel';
 import { SERVING_SIZE_UNITS } from '../foods/options';
 import { Plus, X } from 'lucide-react';
@@ -22,6 +24,10 @@ export function MealFormFields({
   portionedFoods,
   setPortionedFoods,
 }: MealFormFieldsProps) {
+  const [createOverlayOpen, setCreateOverlayOpen] = useState(false);
+  const [creatingForClientId, setCreatingForClientId] = useState<string | null>(null);
+  const [initialFoodName, setInitialFoodName] = useState<string>('');
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -79,6 +85,21 @@ export function MealFormFields({
       }
       return pf;
     }));
+  };
+
+  const handleCreateFood = (clientId: string, searchTerm: string) => {
+    setCreatingForClientId(clientId);
+    setInitialFoodName(searchTerm);
+    setCreateOverlayOpen(true);
+  };
+
+  const handleFoodCreated = (newFood: Food) => {
+    if (creatingForClientId) {
+      updateFood(creatingForClientId, newFood);
+    }
+    setCreateOverlayOpen(false);
+    setCreatingForClientId(null);
+    setInitialFoodName('');
   };
 
   return (
@@ -153,6 +174,7 @@ export function MealFormFields({
                     <FoodAutocomplete
                       initialFoodId={portionedFood.foodId}
                       onChange={(food) => updateFood(portionedFood.clientId, food)}
+                      onCreate={(searchTerm) => handleCreateFood(portionedFood.clientId, searchTerm)}
                     />
                   </FormGroup>
 
@@ -188,6 +210,17 @@ export function MealFormFields({
           </div>
         )}
       </div>
+
+      <CreateFoodOverlay
+        isOpen={createOverlayOpen}
+        onClose={() => {
+          setCreateOverlayOpen(false);
+          setCreatingForClientId(null);
+          setInitialFoodName('');
+        }}
+        onSuccess={handleFoodCreated}
+        initialName={initialFoodName}
+      />
     </>
   );
 }

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button';
 import { TodayCard, TodayCardHeader, TodayCardContent } from '@/components/ui/TodayCard';
+import { WorkoutAutocomplete } from '@/components/train/build/workouts/WorkoutAutocomplete';
 import type { Workout, WorkoutInstance } from '@/types/train';
 import { getLocalDateString } from '@/lib/utils';
 import { CheckCircle2, Play } from 'lucide-react';
@@ -63,8 +64,8 @@ export default function TodaySessions() {
 
   const workoutsById = new Map(workouts.map((w) => [w.id, w]));
 
-  function handleSelect(workoutId: string) {
-    setSelectedWorkoutId(workoutId || null);
+  function handleSelect(workout: Workout | null) {
+    setSelectedWorkoutId(workout?.id || null);
   }
 
   async function handleStart() {
@@ -183,20 +184,12 @@ export default function TodaySessions() {
       />
       <TodayCardContent>
         <div className="space-y-3">
-          <select
-            className="bg-background px-3 py-2 border border-border rounded w-full text-sm"
-            disabled={isLoading || !!startingWorkoutId}
-            value={selectedWorkoutId || ''}
-            onChange={(e) => handleSelect(e.target.value)}
-          >
-            <option value="">Choose a workout...</option>
-            {workouts.map((w) => (
-              <option key={w.id} value={w.id}>
-                {w.name || `${w.workoutType} Workout`}
-                {w.estimatedDuration ? ` (${w.estimatedDuration} min)` : ''}
-              </option>
-            ))}
-          </select>
+          <div className={isLoading || !!startingWorkoutId ? 'opacity-50 pointer-events-none' : ''}>
+            <WorkoutAutocomplete
+              initialWorkoutId={selectedWorkoutId || undefined}
+              onChange={handleSelect}
+            />
+          </div>
 
           <Button
             variant="primary"

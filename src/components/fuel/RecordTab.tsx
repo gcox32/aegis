@@ -12,6 +12,8 @@ import {
   FormSelect,
 } from '@/components/ui/Form';
 import { FoodAutocomplete } from '@/components/fuel/build/foods/FoodAutocomplete';
+import { MealAutocomplete } from '@/components/fuel/build/meals/MealAutocomplete';
+import { TogglePill } from '@/components/ui/TogglePill';
 import { SERVING_SIZE_UNITS } from '@/components/fuel/build/foods/options';
 import type { Meal, MealInstance, MealPlanInstance, Food, Macros } from '@/types/fuel';
 import type { ServingSizeMeasurement } from '@/types/measures';
@@ -43,7 +45,6 @@ export default function RecordTab() {
   const [mode, setMode] = useState<LogMode>('foods');
   
   // Meal selection
-  const [meals, setMeals] = useState<Meal[]>([]);
   const [selectedMealId, setSelectedMealId] = useState<string>('');
   
   // Food logging
@@ -72,11 +73,6 @@ export default function RecordTab() {
 
     async function load() {
       try {
-        // Load meals
-        const mealsRes = await fetchJson<{ meals: Meal[] }>('/api/fuel/meals?limit=100');
-        if (cancelled) return;
-        setMeals(mealsRes.meals);
-
         // Load meal plan instances
         const instancesRes = await fetchJson<MealPlanInstance[]>('/api/fuel/plans/instances');
         if (cancelled) return;
@@ -351,35 +347,35 @@ export default function RecordTab() {
         <div className="bg-card p-4 border border-border rounded-lg">
           <FormGroup>
             <FormLabel>Log as</FormLabel>
-            <div className="flex gap-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="mode"
-                  value="foods"
-                  checked={mode === 'foods'}
-                  onChange={(e) => {
-                    setMode(e.target.value as LogMode);
-                    setSelectedMealId('');
-                  }}
-                  className="text-brand-primary"
-                />
-                <span className="text-sm">Food</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="mode"
-                  value="meal"
-                  checked={mode === 'meal'}
-                  onChange={(e) => {
-                    setMode(e.target.value as LogMode);
-                    setPortionedFoods([]);
-                  }}
-                  className="text-brand-primary"
-                />
-                <span className="text-sm">Meal</span>
-              </label>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('foods');
+                  setSelectedMealId('');
+                }}
+                className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                  mode === 'foods'
+                    ? 'bg-brand-primary/10 text-brand-primary border border-brand-primary/20'
+                    : 'bg-background text-foreground border border-border hover:bg-muted'
+                }`}
+              >
+                Food
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('meal');
+                  setPortionedFoods([]);
+                }}
+                className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                  mode === 'meal'
+                    ? 'bg-brand-primary/10 text-brand-primary border border-brand-primary/20'
+                    : 'bg-background text-foreground border border-border hover:bg-muted'
+                }`}
+              >
+                Meal
+              </button>
             </div>
           </FormGroup>
         </div>
@@ -389,18 +385,10 @@ export default function RecordTab() {
           <div className="bg-card p-4 border border-border rounded-lg">
             <FormGroup>
               <FormLabel>Select Meal</FormLabel>
-              <FormSelect
-                value={selectedMealId}
-                onChange={(e) => setSelectedMealId(e.target.value)}
-                required
-              >
-                <option value="">Choose a meal...</option>
-                {meals.map(meal => (
-                  <option key={meal.id} value={meal.id}>
-                    {meal.name}
-                  </option>
-                ))}
-              </FormSelect>
+              <MealAutocomplete
+                initialMealId={selectedMealId || undefined}
+                onChange={(meal) => setSelectedMealId(meal?.id || '')}
+              />
             </FormGroup>
           </div>
         )}
@@ -541,15 +529,13 @@ export default function RecordTab() {
         <div className="bg-card p-4 border border-border rounded-lg">
           <div className="space-y-4">
             <FormGroup>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={complete}
-                  onChange={(e) => setComplete(e.target.checked)}
-                  className="text-brand-primary"
-                />
-                <span className="text-sm">Mark as complete</span>
-              </label>
+              <FormLabel>Status</FormLabel>
+              <TogglePill
+                leftLabel="Scheduled"
+                rightLabel="Complete"
+                value={!complete}
+                onChange={(active) => setComplete(!active)}
+              />
             </FormGroup>
 
             <FormGroup>

@@ -1,58 +1,56 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { Food } from '@/types/fuel';
+import { Workout } from '@/types/train';
 import { FormInput } from '@/components/ui/Form';
-import { Loader2, Plus } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
-interface FoodAutocompleteProps {
-  initialFoodId?: string;
-  /** The food currently being edited/created, used to exclude from results when editing */
-  currentFoodId?: string;
-  onChange: (food: Food | null) => void;
-  onCreate?: (searchTerm: string) => void;
+interface WorkoutAutocompleteProps {
+  initialWorkoutId?: string;
+  /** The workout currently being edited/created, used to exclude from results when editing */
+  currentWorkoutId?: string;
+  onChange: (workout: Workout | null) => void;
 }
 
-export function FoodAutocomplete({
-  initialFoodId,
-  currentFoodId,
+export function WorkoutAutocomplete({
+  initialWorkoutId,
+  currentWorkoutId,
   onChange,
-  onCreate,
-}: FoodAutocompleteProps) {
+}: WorkoutAutocompleteProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [options, setOptions] = useState<Food[]>([]);
+  const [options, setOptions] = useState<Workout[]>([]);
   const [loading, setLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  // Load initial food (when editing)
+  // Load initial workout (when editing)
   useEffect(() => {
-    if (!initialFoodId) return;
+    if (!initialWorkoutId) return;
 
     let cancelled = false;
 
-    async function fetchFood() {
+    async function fetchWorkout() {
       try {
-        const res = await fetch(`/api/fuel/foods/${initialFoodId}`);
+        const res = await fetch(`/api/train/workouts/${initialWorkoutId}`);
         if (!res.ok || cancelled) return;
         const data = await res.json();
-        if (data && !cancelled) {
-          setSearchTerm(data.name);
-          onChange(data);
+        if (data.workout && !cancelled) {
+          setSearchTerm(data.workout.name || '');
+          onChange(data.workout);
         }
       } catch (err) {
         if (!cancelled) {
-          console.error('Failed to fetch food', err);
+          console.error('Failed to fetch workout', err);
         }
       }
     }
 
-    fetchFood();
+    fetchWorkout();
     return () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialFoodId]); // Only depend on initialFoodId, not onChange
+  }, [initialWorkoutId]); // Only depend on initialWorkoutId, not onChange
 
   // Debounced search
   useEffect(() => {
@@ -70,20 +68,20 @@ export function FoodAutocomplete({
           page: '1',
           limit: '10',
         });
-        const res = await fetch(`/api/fuel/foods?${params.toString()}`, {
+        const res = await fetch(`/api/train/workouts?${params.toString()}`, {
           signal: controller.signal,
         });
         if (!res.ok) return;
         const data = await res.json();
-        let results: Food[] = data.foods || [];
-        if (currentFoodId) {
-          results = results.filter((food) => food.id !== currentFoodId);
+        let results: Workout[] = data.workouts || [];
+        if (currentWorkoutId) {
+          results = results.filter((workout) => workout.id !== currentWorkoutId);
         }
         setOptions(results);
         setIsOpen(true);
       } catch (err: any) {
         if (err.name !== 'AbortError') {
-          console.error('Failed to search foods', err);
+          console.error('Failed to search workouts', err);
         }
       } finally {
         setLoading(false);
@@ -94,7 +92,7 @@ export function FoodAutocomplete({
       controller.abort();
       clearTimeout(timer);
     };
-  }, [searchTerm, currentFoodId]);
+  }, [searchTerm, currentWorkoutId]);
 
   const clearSelection = () => {
     setSearchTerm('');
@@ -103,16 +101,16 @@ export function FoodAutocomplete({
     onChange(null);
   };
 
-  const handleSelect = (food: Food | null) => {
-    if (!food) {
+  const handleSelect = (workout: Workout | null) => {
+    if (!workout) {
       clearSelection();
       return;
     }
 
-    setSearchTerm(food.name);
+    setSearchTerm(workout.name || '');
     setOptions([]);
     setIsOpen(false);
-    onChange(food);
+    onChange(workout);
   };
 
   function handleClickOutside(event: MouseEvent) {
@@ -130,15 +128,14 @@ export function FoodAutocomplete({
     };
   }, []);
 
-  const hasExactMatch = options.some(opt => opt.name.toLowerCase() === searchTerm.trim().toLowerCase());
-  const showDropdown = isOpen && ((searchTerm && options.length > 0) || (onCreate && searchTerm && !loading && !hasExactMatch));
+  const showDropdown = isOpen && searchTerm && options.length > 0;
 
   return (
     <div ref={containerRef} className="relative">
       <FormInput
         type="text"
-        name="foodSearch"
-        placeholder="Search foods by name..."
+        name="workoutSearch"
+        placeholder="Search workouts by name..."
         value={searchTerm}
         onChange={(e) => {
           const value = e.target.value;
@@ -150,7 +147,7 @@ export function FoodAutocomplete({
           }
         }}
         onFocus={() => {
-            if (searchTerm) setIsOpen(true);
+          if (searchTerm) setIsOpen(true);
         }}
         autoComplete="off"
       />
@@ -168,24 +165,9 @@ export function FoodAutocomplete({
               className="block hover:bg-muted px-3 py-2 w-full text-sm text-left"
               onClick={() => handleSelect(option)}
             >
-              {option.name}
+              {option.name || 'Unnamed Workout'}
             </button>
           ))}
-          
-          {onCreate && !hasExactMatch && (
-            <button
-              type="button"
-              className="flex items-center gap-2 hover:bg-brand-primary/10 px-3 py-2 border-t border-border w-full font-medium text-brand-primary text-sm text-left"
-              onClick={() => {
-                setIsOpen(false);
-                setOptions([]); 
-                onCreate(searchTerm);
-              }}
-            >
-              <Plus className="w-3 h-3" />
-              Create "{searchTerm}"
-            </button>
-          )}
         </div>
       ) : null}
     </div>

@@ -242,7 +242,14 @@ export async function searchMeals(query: string, page: number = 1, limit: number
     .from(meal)
     .where(ilike(meal.name, `%${query}%`));
 
-  const results = await db.select().from(meal).orderBy(meal.name).limit(limit).offset(offset);
+  const results = await db
+    .select()
+    .from(meal)
+    .where(ilike(meal.name, `%${query}%`))
+    .orderBy(meal.name)
+    .limit(limit)
+    .offset(offset);
+  
   return {
     meals: results.map((r) => ({
       ...nullToUndefined(r),

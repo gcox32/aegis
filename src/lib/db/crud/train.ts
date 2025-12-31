@@ -558,6 +558,43 @@ export async function getUserWorkouts(userId: string): Promise<Workout[]> {
   })) as Workout[];
 }
 
+export async function searchWorkouts(
+  userId: string,
+  query: string,
+  page: number = 1,
+  limit: number = 20
+): Promise<{ workouts: Workout[]; total: number; page: number; limit: number }> {
+  const offset = (page - 1) * limit;
+
+  const [{ count }] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(workout)
+    .where(and(
+      eq(workout.userId, userId),
+      ilike(workout.name, `%${query}%`)
+    ));
+
+  const results = await db
+    .select()
+    .from(workout)
+    .where(and(
+      eq(workout.userId, userId),
+      ilike(workout.name, `%${query}%`)
+    ))
+    .orderBy(workout.name)
+    .limit(limit)
+    .offset(offset);
+
+  return {
+    workouts: results.map((r) => ({
+      ...nullToUndefined(r),
+      blocks: [], // Blocks are loaded separately via workout_block junction table
+    })) as Workout[],
+    total: Number(count),
+    page,
+    limit,
+  };
+}
 
 export async function getWorkoutById(
   workoutId: string,
