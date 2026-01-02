@@ -191,31 +191,28 @@ export default function TodaySessions() {
     const workoutName = completedTodayInstance.workout?.name || 'Workout';
     return (
       <CardWrapper className="group">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 flex-col">
           {/* Icon */}
-          <div className="bg-success/10 p-3 rounded-2xl ring-1 ring-success/20 group-hover:scale-110 transition-transform duration-300">
-            <CheckCircle2 className="w-6 h-6 text-success" />
-          </div>
 
           {/* Content */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="bg-success/10 px-2 py-0.5 rounded-full ring-1 ring-success/20 ring-inset font-medium text-success text-xs">
-                Completed
-              </span>
+          <div className="min-w-0 flex justify-between items-center w-full">
+            <div className="flex items-center flex-col gap-2">
+              <h3 className="font-display font-bold text-2xl truncate tracking-tight">
+                {workoutName}
+              </h3>
+              <p className="text-muted-foreground text-sm">
+                You crushed this already
+              </p>
             </div>
-            <h3 className="font-display font-bold text-xl truncate tracking-tight">
-              {workoutName}
-            </h3>
-            <p className="text-muted-foreground text-sm">
-              You hit this today
-            </p>
+            <span className="bg-success/10 px-2 py-0.5 rounded-full ring-1 ring-success/20 ring-inset font-medium text-success text-xs">
+              Completed
+            </span>
           </div>
 
           {/* Actions */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full justify-evenly">
             <Button
-              variant="ghost"
+              variant="secondary"
               size="sm"
               onClick={() => router.push(`/log/workouts/${completedTodayInstance.id}`)}
             >

@@ -32,6 +32,7 @@ export default function ActivityTab() {
         const res = await fetch('/api/me/activity?dateFrom=' + new Date(Date.now() - DEFAULT_DAYS_AGO * 24 * 60 * 60 * 1000).toISOString());
         if (res.ok) {
           const data = await res.json();
+          console.log(data.activities);
           setActivities(data.activities);
         }
       } catch (error) {
@@ -65,9 +66,18 @@ export default function ActivityTab() {
   }
 
   // Group activities by date
+  // Extract date components from ISO string to avoid timezone issues
+  // When dates are JSON.stringify'd, they become ISO strings (UTC)
+  // We need to extract the YYYY-MM-DD part and create a local date to preserve the intended date
   const groupedActivities: { [key: string]: ActivityItem[] } = {};
   activities.forEach(activity => {
-    const date = new Date(activity.date).toLocaleDateString(undefined, {
+    // Extract date part from ISO string (YYYY-MM-DD) to avoid timezone shifts
+    const dateStr = activity.date.split('T')[0];
+    const [year, month, day] = dateStr.split('-').map(Number);
+    // Create Date at midnight in local timezone to preserve the intended date
+    const localDate = new Date(year, month - 1, day, 0, 0, 0, 0);
+    
+    const date = localDate.toLocaleDateString(undefined, {
       weekday: 'long',
       month: 'short',
       day: 'numeric'

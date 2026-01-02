@@ -565,6 +565,7 @@ export default function RecordTab() {
             variant="primary"
             size="lg"
             disabled={loading}
+            className="w-full"
           >
             {loading ? (
               <>

@@ -144,12 +144,22 @@ export default function StatsForm({ onSuccess }: StatsFormProps) {
       const bodyFatStrategy = preferences.bodyFatStrategy;
       const bodyFatMaxDaysOld = preferences.bodyFatMaxDaysOld;
 
+      // Parse date string (YYYY-MM-DD) and create Date in local timezone at midnight
+      // This matches the approach used in meal recording to avoid timezone issues
+      let dateForApi: string | undefined;
+      if (payload.date) {
+        const [year, month, day] = payload.date.split('-').map(Number);
+        const dateObj = new Date(year, month - 1, day, 0, 0, 0, 0);
+        // Convert to ISO string - backend will parse this correctly
+        dateForApi = dateObj.toISOString();
+      }
+
       const res = await fetch('/api/me/stats', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...payload,
-          date: payload.date ? new Date(payload.date) : undefined,
+          date: dateForApi,
           bodyFatStrategy, // Send strategy to backend for calculation
           bodyFatMaxDaysOld, // Send max days old to backend
         }),

@@ -586,6 +586,19 @@ export async function createUserStats(
   statsData: Omit<UserStats, 'id' | 'statsLogId'>
 ): Promise<UserStats> {
   const statsLogId = await getOrCreateUserStatsLog(userId);
+  
+  // Extract date components from local Date to avoid timezone issues
+  // When Date objects are converted to ISO strings, they represent UTC time
+  // We need to extract year/month/day from the local Date to preserve the intended date
+  const formatDateForDB = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+  
+  const dateStr = statsData.date ? formatDateForDB(statsData.date) : formatDateForDB(new Date());
+  
   const [newStats] = await db
     .insert(userStats)
     .values({
@@ -596,13 +609,13 @@ export async function createUserStats(
       legLength: statsData.legLength,
       bodyFatPercentage: statsData.bodyFatPercentage,
       muscleMass: statsData.muscleMass,
-      date: statsData.date ? statsData.date.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+      date: dateStr,
     } as any)
     .returning();
 
   // Create tape measurement if provided
   if (statsData.tapeMeasurements) {
-    const tapeDate = statsData.date ? statsData.date.toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+    const tapeDate = dateStr;
     await db.insert(tapeMeasurement).values({
       userStatsId: newStats.id,
       date: tapeDate,

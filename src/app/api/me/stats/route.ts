@@ -181,8 +181,27 @@ export async function POST(request: NextRequest) {
     }
 
     // Build complete stats data: include submitted values or latest values (if they exist)
+    // Parse date properly to avoid timezone issues (matches meal instance handling)
+    // When Date objects are JSON.stringify'd, they become ISO strings (UTC)
+    // We need to extract the date components to preserve the intended local date
+    let dateValue: Date;
+    if (body.date) {
+      if (typeof body.date === 'string') {
+        // Parse ISO string or date string
+        // Extract YYYY-MM-DD part to avoid timezone shifts
+        const dateStr = body.date.split('T')[0]; // Get YYYY-MM-DD part
+        const [year, month, day] = dateStr.split('-').map(Number);
+        // Create Date at midnight in local timezone to preserve the intended date
+        dateValue = new Date(year, month - 1, day, 0, 0, 0, 0);
+      } else {
+        dateValue = new Date(body.date);
+      }
+    } else {
+      dateValue = new Date();
+    }
+
     const statsData: any = {
-      date: body.date ? new Date(body.date) : new Date(), // Use submitted date or now
+      date: dateValue,
     };
 
     // Include height if submitted or latest exists
