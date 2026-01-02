@@ -1,7 +1,6 @@
-import { X, Dumbbell, Clock } from 'lucide-react';
-import { useEffect, useState, useMemo } from 'react';
+import { X, Dumbbell, Clock, RotateCcw } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import type { WorkoutInstance, WorkoutBlock, WorkoutBlockExercise, WorkoutBlockExerciseInstance } from '@/types/train';
-import { calculateMuscleWorkDistribution } from '@/lib/anatomy/muscle-work';
 import { MuscleHeatmap } from '@/components/anatomy/MuscleHeatmap';
 
 interface WorkoutSummaryOverlayProps {
@@ -49,6 +48,85 @@ export function WorkoutSummaryOverlay({
     return `${mins}m`;
   };
 
+  const formatExerciseDetails = (exercise: WorkoutBlockExercise): string => {
+    const parts: string[] = [];
+    
+    // Sets
+    if (exercise.sets > 0) {
+      parts.push(`${exercise.sets}x`);
+    }
+    
+    // Reps
+    if (exercise.measures.reps) {
+      parts.push(`${exercise.measures.reps} reps`);
+    }
+    
+    // Time
+    if (exercise.measures.time) {
+      const timeValue = exercise.measures.time.value;
+      const timeUnit = exercise.measures.time.unit;
+      if (timeUnit === 's') {
+        parts.push(`${timeValue}s`);
+      } else if (timeUnit === 'min') {
+        parts.push(`${timeValue}min`);
+      } else {
+        parts.push(`${timeValue}${timeUnit}`);
+      }
+    }
+    
+    return parts.length > 0 ? parts.join(' • ') : '';
+  };
+
+  const getBlockTitle = (block: WorkoutBlock, exercises: WorkoutBlockExercise[]): string => {
+    if (block.name) return block.name;
+    
+    // Use block type as fallback
+    const blockTypeMap: Record<string, string> = {
+      'warm-up': 'Warm Up',
+      'prep': 'Prep',
+      'main': 'Block',
+      'accessory': 'Accessory',
+      'finisher': 'Finisher',
+      'cooldown': 'Cooldown',
+      'other': 'Block'
+    };
+    
+    const baseTitle = blockTypeMap[block.workoutBlockType] || 'Block';
+    
+    // For main blocks, add number if there are multiple
+    if (block.workoutBlockType === 'main') {
+      const mainBlocks = blocks.filter(b => b.workoutBlockType === 'main');
+      if (mainBlocks.length > 1) {
+        const index = mainBlocks.findIndex(b => b.id === block.id);
+        return `${baseTitle} ${index + 1}`;
+      }
+    }
+    
+    return baseTitle;
+  };
+
+  const getCircuitRounds = (block: WorkoutBlock, exercises: WorkoutBlockExercise[]): number | null => {
+    if (!block.circuit) return null;
+    const maxSets = Math.max(...exercises.map(ex => ex.sets || 1), 1);
+    return maxSets;
+  };
+
+  const getBlockEquipment = (exercises: WorkoutBlockExercise[]): string[] => {
+    const equipmentSet = new Set<string>();
+    exercises.forEach(ex => {
+      if (ex.exercise.equipment && ex.exercise.equipment.length > 0) {
+        ex.exercise.equipment.forEach(eq => {
+          // Capitalize first letter of each word
+          const formatted = eq.split(' ').map(word => 
+            word.charAt(0).toUpperCase() + word.slice(1)
+          ).join(' ');
+          equipmentSet.add(formatted);
+        });
+      }
+    });
+    return Array.from(equipmentSet);
+  };
+
   return (
     <div
       className={`absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md transition-all duration-200 ease-out p-4 ${isVisible ? 'opacity-100' : 'opacity-0'
@@ -62,7 +140,7 @@ export function WorkoutSummaryOverlay({
       >
         {/* Header */}
         <div className="flex justify-between items-center p-6 pb-4">
-          <h2 className="pl-6 w-full font-bold text-white text-xl text-center">Summary</h2>
+          <h2 className="pl-6 w-full font-bold text-white text-xl text-center">Overview</h2>
           <button
             onClick={onClose}
             className="-mr-2 p-2 text-zinc-400 hover:text-white transition-colors"
@@ -104,42 +182,80 @@ export function WorkoutSummaryOverlay({
 
           {/* Workout Outline */}
           <div className="p-6">
-          <h3 className="mb-3 font-semibold text-zinc-400 text-sm text-center uppercase tracking-wide">Outline</h3>
-          <div className="space-y-4">
-            {blocks.map((block) => {
-              const exercises = exercisesMap[block.id] || [];
-              if (exercises.length === 0) return null;
+            <h3 className="mb-4 font-semibold text-zinc-400 text-sm text-center uppercase tracking-wide">Outline</h3>
+            <div className="space-y-6">
+              {blocks.map((block) => {
+                const exercises = exercisesMap[block.id] || [];
+                if (exercises.length === 0) return null;
 
-              return (
-                <div key={block.id} className="space-y-2">
-                  {block.name && (
-                    <div className="flex items-center gap-2 text-zinc-300 text-sm">
-                      <span className="font-medium">{block.name}</span>
-                      {block.circuit && (
-                        <span className="bg-zinc-800 px-2 py-0.5 rounded text-zinc-500 text-xs">Circuit</span>
-                      )}
-                    </div>
-                  )}
-                  {!block.name && block.circuit && (
-                    <div className="bg-zinc-800 px-2 py-0.5 rounded w-fit text-zinc-500 text-xs">Circuit</div>
-                  )}
-                  <div className="space-y-1.5 pl-2">
-                    {exercises.map((exercise) => (
-                      <div key={exercise.id} className="flex items-center gap-2 text-zinc-400 text-sm">
-                        <span className="text-zinc-300">{exercise.exercise.name}</span>
-                        <span className="text-zinc-500">•</span>
-                        <span>{exercise.sets} sets</span>
-                        {exercise.measures.reps && (
-                          <>
-                            <span className="text-zinc-500">•</span>
-                            <span>{exercise.measures.reps} reps</span>
-                          </>
+                const blockTitle = getBlockTitle(block, exercises);
+                const circuitRounds = getCircuitRounds(block, exercises);
+                const equipment = getBlockEquipment(exercises);
+
+                return (
+                  <div key={block.id} className="space-y-3">
+                    {/* Block Header */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-semibold text-white text-base">{blockTitle}</h4>
+                        {circuitRounds && (
+                          <div className="flex items-center gap-1.5 text-zinc-400 text-xs">
+                            <RotateCcw className="w-3 h-3" />
+                            <span>Circuit • {circuitRounds} {circuitRounds === 1 ? 'round' : 'rounds'}</span>
+                          </div>
                         )}
                       </div>
-                    ))}
+                      {equipment.length > 0 && (
+                        <div className="text-zinc-400 text-sm">
+                          {equipment.join(', ')}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Exercise List */}
+                    <div className="space-y-2">
+                      {exercises.map((exercise) => {
+                        const details = formatExerciseDetails(exercise);
+                        
+                        return (
+                          <div key={exercise.id} className="flex items-center gap-3">
+                            {/* Exercise Thumbnail */}
+                            <div className="flex justify-center items-center bg-zinc-800 rounded-lg w-12 h-12 shrink-0 overflow-hidden">
+                              {exercise.exercise.imageUrl ? (
+                                <img 
+                                  src={exercise.exercise.imageUrl}
+                                  alt={exercise.exercise.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : exercise.exercise.videoUrl ? (
+                                <video 
+                                  src={exercise.exercise.videoUrl}
+                                  className="w-full h-full object-cover"
+                                  muted
+                                  playsInline
+                                />
+                              ) : (
+                                <Dumbbell className="w-5 h-5 text-zinc-500" />
+                              )}
+                            </div>
+
+                            {/* Exercise Info */}
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-white text-sm truncate">
+                                {exercise.exercise.name}
+                              </div>
+                              {details && (
+                                <div className="text-zinc-400 text-xs mt-0.5">
+                                  {details}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              );
+                );
               })}
             </div>
           </div>
