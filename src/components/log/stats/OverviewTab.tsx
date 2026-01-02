@@ -103,25 +103,110 @@ export default function OverviewTab() {
       {/* Anthropomorphic Ratios */}
       {ratios.length > 0 && (
         <div className="bg-card p-6 border border-border rounded-(--radius)">
-          <h3 className="mb-4 font-semibold text-lg">Anthropomorphic Ratios</h3>
-          <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
-            {ratios.map((ratio, idx) => (
-              <div key={idx}>
-                <p className="mb-1 text-muted-foreground text-sm">{ratio.label}</p>
-                {ratio.value !== null ? (
-                  <>
-                    <p className="font-bold text-2xl">{ratio.value.toFixed(2)}</p>
-                    {ratio.perspective !== undefined && (
-                      <p className="mt-1 text-muted-foreground text-xs">
-                        Target: {ratio.perspective.toFixed(3)}
-                      </p>
+          <div className="mb-6">
+            <h3 className="mb-1 font-display font-semibold text-foreground text-xl">Anthropomorphic Ratios</h3>
+            <p className="text-muted-foreground text-xs">
+              Body proportion measurements based on ideal ratios
+            </p>
+          </div>
+          <div className="gap-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+            {ratios.map((ratio, idx) => {
+              const hasTarget = ratio.perspective !== undefined;
+              const hasValue = ratio.value !== null;
+              
+              // Calculate percentage difference from target
+              let percentFromTarget = 0;
+              let progress = 0;
+              let progressColor = 'text-muted-foreground';
+              let progressBg = 'bg-white/5';
+              
+              if (hasValue && hasTarget && ratio.value !== null && ratio.perspective !== undefined) {
+                // Calculate absolute percentage difference from target
+                const diff = Math.abs(ratio.value - ratio.perspective);
+                percentFromTarget = (diff / ratio.perspective) * 100;
+                
+                // Calculate progress for visual bar (inverted - lower difference = higher progress)
+                const maxDiff = ratio.perspective * 0.2; // 20% variance is considered "far"
+                progress = Math.max(0, Math.min(100, 100 - (diff / maxDiff) * 100));
+                
+                // Color coding based on percentage difference
+                if (percentFromTarget <= 5) {
+                  progressColor = 'text-success';
+                  progressBg = 'bg-success/20';
+                } else if (percentFromTarget <= 10) {
+                  progressColor = 'text-brand-primary';
+                  progressBg = 'bg-brand-primary/20';
+                } else {
+                  progressColor = 'text-brand-accent';
+                  progressBg = 'bg-brand-accent/20';
+                }
+              }
+
+              return (
+                <div
+                  key={idx}
+                  className="group relative bg-background/30 hover:bg-background/50 p-5 border border-border/50 hover:border-border rounded-(--radius) transition-all duration-300"
+                >
+                  
+                  <div className="space-y-3">
+                    {/* Label */}
+                    <div className="mb-1 font-medium text-muted-foreground text-xs uppercase tracking-wider">
+                      {ratio.label}
+                    </div>
+                    
+                    {/* Value */}
+                    {hasValue && ratio.value !== null ? (
+                      <>
+                        <div className="flex items-baseline gap-2">
+                          <p className="font-display font-bold text-foreground text-3xl tracking-tight">
+                            {ratio.value.toFixed(2)}
+                          </p>
+                          {hasTarget && (
+                            <span className={`text-xs font-medium ${progressColor}`}>
+                              {percentFromTarget.toFixed(1)}% from target
+                            </span>
+                          )}
+                        </div>
+                        
+                        {/* Target and Progress Bar */}
+                        {hasTarget && ratio.perspective !== undefined && (
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-center">
+                              <span className="text-muted-foreground text-xs">
+                                Target: <span className="font-medium text-foreground">{ratio.perspective.toFixed(3)}</span>
+                              </span>
+                              <span className={`text-xs font-medium ${progressColor}`}>
+                                {ratio.value > ratio.perspective ? '↑' : ratio.value < ratio.perspective ? '↓' : '✓'}
+                              </span>
+                            </div>
+                            
+                            {/* Progress Bar */}
+                            <div className="bg-white/5 rounded-full h-1.5 overflow-hidden">
+                              <div
+                                className={`h-full ${progressBg} transition-all duration-500 ease-out`}
+                                style={{ width: `${progress}%` }}
+                              />
+                            </div>
+                            
+                            {/* Difference indicator */}
+                            <div className="text-muted-foreground text-xs">
+                              {Math.abs(ratio.value - ratio.perspective).toFixed(3)} {ratio.value > ratio.perspective ? 'above' : 'below'} target
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="py-2">
+                        <p className="font-bold text-muted-foreground text-2xl">—</p>
+                        <p className="mt-1 text-muted-foreground text-xs">
+                          Requires tape measurements
+                        </p>
+                      </div>
                     )}
-                  </>
-                ) : (
-                  <p className="font-bold text-muted-foreground text-2xl">—</p>
-                )}
-              </div>
-            ))}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -147,7 +232,7 @@ export default function OverviewTab() {
             <p className="mb-1 text-muted-foreground text-sm">Body Weight</p>
             {latestStats?.weight ? (
               <>
-                <p className="font-bold text-2xl">
+                <p className="mb-1 font-display font-bold text-foreground text-3xl tracking-tight">
                   {latestStats.weight.value} {latestStats.weight.unit}
                 </p>
                 {latestDate && (
@@ -166,7 +251,7 @@ export default function OverviewTab() {
             <p className="mb-1 text-muted-foreground text-sm">Body Fat</p>
             {latestStats?.bodyFatPercentage ? (
               <>
-                <p className="font-bold text-2xl">
+                <p className="mb-1 font-display font-bold text-foreground text-3xl tracking-tight">
                   {latestStats.bodyFatPercentage.value.toFixed(1)}%
                 </p>
                 {latestDate && (

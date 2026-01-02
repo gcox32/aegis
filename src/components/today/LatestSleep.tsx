@@ -69,7 +69,7 @@ export default function LatestSleep() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center bg-linear-to-br from-white/[0.08] to-transparent border border-white/10 rounded-[2rem] w-full h-full">
+      <div className="flex justify-center items-center bg-linear-to-br from-white/8 to-transparent border border-white/10 rounded-(--radius) w-full h-full">
         <div className="relative">
           <Loader2 className="w-6 h-6 text-indigo-400 animate-spin" />
           <div className="absolute inset-0 bg-indigo-400/20 blur-xl rounded-full w-6 h-6 animate-pulse" />
@@ -81,7 +81,7 @@ export default function LatestSleep() {
   // Error state
   if (error) {
     return (
-      <div className="flex justify-center items-center bg-linear-to-br from-white/[0.08] to-transparent p-5 border border-white/10 rounded-[2rem] w-full h-full">
+      <div className="flex justify-center items-center bg-linear-to-br from-white/8 to-transparent p-5 border border-white/10 rounded-(--radius) w-full h-full">
         <p className="text-error text-sm text-center">{error}</p>
       </div>
     );
@@ -97,7 +97,7 @@ export default function LatestSleep() {
     return (
       <button
         onClick={() => router.push(`/log/sleep/${sleep.id}`)}
-        className="group relative bg-linear-to-br from-white/[0.08] to-transparent hover:shadow-black/30 hover:shadow-xl p-5 border border-white/10 hover:border-white/20 rounded-[2rem] w-full h-full overflow-hidden text-left hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 cursor-pointer [transition-timing-function:cubic-bezier(0.16,1,0.3,1)]"
+        className="group relative bg-linear-to-br from-white/8 to-transparent hover:shadow-black/30 hover:shadow-xl p-5 border border-white/10 hover:border-white/20 rounded-(--radius) w-full h-full overflow-hidden text-left hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] cursor-pointer"
       >
         {/* Decorative glow */}
         <div className="-top-20 -right-20 absolute bg-indigo-500/10 opacity-0 group-hover:opacity-100 blur-3xl rounded-full w-40 h-40 transition-opacity duration-500" />
@@ -150,7 +150,7 @@ export default function LatestSleep() {
   return (
     <button
       onClick={() => router.push('/log/sleep/new')}
-      className="group relative bg-linear-to-br from-white/[0.08] to-transparent hover:shadow-black/30 hover:shadow-xl p-5 border border-white/10 hover:border-white/20 rounded-[2rem] w-full h-full overflow-hidden text-left hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 cursor-pointer [transition-timing-function:cubic-bezier(0.16,1,0.3,1)]"
+      className="group relative bg-linear-to-br from-white/8 to-transparent hover:shadow-black/30 hover:shadow-xl p-5 border border-white/10 hover:border-white/20 rounded-(--radius) w-full h-full overflow-hidden text-left hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] cursor-pointer"
     >
       {/* Content */}
       <div className="z-10 relative flex flex-col h-full">
@@ -179,7 +179,7 @@ export default function LatestSleep() {
       </div>
 
       {/* Pulse indicator */}
-      <div className="top-3 right-3 absolute">
+      <div className="top-4 right-4 absolute">
         <span className="relative flex w-2 h-2">
           <span className="inline-flex absolute bg-indigo-400 opacity-75 rounded-full w-full h-full animate-ping" />
           <span className="inline-flex relative bg-indigo-400 rounded-full w-2 h-2" />

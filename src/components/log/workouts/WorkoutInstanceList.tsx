@@ -3,7 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { WorkoutInstance } from '@/types/train';
-import { ChevronRight, Loader2 } from 'lucide-react';
+import { ChevronRight, Loader2, Dumbbell, Clock, Weight } from 'lucide-react';
+import { format } from 'date-fns';
 
 export default function WorkoutInstanceList() {
   const [instances, setInstances] = useState<WorkoutInstance[]>([]);
@@ -30,61 +31,93 @@ export default function WorkoutInstanceList() {
     fetchInstances();
   }, []);
 
-  if (loading) return <div className="flex justify-center items-center py-10 w-full"><Loader2 className="w-8 h-8 text-muted-foreground animate-spin" /></div>;
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center bg-card px-4 py-8 border border-border rounded-(--radius) text-muted-foreground text-sm">
+        <Loader2 className="mr-2 w-4 h-4 animate-spin" />
+        Loading workouts...
+      </div>
+    );
+  }
+
+  if (instances.length === 0) {
+    return (
+      <div className="bg-card/40 px-4 py-4 border border-border border-dashed rounded-(--radius) text-muted-foreground text-sm text-center">
+        No workouts logged yet.
+      </div>
+    );
+  }
 
   return (
-    <div className="bg-card shadow sm:rounded-md overflow-hidden">
-      <ul className="divide-y divide-gray-200">
-        {instances.length === 0 ? (
-           <li className="px-6 py-4 text-gray-500 text-center">
-             No workouts logged yet.
-           </li>
-        ) : (
-          instances.map((instance) => (
-            <li key={instance.id}>
-              <Link href={`/log/workouts/${instance.id}`} className="block hover:bg-gray-700 transition duration-150 ease-in-out">
-                <div className="flex justify-between items-center px-4 sm:px-6 py-4">
-                  <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-center">
-                          <p className="font-medium text-brand-primary text-sm truncate">
-                              {instance.workout?.name || 'Untitled Workout'}
-                          </p>
-                          <div className="flex ml-2 shrink-0">
-                              <p className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                instance.complete 
-                                ? 'bg-green-100 text-green-800' 
-                                : 'bg-yellow-100 text-yellow-800'
-                              }`}>
-                                  {instance.complete ? 'Completed' : 'In Progress'}
-                              </p>
-                          </div>
-                      </div>
-                      <div className="flex justify-between mt-2">
-                          <div className="sm:flex">
-                              <p className="flex items-center text-gray-400 text-sm">
-                                  {new Date(instance.date).toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
-                                  <span className="mx-2">•</span>
-                                  {new Date(instance.date).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
-                              </p>
-                          </div>
-                           <div className="flex items-center text-gray-400 text-sm">
-                              {instance.duration && (
-                                <span className="ml-4">
-                                  {instance.duration.value} {instance.duration.unit}
-                                </span>
-                              )}
-                           </div>
-                      </div>
-                  </div>
-                  <div className="ml-5 shrink-0">
-                      <ChevronRight className="w-5 h-5 text-gray-400" />
-                  </div>
+    <div className="space-y-3">
+      {instances.map((instance) => {
+        const workoutDate = new Date(instance.date);
+        
+        const durationText = instance.duration?.value 
+          ? `${instance.duration.unit === 's' ? Math.round(instance.duration.value / 60) : instance.duration.value}m`
+          : null;
+        
+        const volumeText = instance.volume?.value
+          ? `${instance.volume.value.toFixed(1)}${instance.volume.unit}`
+          : null;
+
+        return (
+          <Link
+            key={instance.id}
+            href={`/log/workouts/${instance.id}`}
+            className="flex justify-between items-center bg-card px-4 py-3 border border-border rounded-(--radius) hover:border-white/20 transition-all duration-200 group"
+          >
+            <div className="flex flex-1 items-center gap-4 min-w-0">
+              <div className={`p-2 rounded-lg shrink-0 ${
+                instance.complete 
+                  ? 'bg-success/10 text-success' 
+                  : 'bg-brand-accent/10 text-brand-accent'
+              }`}>
+                <Dumbbell className="w-5 h-5" />
+              </div>
+              
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <h4 className="font-medium text-foreground text-sm truncate">
+                    {instance.workout?.name || 'Untitled Workout'}
+                  </h4>
+                  <span className={`px-2 py-0.5 text-xs font-medium rounded-full shrink-0 ${
+                    instance.complete 
+                      ? 'bg-success/20 text-success' 
+                      : 'bg-brand-accent/20 text-brand-accent'
+                  }`}>
+                    {instance.complete ? 'Completed' : 'In Progress'}
+                  </span>
                 </div>
-              </Link>
-            </li>
-          ))
-        )}
-      </ul>
+                
+                <div className="flex flex-wrap items-center gap-3 text-muted-foreground text-xs">
+                  <span>
+                    {format(workoutDate, 'MMM d, yyyy')} • {format(workoutDate, 'h:mm a')}
+                  </span>
+                  {(durationText || volumeText) && (
+                    <span className="flex items-center gap-2">
+                      {durationText && (
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {durationText}
+                        </span>
+                      )}
+                      {volumeText && (
+                        <span className="flex items-center gap-1">
+                          <Weight className="w-3 h-3" />
+                          {volumeText}
+                        </span>
+                      )}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            <ChevronRight className="ml-4 w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
+          </Link>
+        );
+      })}
     </div>
   );
 }

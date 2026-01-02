@@ -100,7 +100,7 @@ export default function TodayBodyCheckIn() {
   return (
     <button
       onClick={() => router.push('/log/stats?tab=record')}
-      className="group relative bg-linear-to-br from-white/[0.08] to-transparent hover:shadow-black/30 hover:shadow-xl p-5 border border-white/10 hover:border-white/20 rounded-[2rem] w-full h-full overflow-hidden text-left hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 cursor-pointer [transition-timing-function:cubic-bezier(0.16,1,0.3,1)]"
+      className="group relative bg-linear-to-br from-white/8 to-transparent hover:shadow-black/30 hover:shadow-xl p-5 border border-white/10 hover:border-white/20 rounded-(--radius) w-full h-full overflow-hidden text-left hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] cursor-pointer"
     >
       {/* Decorative glow */}
       <div className="-top-20 -right-20 absolute bg-brand-primary/10 opacity-0 group-hover:opacity-100 blur-3xl rounded-full w-40 h-40 transition-opacity duration-500" />
@@ -128,7 +128,7 @@ export default function TodayBodyCheckIn() {
 
         {/* Title */}
         <h3 className="mb-1 font-display font-semibold text-muted-foreground text-sm">
-          Body Check-In
+          Check In
         </h3>
 
         {/* Main content */}
@@ -172,7 +172,7 @@ export default function TodayBodyCheckIn() {
 
       {/* Pulse indicator for "needs attention" */}
       {!hasLoggedToday && daysSinceLastLog !== null && daysSinceLastLog >= 2 && (
-        <div className="top-3 right-3 absolute">
+        <div className="top-4 right-4 absolute">
           <span className="relative flex w-2 h-2">
             <span className="inline-flex absolute bg-brand-accent opacity-75 rounded-full w-full h-full animate-ping" />
             <span className="inline-flex relative bg-brand-accent rounded-full w-2 h-2" />

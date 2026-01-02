@@ -94,7 +94,7 @@ export default function HistoryTab() {
           key={entry.id}
           className="flex justify-between items-start bg-card px-4 py-3 border border-border rounded-xl text-sm"
         >
-          <div className="flex-1 space-y-1">
+          <div className="flex-1 space-y-1 px-2">
             <div className="text-muted-foreground text-xs">
               {new Date(entry.date).toLocaleDateString()}
             </div>
@@ -102,11 +102,6 @@ export default function HistoryTab() {
               {entry.weight && (
                 <div className="font-medium">
                   Weight: {entry.weight.value} {entry.weight.unit}
-                </div>
-              )}
-              {entry.height && (
-                <div className="text-muted-foreground text-xs">
-                  Height: {entry.height.value} {entry.height.unit}
                 </div>
               )}
               {entry.bodyFatPercentage && (
@@ -135,7 +130,7 @@ export default function HistoryTab() {
           <button
             type="button"
             onClick={() => handleDelete(entry.id)}
-            className="hover:bg-zinc-800 ml-3 p-1.5 rounded-full text-muted-foreground hover:text-red-400 text-xs"
+            className="flex hover:bg-zinc-800 my-auto ml-3 p-1.5 rounded-full h-full text-muted-foreground hover:text-red-400 text-xs"
             aria-label="Delete entry"
           >
             <Trash2 className="w-4 h-4" />
