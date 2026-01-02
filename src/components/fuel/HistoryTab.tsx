@@ -204,7 +204,7 @@ function MealInstanceCard({ instance, mealName }: { instance: MealInstance; meal
       <div className="flex items-start gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <h4 className="font-medium text-sm">{mealName}</h4>
+            <h4 className="max-w-[200px] font-medium text-sm truncate ellipsis">{mealName}</h4>
             {time && (
               <span className="text-muted-foreground text-xs">{time}</span>
             )}

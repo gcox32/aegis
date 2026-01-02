@@ -25,6 +25,7 @@
   /* Surface Colors */
   --card: #1a1a1a; /* Slightly lighter than background */
   --card-foreground: #ffffff;
+  --autocomplete: #1f1f1f; /* More opaque than card for dropdowns */
   --border: #2a2a2a; /* Subtle borders */
   --border-accent: #3a3a3a;
   --input: #2a2a2a;
@@ -68,6 +69,7 @@
   /* Surface Colors */
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
+  --color-autocomplete: var(--autocomplete);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -261,6 +263,33 @@ code, pre, kbd, samp {
     0 20px 40px -10px rgba(0, 0, 0, 0.5),
     0 8px 16px -8px rgba(0, 0, 0, 0.4),
     inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+}
+
+/* ============================================
+   AUTocomplete DROPDOWN STYLING (More Opaque)
+   ============================================ */
+
+[class*="bg-autocomplete"] {
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.15) 0%,
+      rgba(255, 255, 255, 0.05) 80%,
+      transparent 100%
+    ),
+    var(--autocomplete) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 2rem;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.5),
+    0 10px 30px -5px rgba(0, 0, 0, 0.6),
+    0 4px 6px -4px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12px);
+  transition:
+    transform 0.3s var(--ease-out-expo),
+    box-shadow 0.3s var(--ease-out-expo),
+    border-color 0.3s ease;
 }
 
 /* ============================================

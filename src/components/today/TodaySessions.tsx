@@ -113,7 +113,6 @@ export default function TodaySessions() {
     <div
       onClick={onClick}
       className={`
-        relative overflow-hidden
         bg-linear-to-br from-white/8 to-transparent
         border border-white/10 hover:border-white/20
         rounded-(--radius)
