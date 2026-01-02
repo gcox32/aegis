@@ -38,7 +38,7 @@ export default function MealInstanceForm({ initialData }: MealInstanceFormProps)
       // Create date and timestamp in local timezone
       // Parse date string (YYYY-MM-DD) and create Date in local timezone at midnight
       const [year, month, day] = date.split('-').map(Number);
-      const dateObj = new Date(year, month - 1, day, 12, 0, 0, 0);
+      const dateObj = new Date(year, month - 1, day, 0, 0, 0, 0);
       
       // Create timestamp if time is provided (date + time in local timezone)
       let timestamp: Date | null = null;

@@ -680,17 +680,39 @@ export async function createMealInstance(
   instanceData: Omit<MealInstance, 'id' | 'userId'>
 ): Promise<MealInstance> {
   // Convert date strings to Date objects if needed (from JSON parsing)
-  // TIMESTAMPTZ columns accept Date objects directly
-  const dateValue = typeof instanceData.date === 'string' 
-    ? new Date(instanceData.date) 
-    : instanceData.date;
+  // When Date objects are JSON.stringify'd, they become ISO strings (UTC)
+  // We need to extract the date components to preserve the intended local date
+  let dateValue: Date;
+  if (instanceData.date instanceof Date) {
+    dateValue = instanceData.date;
+  } else if (typeof instanceData.date === 'string') {
+    // Parse ISO string or date string
+    // Extract YYYY-MM-DD part to avoid timezone shifts
+    const dateStr = (instanceData.date as string).split('T')[0]; // Get YYYY-MM-DD part
+    const [year, month, day] = dateStr.split('-').map(Number);
+    // Create Date at midnight in local timezone to preserve the intended date
+    dateValue = new Date(year, month - 1, day, 0, 0, 0, 0);
+  } else {
+    dateValue = instanceData.date;
+  }
   
-  // Convert timestamp to Date object if needed (timestamp column accepts Date)
-  const timestampValue = instanceData.timestamp 
-    ? (typeof instanceData.timestamp === 'string' 
-        ? new Date(instanceData.timestamp) 
-        : instanceData.timestamp)
-    : null;
+  // Convert timestamp to Date object if needed
+  // When Date objects are JSON.stringify'd, they become ISO strings (UTC)
+  // The ISO string represents the local time converted to UTC
+  // We need to parse it and use it directly, as the database will handle timezone conversion
+  let timestampValue: Date | null = null;
+  if (instanceData.timestamp) {
+    if (instanceData.timestamp instanceof Date) {
+      timestampValue = instanceData.timestamp;
+    } else if (typeof instanceData.timestamp === 'string') {
+      // Parse ISO string - this will correctly represent the time
+      // The database (timestamptz) will store it correctly
+      const parsed = new Date(instanceData.timestamp);
+      if (!isNaN(parsed.getTime())) {
+        timestampValue = parsed;
+      }
+    }
+  }
 
   const [newInstance] = await db
     .insert(mealInstance)
@@ -800,14 +822,36 @@ export async function updateMealInstance(
   }
   
   // Convert timestamp to Date if provided
+  // When Date objects are JSON.stringify'd, they become ISO strings (UTC)
+  // The ISO string represents the local time converted to UTC
+  // We need to parse it and use it directly, as the database will handle timezone conversion
   if (updates.timestamp !== undefined) {
-    dbUpdates.timestamp = updates.timestamp 
-      ? (typeof updates.timestamp === 'string' 
-          ? new Date(updates.timestamp) 
-          : updates.timestamp instanceof Date
-          ? updates.timestamp
-          : new Date(updates.timestamp))
-      : null;
+    if (updates.timestamp === null) {
+      dbUpdates.timestamp = null;
+    } else if (updates.timestamp instanceof Date) {
+      dbUpdates.timestamp = updates.timestamp;
+    } else if (typeof updates.timestamp === 'string') {
+      // Parse ISO string - this will correctly represent the time
+      // The database (timestamptz) will store it correctly
+      const parsed = new Date(updates.timestamp);
+      if (isNaN(parsed.getTime())) {
+        dbUpdates.timestamp = null;
+      } else {
+        dbUpdates.timestamp = parsed;
+      }
+    } else {
+      // Fallback: try to create Date from whatever it is
+      try {
+        const tempDate = new Date(updates.timestamp);
+        if (isNaN(tempDate.getTime())) {
+          dbUpdates.timestamp = null;
+        } else {
+          dbUpdates.timestamp = tempDate;
+        }
+      } catch {
+        dbUpdates.timestamp = null;
+      }
+    }
   }
   
   if (updates.calories !== undefined) {

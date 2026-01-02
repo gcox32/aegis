@@ -212,7 +212,10 @@ export default function GoalDetailPage() {
             // Fetch and evaluate components if stats are available
             if (statsRes.ok) {
                 const statsData = await statsRes.json();
-                const stats = statsData.stats as UserStats | null;
+                // Stats API returns an array, get the first (latest) entry
+                const stats = (statsData.stats && statsData.stats.length > 0) 
+                    ? (statsData.stats[0] as UserStats) 
+                    : null;
                 setLatestStats(stats);
 
                 // Evaluate components based on latest stats

@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { UserGoal } from '@/types/user';
+import { UserGoal, UserStats } from '@/types/user';
 import { GoalList } from '@/components/goals/GoalList';
 import { GoalForm } from '@/components/goals/GoalForm';
 import Button from '@/components/ui/Button';
@@ -11,6 +11,7 @@ import { useToast } from '@/components/ui/Toast';
 import { Plus, Dumbbell } from 'lucide-react';
 import Link from 'next/link';
 import PageLayout from '@/components/layout/PageLayout';
+import { evaluateGoalComponents } from '@/lib/goals/evaluateComponent';
 
 export default function GoalsPage() {
     const router = useRouter();
@@ -24,10 +25,41 @@ export default function GoalsPage() {
     const fetchGoals = async () => {
         setIsLoading(true);
         try {
-            const res = await fetch('/api/me/goals');
-            if (!res.ok) throw new Error('Failed to fetch goals');
-            const data = await res.json();
-            setGoals(data.goals);
+            // Fetch both goals and latest stats in parallel
+            const [goalsRes, statsRes] = await Promise.all([
+                fetch('/api/me/goals'),
+                fetch('/api/me/stats?latest=true')
+            ]);
+
+            if (!goalsRes.ok) throw new Error('Failed to fetch goals');
+            const goalsData = await goalsRes.json();
+            let goals = goalsData.goals as UserGoal[];
+
+            // Evaluate components based on latest stats if available
+            if (statsRes.ok) {
+                const statsData = await statsRes.json();
+                // Stats API returns an array, get the first (latest) entry
+                const stats = (statsData.stats && statsData.stats.length > 0) 
+                    ? (statsData.stats[0] as UserStats) 
+                    : null;
+
+                // Evaluate components for each goal
+                goals = goals.map(goal => {
+                    if (goal.components && goal.components.length > 0) {
+                        const evaluatedComponents = evaluateGoalComponents(goal.components, stats);
+                        const allComplete = evaluatedComponents.length > 0 && evaluatedComponents.every(c => c.complete);
+                        
+                        return {
+                            ...goal,
+                            components: evaluatedComponents,
+                            complete: allComplete,
+                        };
+                    }
+                    return goal;
+                });
+            }
+
+            setGoals(goals);
         } catch (error) {
             console.error(error);
             showToast({
@@ -122,11 +154,7 @@ export default function GoalsPage() {
             {isLoading ? (
                 <div className="py-12 text-muted-foreground text-center">Loading goals...</div>
             ) : (
-                <GoalList 
-                    goals={goals} 
-                    onEdit={() => {}} 
-                    onDelete={setDeletingGoal} 
-                />
+                <GoalList goals={goals} />
             )}
 
             <ConfirmationModal
