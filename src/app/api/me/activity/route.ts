@@ -8,6 +8,7 @@ import {
   getUserSleepInstances,
   getUserWaterIntakes,
   getUserSupplementInstances,
+  getMealById,
 } from '@/lib/db/crud/fuel';
 import {
   getUserStats,
@@ -43,13 +44,25 @@ export async function GET(request: NextRequest) {
       getUserImages(userId), // Images CRUD doesn't support date filtering yet, we'll filter in memory
     ]);
 
+    // Fetch meal names for meal instances
+    const uniqueMealIds = [...new Set(meals.map(m => m.mealId))];
+    const mealMap = new Map<string, string>();
+    await Promise.all(
+      uniqueMealIds.map(async (mealId) => {
+        const meal = await getMealById(mealId);
+        if (meal) {
+          mealMap.set(mealId, meal.name);
+        }
+      })
+    );
+
     // Normalize and combine
     const activities = [
       ...workouts.map(w => ({
         id: w.id,
         type: 'workout',
         date: new Date(w.date),
-        title: 'Worked out', // We might want to fetch workout name if possible, or just use "Workout"
+        title: w.workout?.name || 'Worked out',
         details: w,
       })),
       ...meals.map(m => ({
@@ -57,7 +70,7 @@ export async function GET(request: NextRequest) {
         type: 'meal',
         date: new Date(m.date), // Meal instances use date (no time by default unless timestamp is set?)
         timestamp: m.timestamp ? new Date(m.timestamp) : new Date(m.date),
-        title: 'Meal', 
+        title: mealMap.get(m.mealId) || 'Meal', 
         details: m,
       })),
       ...sleeps.map(s => ({

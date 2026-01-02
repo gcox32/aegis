@@ -5,7 +5,7 @@ export const logViews = [
         name: 'Body stats',
         href: '/log/stats',
         icon: Activity,
-        description: 'Weight, body fat, and tape measurements.',
+        description: 'Track physical measurements.',
         active: true,
     },
     {

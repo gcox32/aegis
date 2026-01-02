@@ -20,6 +20,8 @@ interface ActivityItem {
   details?: any;
 }
 
+const DEFAULT_DAYS_AGO = 7;
+
 export default function ActivityTab() {
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,7 +29,7 @@ export default function ActivityTab() {
   useEffect(() => {
     async function fetchActivities() {
       try {
-        const res = await fetch('/api/me/activity?dateFrom=' + new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
+        const res = await fetch('/api/me/activity?dateFrom=' + new Date(Date.now() - DEFAULT_DAYS_AGO * 24 * 60 * 60 * 1000).toISOString());
         if (res.ok) {
           const data = await res.json();
           setActivities(data.activities);
@@ -108,13 +110,6 @@ function ActivityCard({ item }: { item: ActivityItem }) {
     }
   };
 
-  const getTime = () => {
-    return new Date(item.date).toLocaleTimeString(undefined, {
-      hour: 'numeric',
-      minute: '2-digit'
-    });
-  };
-
   const getDetails = () => {
     switch (item.type) {
       case 'workout':
@@ -124,8 +119,26 @@ function ActivityCard({ item }: { item: ActivityItem }) {
         return [duration, vol].filter(Boolean).join(' • ');
       
       case 'meal':
-
-         return 'Logged';
+        const mealDetails: string[] = [];
+        if (item.details.calories) {
+          mealDetails.push(`${Math.round(item.details.calories)} cal`);
+        }
+        if (item.details.macros) {
+          const macroParts: string[] = [];
+          if (item.details.macros.protein) {
+            macroParts.push(`P: ${Math.round(item.details.macros.protein)}g`);
+          }
+          if (item.details.macros.carbs) {
+            macroParts.push(`C: ${Math.round(item.details.macros.carbs)}g`);
+          }
+          if (item.details.macros.fat) {
+            macroParts.push(`F: ${Math.round(item.details.macros.fat)}g`);
+          }
+          if (macroParts.length > 0) {
+            mealDetails.push(macroParts.join(' • '));
+          }
+        }
+        return mealDetails.length > 0 ? mealDetails.join(' • ') : 'Logged';
 
       case 'sleep':
         const sleepHours = Math.floor(item.details.timeAsleep?.value || 0);
@@ -157,6 +170,7 @@ function ActivityCard({ item }: { item: ActivityItem }) {
     switch(item.type) {
       case 'workout': return `/log/workouts/${item.id}`;
       case 'sleep': return `/log/sleep`; 
+      case 'meal': return `/fuel/meals/instances/${item.id}/edit`;
       default: return null;
     }
   };
@@ -170,14 +184,10 @@ function ActivityCard({ item }: { item: ActivityItem }) {
           {getIcon()}
         </div>
         <div>
-          <h4 className="font-medium text-sm">{item.title}</h4>
+          <h4 className="max-w-[200px] font-medium text-sm truncate">{item.title}</h4>
           <p className="flex items-center gap-2 text-muted-foreground text-xs">
-            <span>{getTime()}</span>
             {getDetails() && (
-              <>
-                <span>•</span>
                 <span>{getDetails()}</span>
-              </>
             )}
           </p>
         </div>

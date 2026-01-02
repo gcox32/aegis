@@ -10,20 +10,20 @@ export default function BottomNav() {
   return (
     <nav className="right-2 bottom-2 left-2 z-20 fixed animate-slide-in-bottom">
       {/* Glass container with enhanced styling */}
-      <div className="relative bg-black/40 backdrop-blur-2xl border border-white/10 rounded-[2rem] shadow-2xl shadow-black/40 ring-1 ring-inset ring-white/5">
+      <div className="relative bg-black/10 shadow-2xl shadow-black/40 backdrop-blur-2xl border border-white/10 rounded-4xl ring-1 ring-white/5 ring-inset">
         {/* Subtle top highlight */}
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent rounded-full" />
+        <div className="top-0 absolute inset-x-0 bg-linear-to-r from-transparent via-white/20 to-transparent rounded-full h-px" />
 
         <div className="flex justify-around items-center h-16">
           {navItems.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
             return (
               <Link
                 key={item.name}
                 href={item.href}
                 className={`
                   relative cursor-pointer flex flex-col items-center justify-center flex-1 h-full
-                  transition-all duration-300 [transition-timing-function:cubic-bezier(0.16,1,0.3,1)]
+                  transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]
                   ${item.className}
                   ${isActive
                     ? 'text-brand-primary'
@@ -34,15 +34,15 @@ export default function BottomNav() {
               >
                 {/* Active indicator glow */}
                 {isActive && (
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="w-12 h-12 rounded-full bg-brand-primary/10 blur-xl" />
+                  <div className="absolute inset-0 flex justify-center items-center pointer-events-none">
+                    <div className="bg-brand-primary/10 blur-xl rounded-full w-12 h-12" />
                   </div>
                 )}
 
                 {/* Icon with scale animation */}
                 <span className={`
                   relative mb-1 text-2xl
-                  transition-transform duration-300 [transition-timing-function:cubic-bezier(0.16,1,0.3,1)]
+                  transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]
                   group-hover:scale-110 group-active:scale-95
                   ${isActive ? 'scale-110' : ''}
                 `}>
@@ -60,7 +60,7 @@ export default function BottomNav() {
 
                 {/* Active dot indicator */}
                 {isActive && (
-                  <div className="absolute bottom-2 w-1 h-1 rounded-full bg-brand-primary shadow-sm shadow-brand-primary/50" />
+                  <div className="bottom-2 absolute bg-brand-primary shadow-brand-primary/50 shadow-sm rounded-full w-1 h-1" />
                 )}
               </Link>
             );

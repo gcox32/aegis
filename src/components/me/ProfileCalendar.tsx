@@ -1,18 +1,26 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Info } from 'lucide-react';
 import Link from 'next/link';
-import { format, isFuture, isToday } from 'date-fns';
+import { isFuture, isToday } from 'date-fns';
 interface ProfileCalendarProps {
   workoutDates?: Date[];
+  onMonthChange?: (year: number, month: number) => void;
 }
 
-export default function ProfileCalendar({ workoutDates = [] }: ProfileCalendarProps) {
+export default function ProfileCalendar({ workoutDates = [], onMonthChange }: ProfileCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
+
+  // Trigger fetch when month changes
+  useEffect(() => {
+    if (onMonthChange) {
+      onMonthChange(year, month);
+    }
+  }, [year, month, onMonthChange]);
 
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const firstDayOfMonth = new Date(year, month, 1).getDay(); // 0 = Sunday

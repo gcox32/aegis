@@ -6,9 +6,10 @@ import ProfileCalendar from './ProfileCalendar';
 interface OverviewTabProps {
   profile: UserProfile | null;
   workoutDates?: Date[];
+  onMonthChange?: (year: number, month: number) => void;
 }
 
-export default function OverviewTab({ profile, workoutDates = [] }: OverviewTabProps) {
+export default function OverviewTab({ profile, workoutDates = [], onMonthChange }: OverviewTabProps) {
   return (
     <div className="flex flex-col gap-6 px-4 md:px-6 py-6">
       {/* Profile Header */}
@@ -46,7 +47,7 @@ export default function OverviewTab({ profile, workoutDates = [] }: OverviewTabP
       </Link>
 
       {/* Calendar */}
-      <ProfileCalendar workoutDates={workoutDates} />
+      <ProfileCalendar workoutDates={workoutDates} onMonthChange={onMonthChange} />
     </div>
   );
 }

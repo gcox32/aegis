@@ -47,7 +47,7 @@ export default function FuelPage() {
     >
       <div className="space-y-6">
         {/* Build Button */}
-        <div className="flex gap-8 px-4 md:px-6 w-full">
+        <div className="flex items-center gap-8 px-4 md:px-6 w-full">
           <Link href="/fuel/build" className="w-full">
             <Button variant="primary" size="lg" className="w-full">
               Build

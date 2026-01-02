@@ -3,11 +3,10 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button';
-import { TodayCard, TodayCardHeader, TodayCardContent } from '@/components/ui/TodayCard';
 import { WorkoutAutocomplete } from '@/components/train/build/workouts/WorkoutAutocomplete';
 import type { Workout, WorkoutInstance } from '@/types/train';
 import { getLocalDateString } from '@/lib/utils';
-import { CheckCircle2, Play } from 'lucide-react';
+import { CheckCircle2, Play, Dumbbell, ChevronRight, Loader2 } from 'lucide-react';
 import { fetchJson } from '@/lib/train/helpers';
 
 type ApiListResponse<T> = { [key: string]: T[] };
@@ -109,30 +108,82 @@ export default function TodaySessions() {
     return i.complete && iDate === todayString;
   });
 
+  // Shared card wrapper
+  const CardWrapper = ({ children, onClick, className = '' }: { children: React.ReactNode; onClick?: () => void; className?: string }) => (
+    <div
+      onClick={onClick}
+      className={`
+        relative overflow-hidden
+        bg-linear-to-br from-white/8 to-transparent
+        border border-white/10 hover:border-white/20
+        rounded-(--radius)
+        p-5
+        transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]
+        ${onClick ? 'cursor-pointer hover:scale-[1.01] hover:shadow-xl hover:shadow-black/30 active:scale-[0.99]' : ''}
+        ${className}
+      `}
+    >
+      {children}
+    </div>
+  );
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <CardWrapper className="flex justify-center items-center min-h-[140px]">
+        <div className="relative">
+          <Loader2 className="w-8 h-8 text-brand-primary animate-spin" />
+          <div className="absolute inset-0 bg-brand-primary/20 blur-xl rounded-full w-8 h-8 animate-pulse" />
+        </div>
+      </CardWrapper>
+    );
+  }
+
+  // Error state
+  if (loadError) {
+    return (
+      <CardWrapper className="flex justify-center items-center min-h-[140px] text-error">
+        <p className="text-sm">{loadError}</p>
+      </CardWrapper>
+    );
+  }
+
   // CASE 1: In Progress
   if (inProgressInstance) {
     const workoutName = inProgressInstance.workout?.name || 'Workout';
     return (
-      <TodayCard isLoading={isLoading} error={loadError || undefined}>
-        <TodayCardHeader
-          badge={{ label: 'In Progress', variant: 'primary' }}
-          title={workoutName}
-          subtitle={`Started ${new Date(inProgressInstance.date).toLocaleDateString()}`}
-          icon={Play}
-          iconVariant="primary"
-        />
-        <TodayCardContent>
-          <div className="flex gap-3">
-            <Button
-              variant="primary"
-              fullWidth
-              onClick={() => router.push(`/train/session/${inProgressInstance.id}`)}
-            >
-              Resume Workout
-            </Button>
+      <CardWrapper
+        onClick={() => router.push(`/train/session/${inProgressInstance.id}`)}
+        className="group"
+      >
+        {/* Animated glow for in-progress */}
+        <div className="-top-20 -right-20 absolute bg-brand-primary/20 blur-3xl rounded-full w-40 h-40 animate-pulse" />
+
+        <div className="z-10 relative flex items-center gap-4">
+          {/* Icon */}
+          <div className="bg-brand-primary/10 p-3 rounded-2xl ring-1 ring-brand-primary/20 group-hover:scale-110 transition-transform duration-300">
+            <Play className="w-6 h-6 text-brand-primary" />
           </div>
-        </TodayCardContent>
-      </TodayCard>
+
+          {/* Content */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="bg-brand-primary/10 px-2 py-0.5 rounded-full ring-1 ring-brand-primary/20 ring-inset font-medium text-brand-primary text-xs">
+                In Progress
+              </span>
+            </div>
+            <h3 className="font-display font-bold text-xl truncate tracking-tight">
+              {workoutName}
+            </h3>
+            <p className="text-muted-foreground text-sm">
+              Tap to resume
+            </p>
+          </div>
+
+          {/* Arrow */}
+          <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-all group-hover:translate-x-1 duration-300" />
+        </div>
+      </CardWrapper>
     );
   }
 
@@ -140,65 +191,93 @@ export default function TodaySessions() {
   if (completedTodayInstance && !showPrompt) {
     const workoutName = completedTodayInstance.workout?.name || 'Workout';
     return (
-      <TodayCard isLoading={isLoading} error={loadError || undefined}>
-        <TodayCardHeader
-          badge={{ label: 'Completed', variant: 'success' }}
-          title={workoutName}
-          subtitle="You hit this workout today."
-          icon={CheckCircle2}
-          iconVariant="success"
-        />
-        <TodayCardContent>
-          <div className="flex flex-col gap-2">
+      <CardWrapper className="group">
+        <div className="flex items-center gap-4">
+          {/* Icon */}
+          <div className="bg-success/10 p-3 rounded-2xl ring-1 ring-success/20 group-hover:scale-110 transition-transform duration-300">
+            <CheckCircle2 className="w-6 h-6 text-success" />
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="bg-success/10 px-2 py-0.5 rounded-full ring-1 ring-success/20 ring-inset font-medium text-success text-xs">
+                Completed
+              </span>
+            </div>
+            <h3 className="font-display font-bold text-xl truncate tracking-tight">
+              {workoutName}
+            </h3>
+            <p className="text-muted-foreground text-sm">
+              You hit this today
+            </p>
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-2">
             <Button
-              variant="outline"
-              fullWidth
+              variant="ghost"
+              size="sm"
               onClick={() => router.push(`/log/workouts/${completedTodayInstance.id}`)}
             >
-              View Summary
+              View
             </Button>
             <Button
-              variant="outline"
-              fullWidth
+              variant="secondary"
+              size="sm"
               onClick={() => setShowPrompt(true)}
             >
-              Start New
+              New
             </Button>
           </div>
-        </TodayCardContent>
-      </TodayCard>
+        </div>
+      </CardWrapper>
     );
   }
 
   // CASE 3: Prompt to start (Default)
-  const selected = selectedWorkoutId ? workoutsById.get(selectedWorkoutId) : null;
   const isStarting = selectedWorkoutId && startingWorkoutId === selectedWorkoutId;
 
   return (
-    <TodayCard isLoading={isLoading} error={loadError || undefined}>
-      <TodayCardHeader
-        title="Get to Work"
-        subtitle="Pick something"
-      />
-      <TodayCardContent>
-        <div className="space-y-3">
-          <div className={isLoading || !!startingWorkoutId ? 'opacity-50 pointer-events-none' : ''}>
-            <WorkoutAutocomplete
-              initialWorkoutId={selectedWorkoutId || undefined}
-              onChange={handleSelect}
-            />
+    <CardWrapper>
+      <div className="flex items-start gap-4">
+
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-4">
+            {/* Icon */}
+            <div className="bg-white/5 mb-4 p-3 rounded-2xl ring-1 ring-white/10">
+              <Dumbbell className="w-6 h-6 text-muted-foreground" />
+            </div>
+            <div className="flex flex-col flex-1 min-w-0 text-left">
+              <h3 className="font-display font-bold text-xl truncate tracking-tight">
+                Get to Work
+              </h3>
+              <p className="mb-4 text-muted-foreground text-sm text-left">
+                Pick a workout and start training
+              </p>
+            </div>
           </div>
 
-          <Button
-            variant="primary"
-            fullWidth
-            disabled={!selectedWorkoutId || !!startingWorkoutId}
-            onClick={handleStart}
-          >
-            {isStarting ? 'Starting...' : 'Start Workout'}
-          </Button>
+          {/* Workout selector and button */}
+          <div className="flex sm:flex-row flex-col gap-3">
+            <div className={`flex-1 ${!!startingWorkoutId ? 'opacity-50 pointer-events-none' : ''}`}>
+              <WorkoutAutocomplete
+                initialWorkoutId={selectedWorkoutId || undefined}
+                onChange={handleSelect}
+              />
+            </div>
+            <Button
+              variant="primary"
+              disabled={!selectedWorkoutId || !!startingWorkoutId}
+              onClick={handleStart}
+              className="sm:w-auto whitespace-nowrap"
+            >
+              {isStarting ? 'Starting...' : 'Start'}
+            </Button>
+          </div>
         </div>
-      </TodayCardContent>
-    </TodayCard>
+      </div>
+    </CardWrapper>
   );
 }

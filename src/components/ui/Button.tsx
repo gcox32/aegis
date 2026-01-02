@@ -46,7 +46,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         // Base appearance
         'bg-brand-primary text-white',
         // Gradient overlay for depth
-        'bg-gradient-to-b from-brand-primary-light/20 to-transparent',
+        'bg-linear-to-b from-brand-primary-light/20 to-transparent',
         // Shadow with glow
         'shadow-lg shadow-brand-primary/25',
         // Inner highlight
@@ -81,7 +81,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         // Base appearance
         'bg-red-600 text-white',
         // Gradient overlay
-        'bg-gradient-to-b from-red-500/20 to-transparent',
+        'bg-linear-to-b from-red-500/20 to-transparent',
         // Shadow with glow
         'shadow-lg shadow-red-600/25',
         // Inner highlight
