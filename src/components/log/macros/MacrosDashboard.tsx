@@ -7,6 +7,7 @@ import { calculateFuelRecommendations } from '@/lib/fuel/recommendations';
 import type { MealInstance } from '@/types/fuel';
 import type { UserProfile } from '@/types/user';
 import type { FuelRecommendations } from '@/lib/fuel/recommendations';
+import { getLocalDateKey, getLocalDateKeyISO, normalizeToLocalMidnight } from '@/lib/utils';
 
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
     const res = await fetch(url, init);
@@ -41,15 +42,19 @@ function getPercentageDifference(actual: number, target: number): string | null 
 }
 
 function calculateDailyTotals(instances: MealInstance[]): DailyTotals[] {
-    // Group instances by date (using date only, ignoring time)
+    // Group instances by date (using local date to avoid timezone issues)
+    // Use local date key to ensure dates are grouped by the day as the user sees it
     const dailyMap = new Map<string, DailyTotals>();
 
     instances.forEach(instance => {
-        const dateKey = instance.date.toISOString().split('T')[0]; // YYYY-MM-DD
+        // Use local date key (YYYY-MM-DD) instead of UTC to ensure correct grouping
+        const dateKey = getLocalDateKeyISO(instance.date);
 
         if (!dailyMap.has(dateKey)) {
+            // Store the normalized date at local midnight for consistent representation
+            const normalizedDate = normalizeToLocalMidnight(instance.date);
             dailyMap.set(dateKey, {
-                date: new Date(instance.date),
+                date: normalizedDate,
                 calories: 0,
                 protein: 0,
                 carbs: 0,
@@ -427,23 +432,15 @@ function TrackingTab() {
     }, []);
 
     const { groupedByDate, sortedDates } = useMemo(() => {
-        // Group meal instances by date
+        // Group meal instances by date (using local date components to avoid timezone issues)
+        // We normalize each date to local midnight to ensure consistent grouping regardless of
+        // the timezone the date was stored in or the time component
         const grouped: { [key: string]: MealInstance[] } = {};
 
         instances.forEach(instance => {
-            // Normalize to local date
-            const localDate = new Date(instance.date);
-            const year = localDate.getFullYear();
-            const month = localDate.getMonth();
-            const day = localDate.getDate();
-
-            // Create a date key using local date components
-            const dateKey = new Date(year, month, day).toLocaleDateString(undefined, {
-                weekday: 'long',
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric'
-            });
+            // Normalize the date to local midnight to get a consistent date key
+            // This ensures that dates are grouped by the day as the user sees it in their timezone
+            const dateKey = getLocalDateKey(instance.date);
 
             if (!grouped[dateKey]) {
                 grouped[dateKey] = [];
@@ -452,10 +449,13 @@ function TrackingTab() {
         });
 
         // Sort dates in descending order
+        // Use normalized dates for comparison to ensure consistent sorting
         const sorted = Object.keys(grouped).sort((a, b) => {
             const instanceA = grouped[a][0];
             const instanceB = grouped[b][0];
-            return instanceB.date.getTime() - instanceA.date.getTime();
+            const normalizedA = normalizeToLocalMidnight(instanceA.date);
+            const normalizedB = normalizeToLocalMidnight(instanceB.date);
+            return normalizedB.getTime() - normalizedA.getTime();
         });
 
         return { groupedByDate: grouped, sortedDates: sorted };

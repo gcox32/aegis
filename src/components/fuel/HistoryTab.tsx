@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Loader2, Utensils, Pencil } from 'lucide-react';
 import type { MealInstance } from '@/types/fuel';
 import type { Meal } from '@/types/fuel';
+import { getLocalDateKey, normalizeToLocalMidnight } from '@/lib/utils';
 
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, init);
@@ -109,21 +110,13 @@ export default function HistoryTab() {
   }
 
   // Group meal instances by date (using local date components to avoid timezone issues)
+  // We normalize each date to local midnight to ensure consistent grouping regardless of
+  // the timezone the date was stored in or the time component
   const groupedByDate: { [key: string]: MealInstance[] } = {};
   mealInstances.forEach(instance => {
-    // Normalize to local date by extracting year, month, day in local timezone
-    const localDate = new Date(instance.date);
-    const year = localDate.getFullYear();
-    const month = localDate.getMonth();
-    const day = localDate.getDate();
-
-    // Create a date key using local date components
-    const dateKey = new Date(year, month, day).toLocaleDateString(undefined, {
-      weekday: 'long',
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
+    // Normalize the date to local midnight to get a consistent date key
+    // This ensures that dates are grouped by the day as the user sees it in their timezone
+    const dateKey = getLocalDateKey(instance.date);
 
     if (!groupedByDate[dateKey]) {
       groupedByDate[dateKey] = [];
@@ -132,11 +125,14 @@ export default function HistoryTab() {
   });
 
   // Sort dates in descending order
+  // Use normalized dates for comparison to ensure consistent sorting
   const sortedDates = Object.keys(groupedByDate).sort((a, b) => {
-    // Find the first instance for each date to get the actual date
+    // Find the first instance for each date and normalize to local midnight for comparison
     const instanceA = groupedByDate[a][0];
     const instanceB = groupedByDate[b][0];
-    return instanceB.date.getTime() - instanceA.date.getTime();
+    const normalizedA = normalizeToLocalMidnight(instanceA.date);
+    const normalizedB = normalizeToLocalMidnight(instanceB.date);
+    return normalizedB.getTime() - normalizedA.getTime();
   });
 
   return (

@@ -33,7 +33,8 @@ export default function TodayFuel() {
 
         const endOfDay = new Date(today);
         endOfDay.setHours(23, 59, 59, 999);
-
+        console.log('startOfDay', startOfDay);
+        console.log('endOfDay', endOfDay);
         const [instancesData, profileRes, goalsRes, statsRes] = await Promise.all([
           fetchJson<MealInstance[]>(
             `/api/fuel/meals/instances?dateFrom=${startOfDay.toISOString()}&dateTo=${endOfDay.toISOString()}`
