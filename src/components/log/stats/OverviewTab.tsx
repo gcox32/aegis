@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle, Settings } from 'lucide-react';
+import Link from 'next/link';
 import type { UserStats, UserProfile, TapeMeasurement } from '@/types/user';
 import { fetchJson } from '@/lib/train/helpers';
 import { getRatiosForGender } from './ratiosConfig';
@@ -92,25 +93,27 @@ export default function OverviewTab() {
   const latestDate = latestStats?.date ? new Date(latestStats.date) : null;
   const daysAgo = latestDate ? getDaysAgo(latestDate) : null;
 
-  // Calculate gender-specific ratios
+  // Calculate gender-specific ratios with user's custom targets
   const gender = profile?.gender;
   const tape = latestStats?.tapeMeasurements;
-  const ratios = getRatiosForGender(gender, tape);
+  const ratios = getRatiosForGender(gender, tape, profile?.targetRatios);
 
   return (
     <div className="space-y-6">
       {/* Anthropomorphic Ratios */}
       {ratios.length > 0 && (
         <div className="bg-card p-6 border border-border rounded-(--radius)">
-          <div className="mb-6">
-            <h3 className="mb-1 font-display font-semibold text-foreground text-xl">Anthropomorphic Ratios</h3>
-            <p className="text-muted-foreground text-xs">
-              Body proportion measurements based on ideal ratios
-            </p>
+          <div className="mb-6 flex justify-between items-start">
+            <div>
+              <h3 className="mb-1 font-display font-semibold text-foreground text-xl">Anthropomorphic Ratios</h3>
+              <p className="text-muted-foreground text-xs">
+                Body proportion measurements based on ideal ratios
+              </p>
+            </div>
           </div>
           <div className="gap-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
             {ratios.map((ratio, idx) => {
-              const hasTarget = ratio.perspective !== undefined;
+              const hasTarget = ratio.target !== undefined;
               const hasValue = ratio.value !== null;
               
               // Calculate percentage difference from target
@@ -119,13 +122,13 @@ export default function OverviewTab() {
               let progressColor = 'text-muted-foreground';
               let progressBg = 'bg-white/5';
               
-              if (hasValue && hasTarget && ratio.value !== null && ratio.perspective !== undefined) {
+              if (hasValue && hasTarget && ratio.value !== null && ratio.target !== undefined) {
                 // Calculate absolute percentage difference from target
-                const diff = Math.abs(ratio.value - ratio.perspective);
-                percentFromTarget = (diff / ratio.perspective) * 100;
+                const diff = Math.abs(ratio.value - ratio.target);
+                percentFromTarget = (diff / ratio.target) * 100;
                 
                 // Calculate progress for visual bar (inverted - lower difference = higher progress)
-                const maxDiff = ratio.perspective * 0.2; // 20% variance is considered "far"
+                const maxDiff = ratio.target * 0.2; // 20% variance is considered "far"
                 progress = Math.max(0, Math.min(100, 100 - (diff / maxDiff) * 100));
                 
                 // Color coding based on percentage difference
@@ -168,14 +171,11 @@ export default function OverviewTab() {
                         </div>
                         
                         {/* Target and Progress Bar */}
-                        {hasTarget && ratio.perspective !== undefined && (
+                        {hasTarget && ratio.target !== undefined && (
                           <div className="space-y-2">
                             <div className="flex justify-between items-center">
                               <span className="text-muted-foreground text-xs">
-                                Target: <span className="font-medium text-foreground">{ratio.perspective.toFixed(3)}</span>
-                              </span>
-                              <span className={`text-xs font-medium ${progressColor}`}>
-                                {ratio.value > ratio.perspective ? '↑' : ratio.value < ratio.perspective ? '↓' : '✓'}
+                                Target: <span className="font-medium text-foreground">{ratio.target.toFixed(3)}</span>
                               </span>
                             </div>
                             
@@ -189,8 +189,16 @@ export default function OverviewTab() {
                             
                             {/* Difference indicator */}
                             <div className="text-muted-foreground text-xs">
-                              {Math.abs(ratio.value - ratio.perspective).toFixed(3)} {ratio.value > ratio.perspective ? 'above' : 'below'} target
+                              {Math.abs(ratio.value - ratio.target).toFixed(3)} {ratio.value > ratio.target ? 'above' : 'below'} target
                             </div>
+                          </div>
+                        )}
+                        {/* Show message if no target set */}
+                        {!hasTarget && (
+                          <div className="mt-2">
+                            <p className="text-muted-foreground text-xs">
+                              No target set. <Link href="/me/goals/ratios" className="text-brand-primary hover:underline">Set target</Link>
+                            </p>
                           </div>
                         )}
                       </>

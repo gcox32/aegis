@@ -23,19 +23,19 @@ function calculateRatio(
 export interface RatioConfig {
   label: string;
   calculate: (tape: TapeMeasurement) => number | null;
-  perspective?: number; // Target/ideal value for this ratio
+  target?: number; // Target/ideal value for this ratio
 }
 
 export const maleRatios: RatioConfig[] = [
   {
     label: 'Shoulder-to-Waist',
     calculate: (tape) => calculateRatio(tape.shoulders, tape.waist),
-    perspective: 1.618,
+    target: 1.618,
   },
   {
     label: 'Chest-to-Waist',
     calculate: (tape) => calculateRatio(tape.chest, tape.waist),
-    perspective: 1.35
+    target: 1.35
   },
   {
     label: 'Arm-to-Waist',
@@ -49,7 +49,7 @@ export const maleRatios: RatioConfig[] = [
       if (waistCm === 0) return null;
       return avgArmCm / waistCm;
     },
-    perspective: 0.5,
+    target: 0.5,
   },
 ];
 
@@ -57,7 +57,7 @@ export const femaleRatios: RatioConfig[] = [
   {
     label: 'Waist-to-Hips',
     calculate: (tape) => calculateRatio(tape.waist, tape.hips),
-    perspective: 0.7,
+    target: 0.7,
   },
   {
     label: 'Chest-to-Waist',
@@ -71,8 +71,9 @@ export const femaleRatios: RatioConfig[] = [
 
 export function getRatiosForGender(
   gender: 'male' | 'female' | undefined,
-  tape: TapeMeasurement | undefined
-): Array<{ label: string; value: number | null; perspective?: number }> {
+  tape: TapeMeasurement | undefined,
+  userTargets?: Record<string, number> // User's custom target values
+): Array<{ label: string; value: number | null; target?: number }> {
   if (!gender || !tape) return [];
 
   const configs = gender === 'male' ? maleRatios : femaleRatios;
@@ -81,7 +82,8 @@ export function getRatiosForGender(
     .map(config => ({
       label: config.label,
       value: config.calculate(tape),
-      perspective: config.perspective,
+      // Use user's custom target if available, otherwise use default
+      target: userTargets?.[config.label] ?? config.target,
     }))
     .filter(ratio => ratio.value !== null); // Only show ratios that can be calculated
 }

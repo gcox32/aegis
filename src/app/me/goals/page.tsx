@@ -8,7 +8,7 @@ import { GoalForm } from '@/components/goals/GoalForm';
 import Button from '@/components/ui/Button';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import { useToast } from '@/components/ui/Toast';
-import { Plus, Dumbbell } from 'lucide-react';
+import { Plus, Dumbbell, Target } from 'lucide-react';
 import Link from 'next/link';
 import PageLayout from '@/components/layout/PageLayout';
 import { evaluateGoalComponents } from '@/lib/goals/evaluateComponent';
@@ -148,6 +148,12 @@ export default function GoalsPage() {
                     <div className="flex items-center gap-3">
                         <Dumbbell className="w-5 h-5 text-muted-foreground" />
                         <span className="font-medium">Key Exercises</span>
+                    </div>
+                </Link>
+                <Link href="/me/goals/ratios" className="flex justify-between items-center bg-card hover:bg-hover p-4 border border-border rounded-(--radius) w-full transition-colors">
+                    <div className="flex items-center gap-3">
+                        <Target className="w-5 h-5 text-muted-foreground" />
+                        <span className="font-medium">Target Ratios</span>
                     </div>
                 </Link>
             </div>

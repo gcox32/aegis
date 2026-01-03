@@ -96,6 +96,7 @@ export async function createUserProfile(
       birthDate: profileData.birthDate ? profileData.birthDate.toISOString().split('T')[0] : null,
       dailyWaterRecommendation: profileData.dailyWaterRecommendation,
       activityLevel: profileData.activityLevel,
+      targetRatios: profileData.targetRatios,
     } as any)
     .returning();
 
@@ -137,6 +138,7 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
     ...nullToUndefined(profile),
     birthDate: profile.birthDate ? new Date(profile.birthDate) : undefined,
     keyExercises: keyExercises.length > 0 ? keyExercises : undefined,
+    targetRatios: profile.targetRatios as Record<string, number> | undefined,
   } as UserProfile;
 }
 
@@ -210,6 +212,7 @@ export async function updateUserProfile(
     ...nullToUndefined(updatedProfile),
     birthDate: updatedProfile.birthDate ? new Date(updatedProfile.birthDate) : undefined,
     keyExercises: updatedKeyExercises.length > 0 ? updatedKeyExercises : undefined,
+    targetRatios: updatedProfile.targetRatios as Record<string, number> | undefined,
   } as UserProfile;
 }
 

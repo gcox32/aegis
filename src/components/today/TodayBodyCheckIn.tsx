@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Scale, TrendingDown, TrendingUp, Minus, ChevronRight } from 'lucide-react';
 import { fetchJson } from '@/lib/train/helpers';
+import { getLocalDateKeyISO } from '@/lib/utils';
 
 interface Stats {
   id: string;
@@ -35,12 +36,25 @@ export default function TodayBodyCheckIn() {
           setLatestStats(stats[0]);
 
           // Check if logged today
+          // Compare calendar dates correctly by extracting date components
+          // For 'today', use local date components (it's already in local timezone)
+          // For 'latestDate', extract UTC date components (it comes from DB as UTC/ISO string)
           const today = new Date();
           const latestDate = new Date(stats[0].date);
-          const isToday =
-            latestDate.getFullYear() === today.getFullYear() &&
-            latestDate.getMonth() === today.getMonth() &&
-            latestDate.getDate() === today.getDate();
+          
+          // Get today's date in local timezone (YYYY-MM-DD)
+          const todayYear = today.getFullYear();
+          const todayMonth = today.getMonth();
+          const todayDay = today.getDate();
+          const todayKey = `${todayYear}-${String(todayMonth + 1).padStart(2, '0')}-${String(todayDay).padStart(2, '0')}`;
+          
+          // Get latest date from UTC representation (YYYY-MM-DD)
+          // This ensures we get the calendar date as stored, not timezone-shifted
+          const latestKey = getLocalDateKeyISO(latestDate);
+          console.log('todayKey', todayKey);
+          console.log('latestKey', latestKey);
+          // Compare the calendar date strings
+          const isToday = todayKey === latestKey;
           setHasLoggedToday(isToday);
 
           if (stats.length > 1) {

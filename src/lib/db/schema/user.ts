@@ -25,6 +25,7 @@ export const userProfile = pgTable('user_profile', {
   activityLevel: text('activity_level', {
     enum: ['sedentary', 'lightly active', 'moderately active', 'very active', 'extra active'],
   }),
+  targetRatios: jsonb('target_ratios'), // Mapping of ratio label -> target value
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });

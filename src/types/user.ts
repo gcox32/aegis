@@ -10,6 +10,9 @@ import {
 } from "./measures"; 
 import { Exercise, ExerciseMeasureType, PerformanceLog } from "./train";
 import { SleepLog, SupplementSchedule, WaterIntakeLog } from "./fuel";
+// Ratio targets are stored as a simple mapping of ratio label to target value
+// The ratio definitions (labels, calculation logic) are fixed per gender in ratiosConfig
+export type TargetRatios = Record<string, number>;
 
 // `user` schema for supabase
 export interface User {
@@ -40,6 +43,7 @@ export interface UserProfile {
     dailyWaterRecommendation?: LiquidMeasurement;
     activityLevel?:            ActivityLevel;
     keyExercises?:             Exercise['id'][];
+    targetRatios?:             TargetRatios; // Mapping of ratio label -> target value
 
     // latest instances
     latestStats?:              UserStats;

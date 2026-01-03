@@ -929,16 +929,25 @@ export async function updatePortionedFoodInstance(
   instanceId: string,
   userId: string,
   updates: Partial<
-    Omit<PortionedFoodInstance, 'id' | 'userId' | 'mealInstanceId' | 'foodId' | 'portion' | 'calories' | 'macros' | 'micros'>
+    Omit<PortionedFoodInstance, 'id' | 'userId' | 'mealInstanceId'>
   >
 ): Promise<PortionedFoodInstance | null> {
+  const dbUpdates: any = { ...updates };
+  
+  // Convert calories to string if provided (database stores as numeric)
+  if (dbUpdates.calories !== undefined) {
+    dbUpdates.calories = dbUpdates.calories?.toString() || null;
+  }
+  
   const [updated] = await db
     .update(portionedFoodInstance)
-    .set({ ...updates})
+    .set(dbUpdates)
     .where(
       and(eq(portionedFoodInstance.id, instanceId), eq(portionedFoodInstance.userId, userId))
     )
     .returning();
+
+  if (!updated) return null;
 
   return {
     ...updated,
