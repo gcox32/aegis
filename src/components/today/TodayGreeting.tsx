@@ -29,7 +29,7 @@ function getGreeting(timeOfDay: string): string {
 function getMotivationalPhrase(timeOfDay: string): string {
   const phrases: Record<string, string[]> = {
     morning: [
-      'Go build something great?',
+      'Go build something great.',
       'Train the will.',
       'Another day to get better.',
       'The work begins again.',
