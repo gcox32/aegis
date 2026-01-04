@@ -107,7 +107,7 @@ export const getSettingsConfig = ({ settings, storageStats, handlers, env }: Set
         id: 'sessionReminders',
         type: 'toggle',
         label: 'Training Reminders',
-        description: 'Get notified when it\'s time to get to work',
+        description: 'Don\'t get distracted',
         settingKey: 'trainingReminders',
         onChange: handlers.handleTrainingRemindersChange,
       },
@@ -147,6 +147,7 @@ export const getSettingsConfig = ({ settings, storageStats, handlers, env }: Set
         label: 'Data Export',
         description: 'Download your data',
         action: handlers.handleDataExport,
+        disabled: true
       },
     ],
   },

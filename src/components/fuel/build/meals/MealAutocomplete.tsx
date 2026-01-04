@@ -157,7 +157,7 @@ export function MealAutocomplete({
         </div>
       )}
       {showDropdown ? (
-        <div className="z-10 absolute bg-card shadow-lg mt-1 border border-border rounded-md w-full max-h-56 overflow-auto">
+        <div className="z-10 absolute bg-autocomplete shadow-lg mt-1 border border-border rounded-md w-full max-h-56 overflow-auto">
           {options.map((option) => (
             <button
               key={option.id}

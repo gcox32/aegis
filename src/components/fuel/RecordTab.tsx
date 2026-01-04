@@ -383,7 +383,7 @@ export default function RecordTab() {
 
         {/* Meal Selection */}
         {mode === 'meal' && (
-          <div className="bg-card shadow-black/20 shadow-lg p-4 border border-white/5 rounded-xl card-gradient">
+          <div className="bg-card relative z-2 shadow-black/20 shadow-lg p-4 border border-white/5 rounded-xl card-gradient">
             <FormGroup>
               <FormLabel>Select Meal</FormLabel>
               <MealAutocomplete
@@ -396,7 +396,7 @@ export default function RecordTab() {
 
         {/* Food Logging */}
         {mode === 'foods' && (
-          <div className="bg-card shadow-black/20 shadow-lg p-4 border border-white/5 rounded-xl card-gradient">
+          <div className="bg-card relative z-2 shadow-black/20 shadow-lg p-4 border border-white/5 rounded-xl card-gradient">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-semibold text-foreground text-sm">Foods</h3>
               <Button

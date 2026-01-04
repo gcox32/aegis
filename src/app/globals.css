@@ -25,7 +25,7 @@
   /* Surface Colors */
   --card: #1a1a1a; /* Slightly lighter than background */
   --card-foreground: #ffffff;
-  --autocomplete: #1f1f1f; /* More opaque than card for dropdowns */
+  --autocomplete: rgba(31, 31, 31, 0.8); /* More opaque than card for dropdowns */
   --border: #2a2a2a; /* Subtle borders */
   --border-accent: #3a3a3a;
   --input: #2a2a2a;
@@ -268,8 +268,8 @@ code, pre, kbd, samp {
   background:
     linear-gradient(
       135deg,
-      rgba(255, 255, 255, 0.15) 0%,
-      rgba(255, 255, 255, 0.05) 80%,
+      rgba(255, 255, 255, 0.05) 0%,
+      rgba(255, 255, 255, 0.05) 30%,
       transparent 100%
     ),
     var(--autocomplete) !important;

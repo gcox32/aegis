@@ -104,7 +104,7 @@ export default function TodayBodyCheckIn() {
     : null;
 
   const getPromptMessage = () => {
-    if (hasLoggedToday) return 'Logged today';
+    if (hasLoggedToday) return 'Logged';
     if (daysSinceLastLog === null) return 'Start tracking';
     if (daysSinceLastLog === 1) return 'Log today';
     if (daysSinceLastLog <= 3) return `${daysSinceLastLog} days ago`;
