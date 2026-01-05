@@ -47,7 +47,7 @@ export const userSettings = pgTable('user_settings', {
   userId: uuid('user_id').notNull().unique().references(() => user.id),
   sleepReminder: boolean('sleep_reminder').default(false),
   // Placeholders for future settings
-  sessionReminders: boolean('session_reminders').default(true),
+  trainingReminders: boolean('session_reminders').default(true),
   mealReminders: boolean('meal_reminders').default(false),
   progressUpdates: boolean('progress_updates').default(true),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
