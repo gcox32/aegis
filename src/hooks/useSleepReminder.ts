@@ -5,15 +5,7 @@ export function useSleepReminder() {
   const { settings } = useSettings();
 
   useEffect(() => {
-    // Only client side
     if (typeof window === 'undefined') return;
-
-    // Register SW
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js')
-        .then(reg => console.log('Service Worker registered', reg))
-        .catch(err => console.error('Service Worker registration failed', err));
-    }
 
     const checkReminder = () => {
       if (!settings.sleepReminder) return;
