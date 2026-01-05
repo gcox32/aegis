@@ -3,6 +3,7 @@ import { withAuth, parseBody, getQueryParam } from '@/lib/api/helpers';
 import {
   getWorkoutBlockExerciseInstances,
   createWorkoutBlockExerciseInstance,
+  isPersonalBest,
 } from '@/lib/db/crud';
 import type { WorkoutBlockExerciseInstance } from '@/types/train';
 import { calculateProjected1RMFromMeasures } from '@/lib/stats/performance/projected-max';
@@ -46,13 +47,22 @@ export async function POST(
     
     // Calculate projected 1RM if measures contain reps and weight
     const projected1RM = calculateProjected1RMFromMeasures(instanceData.measures);
+    const finalProjected1RM = projected1RM ?? instanceData.projected1RM;
+    
+    // Determine if this is a personal best by comparing with all historical values
+    const personalBest = await isPersonalBest(
+      userId,
+      exerciseId, // This is the workoutBlockExerciseId
+      finalProjected1RM
+    );
     
     const instance = await createWorkoutBlockExerciseInstance(
       userId,
       {
         ...instanceData,
         workoutBlockExerciseId: exerciseId,
-        projected1RM: projected1RM ?? instanceData.projected1RM,
+        projected1RM: finalProjected1RM,
+        personalBest,
       }
     );
     return { instance };

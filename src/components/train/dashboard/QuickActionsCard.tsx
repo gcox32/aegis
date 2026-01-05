@@ -56,9 +56,6 @@ export default function QuickActionsCard({ lastWorkout }: QuickActionsCardProps)
   return (
     <div className="bg-card card-gradient p-6 border border-white/5 rounded-(--radius) shadow-lg shadow-black/20">
       <div className="flex items-center gap-4 mb-5">
-        <div className="bg-white/5 p-3 rounded-2xl ring-1 ring-white/10">
-          <Dumbbell className="w-6 h-6 text-muted-foreground" />
-        </div>
         <div>
           <h3 className="font-display font-bold text-xl tracking-tight">
             Start a Workout

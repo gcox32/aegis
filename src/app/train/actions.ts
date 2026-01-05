@@ -174,7 +174,7 @@ export async function getTrainPageData(): Promise<TrainPageData | { error: strin
           eq(workoutBlockExerciseInstance.personalBest, true)
         ),
         orderBy: desc(workoutBlockExerciseInstance.created_at),
-        limit: 20, // Fetch more to filter
+        limit: 50, // Fetch more to filter
         with: {
           workoutBlockExercise: {
             with: {
