@@ -174,6 +174,17 @@ export const userProfileRelations = relations(userProfile, ({ one, many }) => ({
   keyExercises: many(userProfileKeyExercise),
 }));
 
+export const userProfileKeyExerciseRelations = relations(userProfileKeyExercise, ({ one }) => ({
+  userProfile: one(userProfile, {
+    fields: [userProfileKeyExercise.userProfileId],
+    references: [userProfile.id],
+  }),
+  exercise: one(exercise, {
+    fields: [userProfileKeyExercise.exerciseId],
+    references: [exercise.id],
+  }),
+}));
+
 export const userPreferencesRelations = relations(userPreferences, ({ one }) => ({
   user: one(user, {
     fields: [userPreferences.userId],
