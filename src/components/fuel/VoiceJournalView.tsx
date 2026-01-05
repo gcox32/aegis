@@ -468,7 +468,7 @@ export default function VoiceJournalView() {
               <Helix
                 size="60"
                 speed="2.5"
-                color="#8B5CF6"
+                color="#3b82f6"
               />
             </div>
           )}
