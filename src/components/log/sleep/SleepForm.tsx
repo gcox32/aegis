@@ -212,7 +212,7 @@ export function SleepForm({ initialDate, initialData, onSuccess }: SleepFormProp
                 </div>
 
                 <div className="gap-4 grid grid-cols-2">
-                    <FormGroup className="max-w-[80%]">
+                    <FormGroup className="max-w-[76%]">
                         <FormLabel>Bed Time</FormLabel>
                         <FormInput
                             type="time"
@@ -220,7 +220,7 @@ export function SleepForm({ initialDate, initialData, onSuccess }: SleepFormProp
                             onChange={(e) => setStartTime(e.target.value)}
                         />
                     </FormGroup>
-                    <FormGroup className="max-w-[80%]">
+                    <FormGroup className="max-w-[76%]">
                         <FormLabel>Wake Time</FormLabel>
                         <FormInput
                             type="time"
@@ -237,7 +237,7 @@ export function SleepForm({ initialDate, initialData, onSuccess }: SleepFormProp
                 )}
 
                 <FormGroup>
-                    <FormLabel>Sleep Score (0-100)</FormLabel>
+                    <FormLabel>Sleep Score (0-10)</FormLabel>
                     <NumberInput
                         value={sleepScore}
                         onValueChange={setSleepScore}

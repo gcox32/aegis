@@ -229,7 +229,7 @@ export interface SleepInstance {
     timeAsleep?: TimeMeasurement; // in hours
     startTime?:  Date | null;
     endTime?:    Date | null;
-    sleepScore?: number;
+    sleepScore?: number; // 0-10
     wakeCount?:  number;
     timeAwake?:  TimeMeasurement; // in minutes
     notes?:      string;
