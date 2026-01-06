@@ -1,5 +1,7 @@
-import type { UserProfile, UserGoal, UserGoalComponent } from '@/types/user';
+import type { UserProfile, UserGoal, UserGoalComponent, UserStats } from '@/types/user';
 import type { HeightMeasurement, WeightMeasurement, PercentageMeasurement } from '@/types/measures';
+import { getUserProfile, getUserGoals, getLatestUserStats } from '@/lib/db/crud';
+import { createOrUpdateFuelRecommendations } from '@/lib/db/crud/fuel';
 
 // Conversion constants
 const IN_TO_CM = 2.54;
@@ -424,4 +426,46 @@ export function calculateFuelRecommendations(
       fat: Math.round(fat),
     },
   };
+}
+
+/**
+ * Recalculate and save fuel recommendations for a user
+ * This function fetches the user's profile, goals, and latest stats,
+ * calculates recommendations, and saves them to the database.
+ */
+export async function recalculateAndSaveFuelRecommendations(userId: string): Promise<void> {
+  // Fetch user data
+  const [profile, goals, latestStats] = await Promise.all([
+    getUserProfile(userId),
+    getUserGoals(userId),
+    getLatestUserStats(userId),
+  ]);
+
+  if (!profile) {
+    // Can't calculate recommendations without a profile
+    return;
+  }
+
+  // Build profile object with goals and latest stats
+  const profileWithData: UserProfile = {
+    ...profile,
+    goals,
+    latestStats: latestStats || undefined,
+  };
+
+  // Calculate recommendations
+  const calculatedRecs = calculateFuelRecommendations(profileWithData);
+
+  // Convert to database format (matching FuelRecommendations interface from types/fuel.ts)
+  const recommendationsData: Omit<import('@/types/fuel').FuelRecommendations, 'id' | 'userId' | 'createdAt' | 'updatedAt'> = {
+    bmr: calculatedRecs.bmr,
+    tdee: calculatedRecs.tdee,
+    calorieTarget: calculatedRecs.calorieTarget,
+    macros: calculatedRecs.macros,
+    // Note: micros, sleepHours, waterIntake, supplements, notes are not calculated yet
+    // but can be added later
+  };
+
+  // Save to database
+  await createOrUpdateFuelRecommendations(userId, recommendationsData);
 }

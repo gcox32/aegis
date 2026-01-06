@@ -4,6 +4,8 @@
 -- This file consolidates all migrations into a single schema initialization.
 -- Use this for fresh database setups instead of running migrations sequentially.
 --
+-- Incorporates all changes from migrations 001-036
+--
 -- For existing databases, continue using the numbered migration files.
 -- ============================================================================
 
@@ -40,6 +42,7 @@ CREATE TABLE IF NOT EXISTS public.user_profile (
     birth_date DATE,
     daily_water_recommendation JSONB,
     activity_level TEXT CHECK (activity_level IN ('sedentary', 'lightly active', 'moderately active', 'very active', 'extra active')),
+    target_ratios JSONB,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -124,18 +127,10 @@ CREATE TABLE IF NOT EXISTS public.user_goal_criteria (
 
 CREATE INDEX idx_user_goal_criteria_component_id ON public.user_goal_criteria(component_id);
 
--- User Stats Log
-CREATE TABLE IF NOT EXISTS public.user_stats_log (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL UNIQUE REFERENCES public.user(id) ON DELETE CASCADE
-);
-
-CREATE INDEX idx_user_stats_log_user_id ON public.user_stats_log(user_id);
-
 -- User Stats
 CREATE TABLE IF NOT EXISTS public.user_stats (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    stats_log_id UUID NOT NULL REFERENCES public.user_stats_log(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES public.user(id) ON DELETE CASCADE,
     height JSONB,
     weight JSONB,
     body_fat_percentage JSONB,
@@ -145,13 +140,14 @@ CREATE TABLE IF NOT EXISTS public.user_stats (
     date DATE NOT NULL
 );
 
-CREATE INDEX idx_user_stats_stats_log_id ON public.user_stats(stats_log_id);
+CREATE INDEX idx_user_stats_user_id ON public.user_stats(user_id);
 CREATE INDEX idx_user_stats_date ON public.user_stats(date);
 
 -- Tape Measurement
 CREATE TABLE IF NOT EXISTS public.tape_measurement (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_stats_id UUID NOT NULL UNIQUE REFERENCES public.user_stats(id) ON DELETE CASCADE,
+    date DATE NOT NULL,
     neck JSONB,
     shoulders JSONB,
     chest JSONB,
@@ -168,25 +164,18 @@ CREATE TABLE IF NOT EXISTS public.tape_measurement (
 );
 
 CREATE INDEX idx_tape_measurement_user_stats_id ON public.tape_measurement(user_stats_id);
-
--- User Image Log
-CREATE TABLE IF NOT EXISTS public.user_image_log (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL UNIQUE REFERENCES public.user(id) ON DELETE CASCADE
-);
-
-CREATE INDEX idx_user_image_log_user_id ON public.user_image_log(user_id);
+CREATE INDEX idx_tape_measurement_date ON public.tape_measurement(date);
 
 -- User Image
 CREATE TABLE IF NOT EXISTS public.user_image (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    image_log_id UUID NOT NULL REFERENCES public.user_image_log(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES public.user(id) ON DELETE CASCADE,
     date DATE NOT NULL,
     image_url TEXT NOT NULL,
     notes TEXT
 );
 
-CREATE INDEX idx_user_image_image_log_id ON public.user_image(image_log_id);
+CREATE INDEX idx_user_image_user_id ON public.user_image(user_id);
 CREATE INDEX idx_user_image_date ON public.user_image(date);
 
 -- User Profile Key Exercise (Junction Table)
@@ -304,7 +293,7 @@ CREATE TABLE IF NOT EXISTS train.exercise (
     muscle_groups JSONB NOT NULL,
     plane_of_motion TEXT CHECK (plane_of_motion IN ('sagittal', 'frontal', 'transverse')),
     bilateral BOOLEAN,
-    equipment TEXT[] CHECK (equipment <@ ARRAY['barbell', 'dumbbell', 'kettlebell', 'machine', 'bodyweight', 'variable', 'cable', 'band', 'medicine ball', 'sled', 'sandbag', 'wheel', 'jump rope', 'pullup bar', 'rack', 'box', 'swiss ball', 'foam roller', 'bench', 'landmine', 'hip band', 'other']::text[]),
+    equipment TEXT[] CHECK (equipment <@ ARRAY['barbell', 'dumbbell', 'kettlebell', 'machine', 'bodyweight', 'variable', 'cable', 'band', 'medicine ball', 'sled', 'sandbag', 'wheel', 'jump rope', 'pullup bar', 'rack', 'box', 'swiss ball', 'foam roller', 'bench', 'landmine', 'hip band', 'glute ham developer', 'other']::text[]),
     image_url TEXT,
     video_url TEXT,
     work_power_constants JSONB NOT NULL,
@@ -427,54 +416,26 @@ CREATE INDEX idx_workout_block_exercise_instance_workout_block_instance_id ON tr
 CREATE INDEX idx_workout_block_exercise_instance_workout_block_exercise_id ON train.workout_block_exercise_instance(workout_block_exercise_id);
 CREATE INDEX idx_workout_block_exercise_instance_created_at ON train.workout_block_exercise_instance(created_at);
 
--- Performance Log
-CREATE TABLE IF NOT EXISTS train.performance_log (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL UNIQUE REFERENCES public.user(id) ON DELETE CASCADE
-);
-
-CREATE INDEX idx_performance_log_user_id ON train.performance_log(user_id);
-
--- Performance
-CREATE TABLE IF NOT EXISTS train.performance (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    performance_log_id UUID NOT NULL REFERENCES train.performance_log(id) ON DELETE CASCADE,
-    date TIMESTAMPTZ NOT NULL,
-    duration JSONB NOT NULL,
-    volume JSONB NOT NULL,
-    work JSONB NOT NULL,
-    power JSONB NOT NULL,
-    notes TEXT
-);
-
-CREATE INDEX idx_performance_performance_log_id ON train.performance(performance_log_id);
-CREATE INDEX idx_performance_date ON train.performance(date);
-
--- Projected 1RM Log
-CREATE TABLE IF NOT EXISTS train.projected_1rm_log (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL UNIQUE REFERENCES public.user(id) ON DELETE CASCADE
-);
-
-CREATE INDEX idx_projected_1rm_log_user_id ON train.projected_1rm_log(user_id);
-
--- Projected 1RM
-CREATE TABLE IF NOT EXISTS train.projected_1rm (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    projected_1rm_log_id UUID NOT NULL REFERENCES train.projected_1rm_log(id) ON DELETE CASCADE,
-    date TIMESTAMPTZ NOT NULL,
-    exercise_id UUID NOT NULL REFERENCES train.exercise(id) ON DELETE CASCADE,
-    projected_1rm JSONB NOT NULL,
-    notes TEXT
-);
-
-CREATE INDEX idx_projected_1rm_projected_1rm_log_id ON train.projected_1rm(projected_1rm_log_id);
-CREATE INDEX idx_projected_1rm_exercise_id ON train.projected_1rm(exercise_id);
-CREATE INDEX idx_projected_1rm_date ON train.projected_1rm(date);
 
 -- ============================================================================
 -- FUEL SCHEMA
 -- ============================================================================
+
+-- Food
+CREATE TABLE IF NOT EXISTS fuel.food (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    description TEXT,
+    serving_size JSONB NOT NULL,
+    calories NUMERIC,
+    macros JSONB,
+    micros JSONB,
+    image_url TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_food_name ON fuel.food(name);
 
 -- Meal Plan
 CREATE TABLE IF NOT EXISTS fuel.meal_plan (
@@ -488,88 +449,50 @@ CREATE TABLE IF NOT EXISTS fuel.meal_plan (
 
 CREATE INDEX idx_meal_plan_user_id ON fuel.meal_plan(user_id);
 
+-- Meal Week
+CREATE TABLE IF NOT EXISTS fuel.meal_week (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    meal_plan_id UUID NOT NULL REFERENCES fuel.meal_plan(id) ON DELETE CASCADE,
+    week_number INTEGER NOT NULL,
+    meal_ids TEXT[],
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_meal_week_meal_plan_id ON fuel.meal_week(meal_plan_id);
+
 -- Meal
 CREATE TABLE IF NOT EXISTS fuel.meal (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    meal_plan_id UUID NOT NULL REFERENCES fuel.meal_plan(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES public.user(id) ON DELETE CASCADE,
+    meal_plan_id UUID REFERENCES fuel.meal_plan(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     description TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX idx_meal_meal_plan_id ON fuel.meal(meal_plan_id);
-
--- Food
-CREATE TABLE IF NOT EXISTS fuel.food (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name TEXT NOT NULL,
-    description TEXT,
-    image_url TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX idx_food_name ON fuel.food(name);
-
--- Portioned Food
-CREATE TABLE IF NOT EXISTS fuel.portioned_food (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    food_id UUID NOT NULL REFERENCES fuel.food(id) ON DELETE CASCADE,
+    recipe_ids TEXT[],
     calories NUMERIC,
     macros JSONB,
     micros JSONB,
-    portion_size JSONB NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_portioned_food_food_id ON fuel.portioned_food(food_id);
-
--- Meal Portion (Junction Table)
-CREATE TABLE IF NOT EXISTS fuel.meal_portion (
-    meal_id UUID NOT NULL REFERENCES fuel.meal(id) ON DELETE CASCADE,
-    portioned_food_id UUID NOT NULL REFERENCES fuel.portioned_food(id) ON DELETE CASCADE,
-    "order" INTEGER NOT NULL,
-    PRIMARY KEY (meal_id, portioned_food_id)
-);
-
-CREATE INDEX idx_meal_portion_meal_id ON fuel.meal_portion(meal_id);
-CREATE INDEX idx_meal_portion_portioned_food_id ON fuel.meal_portion(portioned_food_id);
+CREATE INDEX idx_meal_user_id ON fuel.meal(user_id);
+CREATE INDEX idx_meal_meal_plan_id ON fuel.meal(meal_plan_id);
 
 -- Recipe
 CREATE TABLE IF NOT EXISTS fuel.recipe (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    meal_id UUID REFERENCES fuel.meal(id) ON DELETE SET NULL,
     name TEXT NOT NULL,
     text TEXT NOT NULL,
     image_url TEXT,
+    ingredients JSONB,
+    calories NUMERIC,
     macros JSONB,
     micros JSONB,
-    calories JSONB,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-
--- Meal Recipe (Junction Table)
-CREATE TABLE IF NOT EXISTS fuel.meal_recipe (
-    meal_id UUID NOT NULL REFERENCES fuel.meal(id) ON DELETE CASCADE,
-    recipe_id UUID NOT NULL REFERENCES fuel.recipe(id) ON DELETE CASCADE,
-    PRIMARY KEY (meal_id, recipe_id)
-);
-
-CREATE INDEX idx_meal_recipe_meal_id ON fuel.meal_recipe(meal_id);
-CREATE INDEX idx_meal_recipe_recipe_id ON fuel.meal_recipe(recipe_id);
-
--- Recipe Ingredient (Junction Table)
-CREATE TABLE IF NOT EXISTS fuel.recipe_ingredient (
-    recipe_id UUID NOT NULL REFERENCES fuel.recipe(id) ON DELETE CASCADE,
-    portioned_food_id UUID NOT NULL REFERENCES fuel.portioned_food(id) ON DELETE CASCADE,
-    "order" INTEGER NOT NULL,
-    PRIMARY KEY (recipe_id, portioned_food_id)
-);
-
-CREATE INDEX idx_recipe_ingredient_recipe_id ON fuel.recipe_ingredient(recipe_id);
-CREATE INDEX idx_recipe_ingredient_portioned_food_id ON fuel.recipe_ingredient(portioned_food_id);
 
 -- Grocery List
 CREATE TABLE IF NOT EXISTS fuel.grocery_list (
@@ -577,22 +500,35 @@ CREATE TABLE IF NOT EXISTS fuel.grocery_list (
     user_id UUID NOT NULL REFERENCES public.user(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     description TEXT,
+    meal_week_id UUID REFERENCES fuel.meal_week(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_grocery_list_user_id ON fuel.grocery_list(user_id);
+CREATE INDEX idx_grocery_list_meal_week_id ON fuel.grocery_list(meal_week_id);
 
--- Grocery List Item (Junction Table)
-CREATE TABLE IF NOT EXISTS fuel.grocery_list_item (
-    grocery_list_id UUID NOT NULL REFERENCES fuel.grocery_list(id) ON DELETE CASCADE,
-    portioned_food_id UUID NOT NULL REFERENCES fuel.portioned_food(id) ON DELETE CASCADE,
-    "order" INTEGER NOT NULL,
-    PRIMARY KEY (grocery_list_id, portioned_food_id)
+-- Portioned Food (Unified table for ingredients in Meals, Recipes, and GroceryLists)
+CREATE TABLE IF NOT EXISTS fuel.portioned_food (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    food_id UUID NOT NULL REFERENCES fuel.food(id) ON DELETE CASCADE,
+    meal_id UUID REFERENCES fuel.meal(id) ON DELETE CASCADE,
+    recipe_id UUID REFERENCES fuel.recipe(id) ON DELETE CASCADE,
+    grocery_list_id UUID REFERENCES fuel.grocery_list(id) ON DELETE CASCADE,
+    portion JSONB NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT portioned_food_parent_check CHECK (
+        (meal_id IS NOT NULL AND recipe_id IS NULL AND grocery_list_id IS NULL) OR
+        (meal_id IS NULL AND recipe_id IS NOT NULL AND grocery_list_id IS NULL) OR
+        (meal_id IS NULL AND recipe_id IS NULL AND grocery_list_id IS NOT NULL)
+    )
 );
 
-CREATE INDEX idx_grocery_list_item_grocery_list_id ON fuel.grocery_list_item(grocery_list_id);
-CREATE INDEX idx_grocery_list_item_portioned_food_id ON fuel.grocery_list_item(portioned_food_id);
+CREATE INDEX idx_portioned_food_food_id ON fuel.portioned_food(food_id);
+CREATE INDEX idx_portioned_food_meal_id ON fuel.portioned_food(meal_id);
+CREATE INDEX idx_portioned_food_recipe_id ON fuel.portioned_food(recipe_id);
+CREATE INDEX idx_portioned_food_grocery_list_id ON fuel.portioned_food(grocery_list_id);
 
 -- Meal Plan Instance
 CREATE TABLE IF NOT EXISTS fuel.meal_plan_instance (
@@ -612,11 +548,14 @@ CREATE INDEX idx_meal_plan_instance_meal_plan_id ON fuel.meal_plan_instance(meal
 CREATE TABLE IF NOT EXISTS fuel.meal_instance (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES public.user(id) ON DELETE CASCADE,
-    meal_plan_instance_id UUID NOT NULL REFERENCES fuel.meal_plan_instance(id) ON DELETE CASCADE,
+    meal_plan_instance_id UUID REFERENCES fuel.meal_plan_instance(id) ON DELETE CASCADE,
     meal_id UUID NOT NULL REFERENCES fuel.meal(id) ON DELETE CASCADE,
-    date DATE NOT NULL,
+    date TIMESTAMPTZ NOT NULL,
     timestamp TIMESTAMPTZ,
     complete BOOLEAN NOT NULL DEFAULT FALSE,
+    calories NUMERIC,
+    macros JSONB,
+    micros JSONB,
     notes TEXT
 );
 
@@ -680,18 +619,9 @@ CREATE INDEX idx_supplement_instance_supplement_schedule_id ON fuel.supplement_i
 CREATE INDEX idx_supplement_instance_supplement_id ON fuel.supplement_instance(supplement_id);
 CREATE INDEX idx_supplement_instance_date ON fuel.supplement_instance(user_id, date);
 
--- Water Intake Log
-CREATE TABLE IF NOT EXISTS fuel.water_intake_log (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL UNIQUE REFERENCES public.user(id) ON DELETE CASCADE
-);
-
-CREATE INDEX idx_water_intake_log_user_id ON fuel.water_intake_log(user_id);
-
 -- Water Intake
 CREATE TABLE IF NOT EXISTS fuel.water_intake (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    water_intake_log_id UUID NOT NULL REFERENCES fuel.water_intake_log(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES public.user(id) ON DELETE CASCADE,
     date DATE NOT NULL,
     timestamp TIMESTAMPTZ,
@@ -699,24 +629,14 @@ CREATE TABLE IF NOT EXISTS fuel.water_intake (
     notes TEXT
 );
 
-CREATE INDEX idx_water_intake_water_intake_log_id ON fuel.water_intake(water_intake_log_id);
 CREATE INDEX idx_water_intake_user_id ON fuel.water_intake(user_id);
 CREATE INDEX idx_water_intake_date ON fuel.water_intake(user_id, date);
-
--- Sleep Log
-CREATE TABLE IF NOT EXISTS fuel.sleep_log (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL UNIQUE REFERENCES public.user(id) ON DELETE CASCADE
-);
-
-CREATE INDEX idx_sleep_log_user_id ON fuel.sleep_log(user_id);
 
 -- Sleep Instance
 CREATE TABLE IF NOT EXISTS fuel.sleep_instance (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    sleep_log_id UUID NOT NULL REFERENCES fuel.sleep_log(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES public.user(id) ON DELETE CASCADE,
-    date DATE NOT NULL,
+    date TIMESTAMPTZ NOT NULL,
     time_asleep JSONB,
     start_time TIMESTAMPTZ,
     end_time TIMESTAMPTZ,
@@ -726,9 +646,48 @@ CREATE TABLE IF NOT EXISTS fuel.sleep_instance (
     notes TEXT
 );
 
-CREATE INDEX idx_sleep_instance_sleep_log_id ON fuel.sleep_instance(sleep_log_id);
 CREATE INDEX idx_sleep_instance_user_id ON fuel.sleep_instance(user_id);
 CREATE INDEX idx_sleep_instance_date ON fuel.sleep_instance(user_id, date);
+
+-- Fuel Recommendations
+CREATE TABLE IF NOT EXISTS fuel.fuel_recommendations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES public.user(id) ON DELETE CASCADE,
+    bmr NUMERIC,
+    tdee NUMERIC,
+    calorie_target NUMERIC,
+    macros JSONB,
+    micros JSONB,
+    sleep_hours NUMERIC,
+    water_intake JSONB,
+    supplements JSONB,
+    notes TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_fuel_recommendations_user_id ON fuel.fuel_recommendations(user_id);
+CREATE UNIQUE INDEX idx_fuel_recommendations_user_id_unique ON fuel.fuel_recommendations(user_id);
+
+-- Fuel Day Summary
+CREATE TABLE IF NOT EXISTS fuel.fuel_day_summary (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES public.user(id) ON DELETE CASCADE,
+    fuel_recommendations_id UUID NOT NULL REFERENCES fuel.fuel_recommendations(id) ON DELETE CASCADE,
+    date DATE NOT NULL,
+    calories NUMERIC,
+    macros JSONB,
+    micros JSONB,
+    sleep_hours NUMERIC,
+    water_intake JSONB,
+    supplements JSONB,
+    notes TEXT
+);
+
+CREATE INDEX idx_fuel_day_summary_user_id ON fuel.fuel_day_summary(user_id);
+CREATE INDEX idx_fuel_day_summary_date ON fuel.fuel_day_summary(date);
+CREATE INDEX idx_fuel_day_summary_fuel_recommendations_id ON fuel.fuel_day_summary(fuel_recommendations_id);
+CREATE UNIQUE INDEX idx_fuel_day_summary_user_date_unique ON fuel.fuel_day_summary(user_id, date);
 
 -- ============================================================================
 -- TRIGGERS AND FUNCTIONS
@@ -802,10 +761,16 @@ CREATE TRIGGER update_recipe_updated_at BEFORE UPDATE ON fuel.recipe
 CREATE TRIGGER update_grocery_list_updated_at BEFORE UPDATE ON fuel.grocery_list
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+CREATE TRIGGER update_meal_week_updated_at BEFORE UPDATE ON fuel.meal_week
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
 CREATE TRIGGER update_supplement_updated_at BEFORE UPDATE ON fuel.supplement
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_supplement_schedule_updated_at BEFORE UPDATE ON fuel.supplement_schedule
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_fuel_recommendations_updated_at BEFORE UPDATE ON fuel.fuel_recommendations
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- ============================================================================
@@ -820,10 +785,8 @@ ALTER TABLE public.user_preferences ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_goal_component ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_goal_criteria ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.user_stats_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_stats ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tape_measurement ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.user_image_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_image ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_profile_key_exercise ENABLE ROW LEVEL SECURITY;
 
@@ -839,32 +802,25 @@ ALTER TABLE train.phase_instance ENABLE ROW LEVEL SECURITY;
 ALTER TABLE train.workout_instance ENABLE ROW LEVEL SECURITY;
 ALTER TABLE train.workout_block_instance ENABLE ROW LEVEL SECURITY;
 ALTER TABLE train.workout_block_exercise_instance ENABLE ROW LEVEL SECURITY;
-ALTER TABLE train.performance_log ENABLE ROW LEVEL SECURITY;
-ALTER TABLE train.performance ENABLE ROW LEVEL SECURITY;
-ALTER TABLE train.projected_1rm_log ENABLE ROW LEVEL SECURITY;
-ALTER TABLE train.projected_1rm ENABLE ROW LEVEL SECURITY;
 
 -- Fuel schema
 ALTER TABLE fuel.meal_plan ENABLE ROW LEVEL SECURITY;
+ALTER TABLE fuel.meal_week ENABLE ROW LEVEL SECURITY;
 ALTER TABLE fuel.meal ENABLE ROW LEVEL SECURITY;
 ALTER TABLE fuel.food ENABLE ROW LEVEL SECURITY;
 ALTER TABLE fuel.portioned_food ENABLE ROW LEVEL SECURITY;
-ALTER TABLE fuel.meal_portion ENABLE ROW LEVEL SECURITY;
 ALTER TABLE fuel.recipe ENABLE ROW LEVEL SECURITY;
-ALTER TABLE fuel.meal_recipe ENABLE ROW LEVEL SECURITY;
-ALTER TABLE fuel.recipe_ingredient ENABLE ROW LEVEL SECURITY;
 ALTER TABLE fuel.grocery_list ENABLE ROW LEVEL SECURITY;
-ALTER TABLE fuel.grocery_list_item ENABLE ROW LEVEL SECURITY;
 ALTER TABLE fuel.meal_plan_instance ENABLE ROW LEVEL SECURITY;
 ALTER TABLE fuel.meal_instance ENABLE ROW LEVEL SECURITY;
 ALTER TABLE fuel.portioned_food_instance ENABLE ROW LEVEL SECURITY;
 ALTER TABLE fuel.supplement ENABLE ROW LEVEL SECURITY;
 ALTER TABLE fuel.supplement_schedule ENABLE ROW LEVEL SECURITY;
 ALTER TABLE fuel.supplement_instance ENABLE ROW LEVEL SECURITY;
-ALTER TABLE fuel.water_intake_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE fuel.water_intake ENABLE ROW LEVEL SECURITY;
-ALTER TABLE fuel.sleep_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE fuel.sleep_instance ENABLE ROW LEVEL SECURITY;
+ALTER TABLE fuel.fuel_recommendations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE fuel.fuel_day_summary ENABLE ROW LEVEL SECURITY;
 
 -- Anatomy schema (reference data - read-only for all authenticated users)
 ALTER TABLE anatomy.muscle_group ENABLE ROW LEVEL SECURITY;
@@ -979,57 +935,20 @@ CREATE POLICY "Users can delete own goal criteria" ON public.user_goal_criteria
         )
     );
 
-CREATE POLICY "Users can view own stats log" ON public.user_stats_log
-    FOR ALL USING ((select auth.uid()) = user_id);
-
 CREATE POLICY "Users can view own stats" ON public.user_stats
-    FOR SELECT USING (
-        EXISTS (
-            SELECT 1 FROM public.user_stats_log
-            WHERE id = user_stats.stats_log_id
-            AND user_id = (select auth.uid())
-        )
-    );
-
-CREATE POLICY "Users can insert own stats" ON public.user_stats
-    FOR INSERT WITH CHECK (
-        EXISTS (
-            SELECT 1 FROM public.user_stats_log
-            WHERE id = user_stats.stats_log_id
-            AND user_id = (select auth.uid())
-        )
-    );
+    FOR ALL USING ((select auth.uid()) = user_id);
 
 CREATE POLICY "Users can view own tape measurements" ON public.tape_measurement
     FOR SELECT USING (
         EXISTS (
-            SELECT 1 FROM public.user_stats us
-            JOIN public.user_stats_log usl ON us.stats_log_id = usl.id
-            WHERE us.id = tape_measurement.user_stats_id
-            AND usl.user_id = (select auth.uid())
+            SELECT 1 FROM public.user_stats
+            WHERE id = tape_measurement.user_stats_id
+            AND user_id = (select auth.uid())
         )
     );
-
-CREATE POLICY "Users can view own image log" ON public.user_image_log
-    FOR ALL USING ((select auth.uid()) = user_id);
 
 CREATE POLICY "Users can view own images" ON public.user_image
-    FOR SELECT USING (
-        EXISTS (
-            SELECT 1 FROM public.user_image_log
-            WHERE id = user_image.image_log_id
-            AND user_id = (select auth.uid())
-        )
-    );
-
-CREATE POLICY "Users can insert own images" ON public.user_image
-    FOR INSERT WITH CHECK (
-        EXISTS (
-            SELECT 1 FROM public.user_image_log
-            WHERE id = user_image.image_log_id
-            AND user_id = (select auth.uid())
-        )
-    );
+    FOR ALL USING ((select auth.uid()) = user_id);
 
 CREATE POLICY "Users can view own key exercises" ON public.user_profile_key_exercise
     FOR ALL USING (
@@ -1087,42 +1006,12 @@ CREATE POLICY "Users can view own workout block instances" ON train.workout_bloc
 CREATE POLICY "Users can view own exercise instances" ON train.workout_block_exercise_instance
     FOR ALL USING ((select auth.uid()) = user_id);
 
-CREATE POLICY "Users can view own performance log" ON train.performance_log
-    FOR ALL USING ((select auth.uid()) = user_id);
-
-CREATE POLICY "Users can view own performances" ON train.performance
-    FOR ALL USING (
-        EXISTS (
-            SELECT 1 FROM train.performance_log
-            WHERE id = performance.performance_log_id
-            AND user_id = (select auth.uid())
-        )
-    );
-
-CREATE POLICY "Users can view own projected 1RM log" ON train.projected_1rm_log
-    FOR ALL USING ((select auth.uid()) = user_id);
-
-CREATE POLICY "Users can view own projected 1RMs" ON train.projected_1rm
-    FOR ALL USING (
-        EXISTS (
-            SELECT 1 FROM train.projected_1rm_log
-            WHERE id = projected_1rm.projected_1rm_log_id
-            AND user_id = (select auth.uid())
-        )
-    );
-
 -- Fuel schema policies
 CREATE POLICY "Users can view own meal plans" ON fuel.meal_plan
     FOR ALL USING ((select auth.uid()) = user_id);
 
 CREATE POLICY "Users can view own meals" ON fuel.meal
-    FOR SELECT USING (
-        EXISTS (
-            SELECT 1 FROM fuel.meal_plan
-            WHERE id = meal.meal_plan_id
-            AND user_id = (select auth.uid())
-        )
-    );
+    FOR ALL USING ((select auth.uid()) = user_id);
 
 CREATE POLICY "Users can view all foods" ON fuel.food
     FOR SELECT USING (true);
@@ -1130,43 +1019,12 @@ CREATE POLICY "Users can view all foods" ON fuel.food
 CREATE POLICY "Users can view all portioned foods" ON fuel.portioned_food
     FOR SELECT USING (true);
 
-CREATE POLICY "Users can view own meal portions" ON fuel.meal_portion
-    FOR SELECT USING (
-        EXISTS (
-            SELECT 1 FROM fuel.meal m
-            JOIN fuel.meal_plan mp ON m.meal_plan_id = mp.id
-            WHERE m.id = meal_portion.meal_id
-            AND mp.user_id = (select auth.uid())
-        )
-    );
-
 CREATE POLICY "Users can view all recipes" ON fuel.recipe
-    FOR SELECT USING (true);
-
-CREATE POLICY "Users can view own meal recipes" ON fuel.meal_recipe
-    FOR SELECT USING (
-        EXISTS (
-            SELECT 1 FROM fuel.meal m
-            JOIN fuel.meal_plan mp ON m.meal_plan_id = mp.id
-            WHERE m.id = meal_recipe.meal_id
-            AND mp.user_id = (select auth.uid())
-        )
-    );
-
-CREATE POLICY "Users can view recipe ingredients" ON fuel.recipe_ingredient
     FOR SELECT USING (true);
 
 CREATE POLICY "Users can view own grocery lists" ON fuel.grocery_list
     FOR ALL USING ((select auth.uid()) = user_id);
 
-CREATE POLICY "Users can view own grocery list items" ON fuel.grocery_list_item
-    FOR SELECT USING (
-        EXISTS (
-            SELECT 1 FROM fuel.grocery_list
-            WHERE id = grocery_list_item.grocery_list_id
-            AND user_id = (select auth.uid())
-        )
-    );
 
 CREATE POLICY "Users can view own meal plan instances" ON fuel.meal_plan_instance
     FOR ALL USING ((select auth.uid()) = user_id);
@@ -1186,29 +1044,17 @@ CREATE POLICY "Users can view own supplement schedules" ON fuel.supplement_sched
 CREATE POLICY "Users can view own supplement instances" ON fuel.supplement_instance
     FOR ALL USING ((select auth.uid()) = user_id);
 
-CREATE POLICY "Users can view own water intake log" ON fuel.water_intake_log
-    FOR ALL USING ((select auth.uid()) = user_id);
-
 CREATE POLICY "Users can view own water intakes" ON fuel.water_intake
-    FOR ALL USING (
-        EXISTS (
-            SELECT 1 FROM fuel.water_intake_log
-            WHERE id = water_intake.water_intake_log_id
-            AND user_id = (select auth.uid())
-        )
-    );
-
-CREATE POLICY "Users can view own sleep log" ON fuel.sleep_log
     FOR ALL USING ((select auth.uid()) = user_id);
 
 CREATE POLICY "Users can view own sleep instances" ON fuel.sleep_instance
-    FOR ALL USING (
-        EXISTS (
-            SELECT 1 FROM fuel.sleep_log
-            WHERE id = sleep_instance.sleep_log_id
-            AND user_id = (select auth.uid())
-        )
-    );
+    FOR ALL USING ((select auth.uid()) = user_id);
+
+CREATE POLICY "Users can view own fuel recommendations" ON fuel.fuel_recommendations
+    FOR ALL USING ((select auth.uid()) = user_id);
+
+CREATE POLICY "Users can view own fuel day summaries" ON fuel.fuel_day_summary
+    FOR ALL USING ((select auth.uid()) = user_id);
 
 -- Anatomy schema policies (read-only for all authenticated users)
 CREATE POLICY "Authenticated users can view muscle groups" ON anatomy.muscle_group

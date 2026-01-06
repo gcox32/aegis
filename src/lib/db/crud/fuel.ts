@@ -1,4 +1,4 @@
-import { eq, and, desc, inArray, sql, ilike, isNull } from 'drizzle-orm';
+import { eq, and, desc, sql, ilike, isNull, gte, lte } from 'drizzle-orm';
 import type { SQL } from 'drizzle-orm';
 import { db } from '../index';
 import {
@@ -17,6 +17,8 @@ import {
   supplementInstance,
   waterIntake,
   sleepInstance,
+  fuelRecommendations,
+  fuelDaySummary,
 } from '../schema';
 import type {
   MealPlan,
@@ -34,6 +36,8 @@ import type {
   SupplementInstance,
   WaterIntake,
   SleepInstance,
+  FuelRecommendations,
+  FuelDaySummary,
 } from '@/types/fuel';
 
 // Helper to convert null to undefined for optional fields
@@ -774,6 +778,26 @@ export async function getUserMealInstances(
   return converted;
 }
 
+export async function getUserMealInstanceById(
+  instanceId: string,
+  userId: string
+): Promise<MealInstance | null> {
+  const [found] = await db
+    .select()
+    .from(mealInstance)
+    .where(and(eq(mealInstance.id, instanceId), eq(mealInstance.userId, userId)))
+    .limit(1);
+
+  if (!found) return null;
+
+  return {
+    ...found,
+    date: new Date(found.date),
+    timestamp: found.timestamp ? new Date(found.timestamp) : null,
+    calories: found.calories ? Number(found.calories) : undefined,
+  } as MealInstance;
+}
+
 export async function updateMealInstance(
   instanceId: string,
   userId: string,
@@ -1336,4 +1360,387 @@ export async function deleteSleepInstance(instanceId: string, userId: string): P
     .where(and(eq(sleepInstance.id, instanceId), eq(sleepInstance.userId, userId)));
 
   return true;
+}
+
+// ============================================================================
+// FUEL RECOMMENDATIONS CRUD
+// ============================================================================
+
+export async function getFuelRecommendations(userId: string): Promise<FuelRecommendations | null> {
+  const [found] = await db
+    .select()
+    .from(fuelRecommendations)
+    .where(eq(fuelRecommendations.userId, userId))
+    .limit(1);
+
+  if (!found) return null;
+
+  return {
+    ...found,
+    bmr: found.bmr ? Number(found.bmr) : undefined,
+    tdee: found.tdee ? Number(found.tdee) : undefined,
+    calorieTarget: found.calorieTarget ? Number(found.calorieTarget) : undefined,
+    sleepHours: found.sleepHours ? Number(found.sleepHours) : undefined,
+    createdAt: new Date(found.createdAt),
+    updatedAt: new Date(found.updatedAt),
+  } as FuelRecommendations;
+}
+
+export async function createOrUpdateFuelRecommendations(
+  userId: string,
+  recommendationsData: Omit<FuelRecommendations, 'id' | 'userId' | 'createdAt' | 'updatedAt'>
+): Promise<FuelRecommendations> {
+  // Check if recommendations already exist
+  const existing = await getFuelRecommendations(userId);
+
+  const dbData: any = {
+    bmr: recommendationsData.bmr?.toString() || null,
+    tdee: recommendationsData.tdee?.toString() || null,
+    calorieTarget: recommendationsData.calorieTarget?.toString() || null,
+    macros: recommendationsData.macros || null,
+    micros: recommendationsData.micros || null,
+    sleepHours: recommendationsData.sleepHours?.toString() || null,
+    waterIntake: recommendationsData.waterIntake || null,
+    supplements: recommendationsData.supplements || null,
+    notes: recommendationsData.notes || null,
+  };
+
+  if (existing) {
+    // Update existing
+    const [updated] = await db
+      .update(fuelRecommendations)
+      .set({
+        ...dbData,
+        updatedAt: new Date(),
+      })
+      .where(eq(fuelRecommendations.userId, userId))
+      .returning();
+
+    return {
+      ...updated,
+      bmr: updated.bmr ? Number(updated.bmr) : undefined,
+      tdee: updated.tdee ? Number(updated.tdee) : undefined,
+      calorieTarget: updated.calorieTarget ? Number(updated.calorieTarget) : undefined,
+      sleepHours: updated.sleepHours ? Number(updated.sleepHours) : undefined,
+      createdAt: new Date(updated.createdAt),
+      updatedAt: new Date(updated.updatedAt),
+    } as FuelRecommendations;
+  } else {
+    // Create new
+    const [created] = await db
+      .insert(fuelRecommendations)
+      .values({
+        userId,
+        ...dbData,
+      })
+      .returning();
+
+    return {
+      ...created,
+      bmr: created.bmr ? Number(created.bmr) : undefined,
+      tdee: created.tdee ? Number(created.tdee) : undefined,
+      calorieTarget: created.calorieTarget ? Number(created.calorieTarget) : undefined,
+      sleepHours: created.sleepHours ? Number(created.sleepHours) : undefined,
+      createdAt: new Date(created.createdAt),
+      updatedAt: new Date(created.updatedAt),
+    } as FuelRecommendations;
+  }
+}
+
+// ============================================================================
+// FUEL DAY SUMMARY CRUD
+// ============================================================================
+
+const formatDateForDB = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+export async function getFuelDaySummary(
+  userId: string,
+  date: Date
+): Promise<FuelDaySummary | null> {
+  const dateStr = formatDateForDB(date);
+
+  const [found] = await db
+    .select()
+    .from(fuelDaySummary)
+    .where(and(eq(fuelDaySummary.userId, userId), eq(fuelDaySummary.date, dateStr)))
+    .limit(1);
+
+  if (!found) return null;
+
+  return {
+    ...found,
+    date: new Date(found.date),
+    calories: found.calories ? Number(found.calories) : undefined,
+    sleepHours: found.sleepHours ? Number(found.sleepHours) : undefined,
+  } as FuelDaySummary;
+}
+
+export async function getUserFuelDaySummaries(
+  userId: string,
+  options?: { dateFrom?: Date; dateTo?: Date }
+): Promise<FuelDaySummary[]> {
+  let whereClause: any = eq(fuelDaySummary.userId, userId);
+
+  // Build date range filter at database level
+  // Since date is stored as DATE type (YYYY-MM-DD string), we can use string comparison
+  if (options?.dateFrom) {
+    const dateFromStr = formatDateForDB(options.dateFrom);
+    whereClause = and(whereClause, gte(fuelDaySummary.date, dateFromStr));
+  }
+  if (options?.dateTo) {
+    const dateToStr = formatDateForDB(options.dateTo);
+    whereClause = and(whereClause, lte(fuelDaySummary.date, dateToStr));
+  }
+
+  const results = await db
+    .select()
+    .from(fuelDaySummary)
+    .where(whereClause)
+    .orderBy(desc(fuelDaySummary.date));
+
+  const converted = results.map((r) => ({
+    ...r,
+    date: new Date(r.date),
+    calories: r.calories ? Number(r.calories) : undefined,
+    sleepHours: r.sleepHours ? Number(r.sleepHours) : undefined,
+  })) as FuelDaySummary[];
+
+  return converted;
+}
+
+export async function getOrCreateFuelDaySummary(
+  userId: string,
+  date: Date
+): Promise<FuelDaySummary> {
+  const dateStr = formatDateForDB(date);
+
+  // Get current fuel recommendations for the user
+  const recommendations = await getFuelRecommendations(userId);
+  if (!recommendations) {
+    throw new Error('Fuel recommendations not found. Please update your stats or goals first.');
+  }
+
+  // Try to get existing summary
+  const existing = await getFuelDaySummary(userId, date);
+
+  if (existing) {
+    return existing;
+  }
+
+  // Create new summary
+  const [created] = await db
+    .insert(fuelDaySummary)
+    .values({
+      userId,
+      fuelRecommendationsId: recommendations.id,
+      date: dateStr,
+    } as any)
+    .returning();
+
+  return {
+    ...created,
+    date: new Date(created.date),
+    calories: created.calories ? Number(created.calories) : undefined,
+    sleepHours: created.sleepHours ? Number(created.sleepHours) : undefined,
+  } as FuelDaySummary;
+}
+
+export async function updateFuelDaySummary(
+  userId: string,
+  date: Date,
+  updates: Partial<Omit<FuelDaySummary, 'id' | 'userId' | 'fuelRecommendationsId' | 'date'>>
+): Promise<FuelDaySummary> {
+  const dateStr = formatDateForDB(date);
+
+  const dbUpdates: any = { ...updates };
+  if (updates.calories !== undefined) {
+    dbUpdates.calories = updates.calories?.toString() || null;
+  }
+  if (updates.sleepHours !== undefined) {
+    dbUpdates.sleepHours = updates.sleepHours?.toString() || null;
+  }
+
+  const [updated] = await db
+    .update(fuelDaySummary)
+    .set(dbUpdates)
+    .where(and(eq(fuelDaySummary.userId, userId), eq(fuelDaySummary.date, dateStr)))
+    .returning();
+
+  if (!updated) {
+    throw new Error('Fuel day summary not found');
+  }
+
+  return {
+    ...updated,
+    date: new Date(updated.date),
+    calories: updated.calories ? Number(updated.calories) : undefined,
+    sleepHours: updated.sleepHours ? Number(updated.sleepHours) : undefined,
+  } as FuelDaySummary;
+}
+
+export async function createOrUpdateFuelDaySummary(
+  userId: string,
+  date: Date,
+  updates: Partial<Omit<FuelDaySummary, 'id' | 'userId' | 'fuelRecommendationsId' | 'date'>>
+): Promise<FuelDaySummary> {
+  // Get or create the summary first
+  await getOrCreateFuelDaySummary(userId, date);
+  
+  // Then update it
+  return updateFuelDaySummary(userId, date, updates);
+}
+
+/**
+ * Update fuel day summary from meal instances for a given date
+ * This function sums up all calories and macros from meal instances for the date
+ */
+export async function updateFuelDaySummaryFromMealInstances(
+  userId: string,
+  date: Date
+): Promise<FuelDaySummary> {
+  // Get all meal instances for this date
+  const startOfDay = new Date(date);
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(date);
+  endOfDay.setHours(23, 59, 59, 999);
+
+  const instances = await getUserMealInstances(userId, {
+    dateFrom: startOfDay,
+    dateTo: endOfDay,
+  });
+
+  // Sum up calories and macros
+  let totalCalories = 0;
+  let totalMacros: { protein?: number; carbs?: number; fat?: number } = {
+    protein: 0,
+    carbs: 0,
+    fat: 0,
+  };
+  let totalMicros: any = {};
+
+  for (const instance of instances) {
+    if (instance.calories) {
+      totalCalories += instance.calories;
+    }
+    if (instance.macros) {
+      totalMacros.protein = (totalMacros.protein || 0) + (instance.macros.protein || 0);
+      totalMacros.carbs = (totalMacros.carbs || 0) + (instance.macros.carbs || 0);
+      totalMacros.fat = (totalMacros.fat || 0) + (instance.macros.fat || 0);
+    }
+    if (instance.micros) {
+      for (const key in instance.micros) {
+        const k = key as keyof typeof instance.micros;
+        if (instance.micros[k]) {
+          totalMicros[k] = (totalMicros[k] || 0) + (instance.micros[k] || 0);
+        }
+      }
+    }
+  }
+
+  // Round values
+  totalCalories = Math.round(totalCalories);
+  totalMacros.protein = Math.round(totalMacros.protein || 0);
+  totalMacros.carbs = Math.round(totalMacros.carbs || 0);
+  totalMacros.fat = Math.round(totalMacros.fat || 0);
+
+  // Update the fuel day summary
+  return createOrUpdateFuelDaySummary(userId, date, {
+    calories: totalCalories || undefined,
+    macros: totalMacros.protein || totalMacros.carbs || totalMacros.fat ? totalMacros : undefined,
+    micros: Object.keys(totalMicros).length > 0 ? totalMicros : undefined,
+  });
+}
+
+/**
+ * Update fuel day summary sleep hours from sleep instances for a given date
+ */
+export async function updateFuelDaySummaryFromSleepInstances(
+  userId: string,
+  date: Date
+): Promise<FuelDaySummary> {
+  // Get all sleep instances for this date
+  const startOfDay = new Date(date);
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(date);
+  endOfDay.setHours(23, 59, 59, 999);
+
+  const instances = await getUserSleepInstances(userId, {
+    dateFrom: startOfDay,
+    dateTo: endOfDay,
+  });
+
+  // Sum sleep hours from timeAsleep field
+  let totalSleepHours = 0;
+  for (const instance of instances) {
+    if (instance.timeAsleep && typeof instance.timeAsleep === 'object' && 'value' in instance.timeAsleep) {
+      const timeAsleep = instance.timeAsleep as { value: number; unit: string };
+      if (timeAsleep.unit === 'hr' || timeAsleep.unit === 'hour' || timeAsleep.unit === 'hours') {
+        totalSleepHours += timeAsleep.value;
+      } else if (timeAsleep.unit === 'min' || timeAsleep.unit === 'minute' || timeAsleep.unit === 'minutes') {
+        totalSleepHours += timeAsleep.value / 60;
+      }
+    }
+  }
+
+  // Round to 2 decimal places
+  totalSleepHours = Math.round(totalSleepHours * 100) / 100;
+
+  // Update the fuel day summary
+  return createOrUpdateFuelDaySummary(userId, date, {
+    sleepHours: totalSleepHours || undefined,
+  });
+}
+
+/**
+ * Update fuel day summary water intake from water intake instances for a given date
+ */
+export async function updateFuelDaySummaryFromWaterIntake(
+  userId: string,
+  date: Date
+): Promise<FuelDaySummary> {
+  // Get all water intake instances for this date
+  const startOfDay = new Date(date);
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(date);
+  endOfDay.setHours(23, 59, 59, 999);
+
+  const intakes = await getUserWaterIntakes(userId, {
+    dateFrom: startOfDay,
+    dateTo: endOfDay,
+  });
+
+  // Sum water intake - convert all to a common unit (liters)
+  let totalWaterLiters = 0;
+  for (const intake of intakes) {
+    if (intake.amount && typeof intake.amount === 'object' && 'value' in intake.amount && 'unit' in intake.amount) {
+      const amount = intake.amount as { value: number; unit: string };
+      const unit = amount.unit.toLowerCase();
+      let liters = 0;
+      
+      if (unit === 'l' || unit === 'liter' || unit === 'liters') {
+        liters = amount.value;
+      } else if (unit === 'ml' || unit === 'milliliter' || unit === 'milliliters') {
+        liters = amount.value / 1000;
+      } else if (unit === 'fl oz' || unit === 'floz' || unit === 'fluid ounce' || unit === 'fluid ounces') {
+        liters = amount.value * 0.0295735; // 1 fl oz = 0.0295735 L
+      } else if (unit === 'cup' || unit === 'cups') {
+        liters = amount.value * 0.236588; // 1 cup = 0.236588 L
+      }
+      
+      totalWaterLiters += liters;
+    }
+  }
+
+  // Round to 2 decimal places and convert back to liters
+  totalWaterLiters = Math.round(totalWaterLiters * 100) / 100;
+
+  // Update the fuel day summary with water intake in liters
+  return createOrUpdateFuelDaySummary(userId, date, {
+    waterIntake: totalWaterLiters > 0 ? { value: totalWaterLiters, unit: 'L' } : undefined,
+  });
 }

@@ -8,7 +8,7 @@ For **new database setups**, use the consolidated schema file:
 
 **`000_complete_schema.sql`** - Complete database schema initialization
 - Contains all tables, indexes, triggers, and RLS policies in their final state
-- Incorporates all changes from migrations 001-024
+- Incorporates all changes from migrations 001-036
 - Use this for fresh database installations instead of running migrations sequentially
 
 ## Migration Files (For Existing Databases)
@@ -77,6 +77,30 @@ For existing databases, run migrations in numerical order:
 
 24. **024_separate_settings.sql** - Separates user_settings from user_preferences
 
+25. **025_remove_projected_1rm_log_tables.sql** - Removes projected_1rm_log and projected_1rm tables
+
+26. **026_change_sleep_instance_date_to_timestamp.sql** - Changes sleep_instance.date to timestamptz
+
+27. **027_add_ghd_equipment.sql** - Adds 'glute ham developer' to exercise equipment types
+
+28. **028_refactor_fuel_schema.sql** - Refactors fuel schema with new structure (meal_week, unified portioned_food, etc.)
+
+29. **029_add_user_meal.sql** - Adds user_id to meal table
+
+30. **030_add_columns_recipe.sql** - Adds meal_id, ingredients, calories, macros, micros to recipe table
+
+31. **031_change_meal_instance_date_to_timestamp.sql** - Changes meal_instance.date to timestamptz and makes meal_plan_instance_id nullable
+
+32. **032_add_date_to_tape_measurement.sql** - Adds date column to tape_measurement table
+
+33. **033_add_target_ratios_to_user_profile.sql** - Adds target_ratios JSONB column to user_profile
+
+34. **034_remove_log_tables.sql** - Removes redundant log tables (performance, water_intake_log, sleep_log, user_image_log, user_stats_log)
+
+35. **035_add_fuel_recommendations.sql** - Adds fuel_recommendations table
+
+36. **036_add_fuel_day_summary.sql** - Adds fuel_day_summary table
+
 ## Running Migrations
 
 ### Fresh Database Setup (Recommended)
@@ -107,7 +131,7 @@ For **existing databases**, use Supabase CLI to run migrations sequentially:
    supabase db push
    ```
 
-This will run migrations 001-024 in order.
+This will run migrations 001-036 in order.
 
 ### Using Supabase Dashboard (Manual)
 

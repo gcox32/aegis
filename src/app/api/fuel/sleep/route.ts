@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { withAuth, parseBody, getQueryParam } from '@/lib/api/helpers';
 import { getUserSleepInstances, createSleepInstance } from '@/lib/db/crud';
+import { updateFuelDaySummaryFromSleepInstances } from '@/lib/db/crud/fuel';
 
 // GET /api/fuel/sleep - Get user's sleep log
 export async function GET(request: NextRequest) {
@@ -28,6 +29,16 @@ export async function POST(request: NextRequest) {
     if (sleepData.endTime) sleepData.endTime = new Date(sleepData.endTime);
 
     const sleepInstance = await createSleepInstance(userId, sleepData);
+    
+    // Update fuel day summary for the instance date
+    const instanceDate = sleepInstance.date instanceof Date 
+      ? sleepInstance.date 
+      : new Date(sleepInstance.date);
+    
+    updateFuelDaySummaryFromSleepInstances(userId, instanceDate).catch((error) => {
+      console.error('Failed to update fuel day summary:', error);
+    });
+    
     return { sleepInstance };
   });
 }

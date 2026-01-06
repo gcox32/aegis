@@ -4,14 +4,14 @@ import {
   getUserStats,
   createUserStats,
   getLatestUserStats,
-  getUserStatsById,
-  deleteUserStats,
+
   getUserProfile,
   getLatestTapeMeasurements,
 } from '@/lib/db/crud';
 import { getQueryParam } from '@/lib/api/helpers';
 import { estimateBodyFat } from '@/lib/stats/bodyfat';
 import { getLatestStatsValues, getLatestHeight, getLatestArmLength, getLatestLegLength, calculateAge } from '@/lib/stats/bodyfat/helpers';
+import { recalculateAndSaveFuelRecommendations } from '@/lib/fuel/recommendations';
 import type { BodyFatInput } from '@/types/stats';
 import type { CompositeStrategy } from '@/types/stats';
 
@@ -245,6 +245,13 @@ export async function POST(request: NextRequest) {
     }
 
     const stats = await createUserStats(userId, statsData);
+    
+    // Recalculate fuel recommendations after stats are updated
+    // This happens asynchronously so it doesn't block the response
+    recalculateAndSaveFuelRecommendations(userId).catch((error) => {
+      console.error('Failed to recalculate fuel recommendations:', error);
+    });
+    
     return { stats };
   });
 }

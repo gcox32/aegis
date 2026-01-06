@@ -3,9 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { calculateFuelRecommendations } from '@/lib/fuel/recommendations';
-import type { UserProfile } from '@/types/user';
-import type { FuelRecommendations } from '@/lib/fuel/recommendations';
+import type { FuelRecommendations } from '@/types/fuel';
 
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, init);
@@ -35,32 +33,17 @@ export default function TargetsTab() {
         setLoading(true);
         setError(null);
 
-        // Fetch profile, goals, and latest stats
-        const [profileRes, goalsRes, statsRes] = await Promise.all([
-          fetchJson<{ profile: UserProfile }>('/api/me/profile'),
-          fetchJson<{ goals: any[] }>('/api/me/goals'),
-          fetchJson<{ stats: any[] }>('/api/me/stats?latest=true'),
-        ]);
+        // Fetch recommendations from API
+        const recommendationsRes = await fetchJson<{ recommendations: FuelRecommendations | null }>('/api/fuel/recommendations');
 
         if (cancelled) return;
 
-        const profile = profileRes.profile;
-        if (!profile) {
-          setError('Profile not found. Please complete your profile setup.');
+        if (!recommendationsRes.recommendations) {
+          setError('Recommendations not found. Please update your stats or goals to generate recommendations.');
           return;
         }
 
-        // Add goals and latest stats to profile
-        // statsRes.stats is now an array, so get the first item
-        const profileWithData = {
-          ...profile,
-          goals: goalsRes.goals,
-          latestStats: statsRes.stats?.[0] || undefined,
-        };
-
-        // Calculate recommendations
-        const recs = calculateFuelRecommendations(profileWithData);
-        setRecommendations(recs);
+        setRecommendations(recommendationsRes.recommendations);
 
       } catch (err: any) {
         if (!cancelled) {
@@ -119,24 +102,6 @@ export default function TargetsTab() {
     { name: 'Fat', value: fatCalories, grams: macros.fat || 0 },
   ].filter(item => item.value > 0);
 
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0];
-      return (
-        <div className="bg-background shadow-lg p-3 border border-border rounded-(--radius)">
-          <p className="font-medium text-sm">{data.name}</p>
-          <p className="mt-1 text-muted-foreground text-xs">
-            {data.payload.grams}g ({data.value} cal)
-          </p>
-          <p className="text-muted-foreground text-xs">
-            {((data.value / calorieTarget) * 100).toFixed(1)}% of total
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
-
   const CustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, name }: any) => {
     const RADIAN = Math.PI / 180;
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
@@ -190,7 +155,6 @@ export default function TargetsTab() {
                   );
                 })}
               </Pie>
-              <Tooltip content={<CustomTooltip />} />
             </PieChart>
           </ResponsiveContainer>
 

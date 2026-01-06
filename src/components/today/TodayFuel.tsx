@@ -7,8 +7,8 @@ import type { MealInstance } from '@/types/fuel';
 import type { UserProfile } from '@/types/user';
 import { Utensils, Mic, Loader2 } from 'lucide-react';
 import { fetchJson } from '@/lib/train/helpers';
-import { calculateFuelRecommendations } from '@/lib/fuel/recommendations';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import type { FuelRecommendations } from '@/types/fuel';
 
 export default function TodayFuel() {
   const router = useRouter();
@@ -35,13 +35,11 @@ export default function TodayFuel() {
         endOfDay.setHours(23, 59, 59, 999);
         console.log('startOfDay', startOfDay);
         console.log('endOfDay', endOfDay);
-        const [instancesData, profileRes, goalsRes, statsRes] = await Promise.all([
+        const [instancesData, recommendationsRes] = await Promise.all([
           fetchJson<MealInstance[]>(
             `/api/fuel/meals/instances?dateFrom=${startOfDay.toISOString()}&dateTo=${endOfDay.toISOString()}`
           ),
-          fetchJson<{ profile: UserProfile }>('/api/me/profile'),
-          fetchJson<{ goals: any[] }>('/api/me/goals'),
-          fetchJson<{ stats: any[] }>('/api/me/stats?latest=true'),
+          fetchJson<{ recommendations: FuelRecommendations | null }>('/api/fuel/recommendations'),
         ]);
 
         if (cancelled) return;
@@ -55,16 +53,12 @@ export default function TodayFuel() {
 
         setInstances(instancesWithDates);
 
-        // Calculate recommendations
-        const profile = profileRes.profile;
-        if (profile) {
-          const profileWithData = {
-            ...profile,
-            goals: goalsRes.goals,
-            latestStats: statsRes.stats?.[0] || undefined,
-          };
-          const recs = calculateFuelRecommendations(profileWithData);
-          setRecommendations(recs);
+        // Set recommendations from API
+        if (recommendationsRes.recommendations) {
+          setRecommendations({
+            calorieTarget: recommendationsRes.recommendations.calorieTarget,
+            macros: recommendationsRes.recommendations.macros,
+          });
         }
       } catch (err: any) {
         console.error('Failed to load meal data for Today page', err);

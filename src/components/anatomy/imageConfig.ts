@@ -13,7 +13,7 @@ export const muscleGroupImages: Record<MuscleGroupName, { front: string[], back:
     front: [`${imagePathFront}/deltoids.svg`],
     back: []
   },
-  'lateral delts': {
+  'medial delts': {
     front: [`${imagePathFront}/deltoids.svg`],
     back: []
   },

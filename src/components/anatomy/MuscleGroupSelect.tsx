@@ -3,7 +3,7 @@ import { MuscleGroupName } from '@/types/anatomy';
 
 // Defined in src/types/anatomy.ts
 export const MUSCLE_GROUPS: MuscleGroupName[] = [
-  'chest', 'anterior delts', 'lateral delts', 'posterior delts',
+  'chest', 'anterior delts', 'medial delts', 'posterior delts',
   'lats', 'rhomboids', 'traps', 'spinal erectors', 'quadratus lumborum',
   'biceps', 'triceps', 'forearms','anterior core', 'obliques', 'deep core',
   'glutes', 'hip flexors', 'quadriceps', 'hamstrings', 'adductors', 'abductors',

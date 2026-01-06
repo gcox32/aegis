@@ -3,11 +3,8 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Loader2, Utensils } from 'lucide-react';
 import TabLayout, { Tab } from "@/components/ui/TabLayout";
-import { calculateFuelRecommendations } from '@/lib/fuel/recommendations';
-import type { MealInstance } from '@/types/fuel';
-import type { UserProfile } from '@/types/user';
-import type { FuelRecommendations } from '@/lib/fuel/recommendations';
-import { getLocalDateKey, getLocalDateKeyISO, normalizeToLocalMidnight } from '@/lib/utils';
+import type { FuelRecommendations, FuelDaySummary } from '@/types/fuel';
+import { getLocalDateKey, normalizeToLocalMidnight } from '@/lib/utils';
 
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
     const res = await fetch(url, init);
@@ -41,35 +38,16 @@ function getPercentageDifference(actual: number, target: number): string | null 
     return `${sign}${diff.toFixed(1)}%`;
 }
 
-function calculateDailyTotals(instances: MealInstance[]): DailyTotals[] {
-    // Group instances by date (using local date to avoid timezone issues)
-    // Use local date key to ensure dates are grouped by the day as the user sees it
-    const dailyMap = new Map<string, DailyTotals>();
-
-    instances.forEach(instance => {
-        // Use local date key (YYYY-MM-DD) instead of UTC to ensure correct grouping
-        const dateKey = getLocalDateKeyISO(instance.date);
-
-        if (!dailyMap.has(dateKey)) {
-            // Store the normalized date at local midnight for consistent representation
-            const normalizedDate = normalizeToLocalMidnight(instance.date);
-            dailyMap.set(dateKey, {
-                date: normalizedDate,
-                calories: 0,
-                protein: 0,
-                carbs: 0,
-                fat: 0,
-            });
-        }
-
-        const daily = dailyMap.get(dateKey)!;
-        daily.calories += instance.calories || 0;
-        daily.protein += instance.macros?.protein || 0;
-        daily.carbs += instance.macros?.carbs || 0;
-        daily.fat += instance.macros?.fat || 0;
-    });
-
-    return Array.from(dailyMap.values()).sort((a, b) => a.date.getTime() - b.date.getTime());
+function convertSummariesToDailyTotals(summaries: FuelDaySummary[]): DailyTotals[] {
+    return summaries
+        .map(summary => ({
+            date: normalizeToLocalMidnight(summary.date),
+            calories: summary.calories || 0,
+            protein: summary.macros?.protein || 0,
+            carbs: summary.macros?.carbs || 0,
+            fat: summary.macros?.fat || 0,
+        }))
+        .sort((a, b) => a.date.getTime() - b.date.getTime());
 }
 
 function calculateAverage(dailyTotals: DailyTotals[]): Averages {
@@ -98,7 +76,7 @@ function calculateAverage(dailyTotals: DailyTotals[]): Averages {
 function AdherenceTab() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [instances, setInstances] = useState<MealInstance[]>([]);
+    const [summaries, setSummaries] = useState<FuelDaySummary[]>([]);
     const [recommendations, setRecommendations] = useState<FuelRecommendations | null>(null);
 
     useEffect(() => {
@@ -115,37 +93,27 @@ function AdherenceTab() {
                 thirtyDaysAgo.setDate(today.getDate() - 30);
                 thirtyDaysAgo.setHours(0, 0, 0, 0);
 
-                // Fetch meal instances, profile, goals, and stats
-                const [instancesRes, profileRes, goalsRes, statsRes] = await Promise.all([
-                    fetchJson<MealInstance[]>(
-                        `/api/fuel/meals/instances?dateFrom=${thirtyDaysAgo.toISOString()}&dateTo=${today.toISOString()}`
+                // Fetch fuel day summaries and recommendations
+                const [summariesRes, recommendationsRes] = await Promise.all([
+                    fetchJson<{ summaries: FuelDaySummary[] }>(
+                        `/api/fuel/day-summary?dateFrom=${thirtyDaysAgo.toISOString()}&dateTo=${today.toISOString()}`
                     ),
-                    fetchJson<{ profile: UserProfile }>('/api/me/profile'),
-                    fetchJson<{ goals: any[] }>('/api/me/goals'),
-                    fetchJson<{ stats: any[] }>('/api/me/stats?latest=true'),
+                    fetchJson<{ recommendations: FuelRecommendations | null }>('/api/fuel/recommendations'),
                 ]);
 
                 if (cancelled) return;
 
                 // Convert date strings to Date objects
-                const instancesWithDates = instancesRes.map(instance => ({
-                    ...instance,
-                    date: new Date(instance.date),
-                    timestamp: instance.timestamp ? new Date(instance.timestamp) : null,
+                const summariesWithDates = summariesRes.summaries.map(summary => ({
+                    ...summary,
+                    date: new Date(summary.date),
                 }));
 
-                setInstances(instancesWithDates);
+                setSummaries(summariesWithDates);
 
-                // Calculate recommendations
-                const profile = profileRes.profile;
-                if (profile) {
-                    const profileWithData = {
-                        ...profile,
-                        goals: goalsRes.goals,
-                        latestStats: statsRes.stats?.[0] || undefined,
-                    };
-                    const recs = calculateFuelRecommendations(profileWithData);
-                    setRecommendations(recs);
+                // Set recommendations from API
+                if (recommendationsRes.recommendations) {
+                    setRecommendations(recommendationsRes.recommendations);
                 }
             } catch (err: any) {
                 if (!cancelled) {
@@ -166,7 +134,7 @@ function AdherenceTab() {
     }, []);
 
     const { dailyTotals, sevenDayAverage, thirtyDayAverage } = useMemo(() => {
-        const totals = calculateDailyTotals(instances);
+        const totals = convertSummariesToDailyTotals(summaries);
 
         // Get last 7 days
         const sevenDaysAgo = new Date();
@@ -178,7 +146,7 @@ function AdherenceTab() {
             sevenDayAverage: calculateAverage(last7Days),
             thirtyDayAverage: calculateAverage(totals),
         };
-    }, [instances]);
+    }, [summaries]);
 
     if (loading) {
         return (
@@ -381,7 +349,7 @@ function AdherenceTab() {
 function TrackingTab() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [instances, setInstances] = useState<MealInstance[]>([]);
+    const [summaries, setSummaries] = useState<FuelDaySummary[]>([]);
 
     useEffect(() => {
         let cancelled = false;
@@ -391,27 +359,26 @@ function TrackingTab() {
                 setLoading(true);
                 setError(null);
 
-                // Fetch meal instances (last 30 days)
+                // Fetch fuel day summaries (last 30 days)
                 const dateFrom = new Date();
                 dateFrom.setDate(dateFrom.getDate() - 30);
                 dateFrom.setHours(0, 0, 0, 0);
                 const dateTo = new Date();
                 dateTo.setHours(23, 59, 59, 999);
 
-                const instancesRes = await fetchJson<MealInstance[]>(
-                    `/api/fuel/meals/instances?dateFrom=${dateFrom.toISOString()}&dateTo=${dateTo.toISOString()}`
+                const summariesRes = await fetchJson<{ summaries: FuelDaySummary[] }>(
+                    `/api/fuel/day-summary?dateFrom=${dateFrom.toISOString()}&dateTo=${dateTo.toISOString()}`
                 );
 
                 if (cancelled) return;
 
                 // Convert date strings to Date objects
-                const instancesWithDates = instancesRes.map(instance => ({
-                    ...instance,
-                    date: new Date(instance.date),
-                    timestamp: instance.timestamp ? new Date(instance.timestamp) : null,
+                const summariesWithDates = summariesRes.summaries.map(summary => ({
+                    ...summary,
+                    date: new Date(summary.date),
                 }));
 
-                setInstances(instancesWithDates);
+                setSummaries(summariesWithDates);
 
             } catch (err: any) {
                 if (!cancelled) {
@@ -431,35 +398,16 @@ function TrackingTab() {
         };
     }, []);
 
-    const { groupedByDate, sortedDates } = useMemo(() => {
-        // Group meal instances by date (using local date components to avoid timezone issues)
-        // We normalize each date to local midnight to ensure consistent grouping regardless of
-        // the timezone the date was stored in or the time component
-        const grouped: { [key: string]: MealInstance[] } = {};
-
-        instances.forEach(instance => {
-            // Normalize the date to local midnight to get a consistent date key
-            // This ensures that dates are grouped by the day as the user sees it in their timezone
-            const dateKey = getLocalDateKey(instance.date);
-
-            if (!grouped[dateKey]) {
-                grouped[dateKey] = [];
-            }
-            grouped[dateKey].push(instance);
+    const { sortedSummaries } = useMemo(() => {
+        // Sort summaries by date in descending order (most recent first)
+        const sorted = [...summaries].sort((a, b) => {
+            const dateA = normalizeToLocalMidnight(a.date);
+            const dateB = normalizeToLocalMidnight(b.date);
+            return dateB.getTime() - dateA.getTime();
         });
 
-        // Sort dates in descending order
-        // Use normalized dates for comparison to ensure consistent sorting
-        const sorted = Object.keys(grouped).sort((a, b) => {
-            const instanceA = grouped[a][0];
-            const instanceB = grouped[b][0];
-            const normalizedA = normalizeToLocalMidnight(instanceA.date);
-            const normalizedB = normalizeToLocalMidnight(instanceB.date);
-            return normalizedB.getTime() - normalizedA.getTime();
-        });
-
-        return { groupedByDate: grouped, sortedDates: sorted };
-    }, [instances]);
+        return { sortedSummaries: sorted };
+    }, [summaries]);
 
     if (loading) {
         return (
@@ -477,7 +425,7 @@ function TrackingTab() {
         );
     }
 
-    if (instances.length === 0) {
+    if (summaries.length === 0) {
         return (
             <div className="flex flex-col justify-center items-center px-4 py-12 text-center">
                 <Utensils className="mb-4 w-12 h-12 text-muted-foreground" />
@@ -491,59 +439,57 @@ function TrackingTab() {
 
     return (
         <div className="space-y-4 pb-6">
-            {sortedDates.map((date) => {
-                const dayInstances = groupedByDate[date];
+            {sortedSummaries.map((summary) => {
+                const dateKey = getLocalDateKey(summary.date);
+                const normalizedDate = normalizeToLocalMidnight(summary.date);
+                
+                // Get daily totals from summary
+                const dailyTotal = {
+                    calories: summary.calories || 0,
+                    protein: summary.macros?.protein || 0,
+                    carbs: summary.macros?.carbs || 0,
+                    fat: summary.macros?.fat || 0,
+                };
 
-                // Calculate daily totals for this day
-                const dailyTotal = dayInstances.reduce(
-                    (acc, instance) => ({
-                        calories: acc.calories + (instance.calories || 0),
-                        protein: acc.protein + (instance.macros?.protein || 0),
-                        carbs: acc.carbs + (instance.macros?.carbs || 0),
-                        fat: acc.fat + (instance.macros?.fat || 0),
-                    }),
-                    { calories: 0, protein: 0, carbs: 0, fat: 0 }
+                // Calculate calories from each macro
+                const proteinCalories = dailyTotal.protein * 4;
+                const carbsCalories = dailyTotal.carbs * 4;
+                const fatCalories = dailyTotal.fat * 9;
+                const totalCalories = dailyTotal.calories || (proteinCalories + carbsCalories + fatCalories);
+                
+                // Calculate percentages
+                const proteinPercent = totalCalories > 0 ? (proteinCalories / totalCalories) * 100 : 0;
+                const carbsPercent = totalCalories > 0 ? (carbsCalories / totalCalories) * 100 : 0;
+                const fatPercent = totalCalories > 0 ? (fatCalories / totalCalories) * 100 : 0;
+
+                return (
+                    <div
+                        key={summary.id}
+                        className="bg-card p-4 border border-border rounded-lg"
+                    >
+                        <div className="flex md:flex-row flex-col justify-between items-start gap-2">
+                            <div className="flex justify-between gap-2 w-full">
+                                <h3 className="w-[50%] font-semibold text-foreground text-sm">
+                                    {dateKey}
+                                </h3>
+                                <span className="w-[40%] text-right">
+                                    {Math.round(dailyTotal.calories)} cal
+                                </span>
+                            </div>
+                            <div className="flex w-full text-right">
+                                <span className="pr-1 border-border border-r w-[33%] text-muted-foreground text-xs text-center">
+                                    {Math.round(dailyTotal.protein)}g P ({proteinPercent.toFixed(0)}%)
+                                </span>
+                                <span className="pr-1 border-border border-r w-[33%] text-muted-foreground text-xs text-center">
+                                    {Math.round(dailyTotal.carbs)}g C ({carbsPercent.toFixed(0)}%)
+                                </span>
+                                <span className="pl-1 w-[33%] text-muted-foreground text-xs text-center">
+                                    {Math.round(dailyTotal.fat)}g F ({fatPercent.toFixed(0)}%)
+                                </span>
+                            </div>
+                        </div>
+                    </div>
                 );
-
-                 // Calculate calories from each macro
-                 const proteinCalories = dailyTotal.protein * 4;
-                 const carbsCalories = dailyTotal.carbs * 4;
-                 const fatCalories = dailyTotal.fat * 9;
-                 const totalCalories = dailyTotal.calories || (proteinCalories + carbsCalories + fatCalories);
-                 
-                 // Calculate percentages
-                 const proteinPercent = totalCalories > 0 ? (proteinCalories / totalCalories) * 100 : 0;
-                 const carbsPercent = totalCalories > 0 ? (carbsCalories / totalCalories) * 100 : 0;
-                 const fatPercent = totalCalories > 0 ? (fatCalories / totalCalories) * 100 : 0;
-
-                 return (
-                     <div
-                         key={date}
-                         className="bg-card p-4 border border-border rounded-lg"
-                     >
-                         <div className="flex md:flex-row flex-col justify-between items-start gap-2">
-                             <div className="flex justify-between gap-2 w-full">
-                                 <h3 className="w-[50%] font-semibold text-foreground text-sm">
-                                     {date}
-                                 </h3>
-                                 <span className="w-[40%] text-right">
-                                     {Math.round(dailyTotal.calories)} cal
-                                 </span>
-                             </div>
-                             <div className="flex w-full text-right">
-                                 <span className="pr-3 border-border border-r w-[33%] text-muted-foreground text-sm text-center">
-                                     {Math.round(dailyTotal.protein)}g P ({proteinPercent.toFixed(0)}%)
-                                 </span>
-                                 <span className="pr-3 border-border border-r w-[33%] text-muted-foreground text-sm text-center">
-                                     {Math.round(dailyTotal.carbs)}g C ({carbsPercent.toFixed(0)}%)
-                                 </span>
-                                 <span className="pl-3 w-[33%] text-muted-foreground text-sm text-center">
-                                     {Math.round(dailyTotal.fat)}g F ({fatPercent.toFixed(0)}%)
-                                 </span>
-                             </div>
-                         </div>
-                     </div>
-                 );
             })}
         </div>
     );

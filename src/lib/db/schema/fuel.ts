@@ -209,6 +209,36 @@ export const sleepInstance = fuelSchema.table('sleep_instance', {
   notes: text('notes'),
 });
 
+export const fuelRecommendations = fuelSchema.table('fuel_recommendations', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull().references(() => user.id),
+  bmr: numeric('bmr'),
+  tdee: numeric('tdee'),
+  calorieTarget: numeric('calorie_target'),
+  macros: jsonb('macros'),
+  micros: jsonb('micros'),
+  sleepHours: numeric('sleep_hours'),
+  waterIntake: jsonb('water_intake'),
+  supplements: jsonb('supplements'),
+  notes: text('notes'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const fuelDaySummary = fuelSchema.table('fuel_day_summary', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull().references(() => user.id),
+  fuelRecommendationsId: uuid('fuel_recommendations_id').notNull().references(() => fuelRecommendations.id),
+  date: date('date').notNull(),
+  calories: numeric('calories'),
+  macros: jsonb('macros'),
+  micros: jsonb('micros'),
+  sleepHours: numeric('sleep_hours'),
+  waterIntake: jsonb('water_intake'),
+  supplements: jsonb('supplements'),
+  notes: text('notes'),
+});
+
 // Relations
 export const mealPlanRelations = relations(mealPlan, ({ one, many }) => ({
   user: one(user, {
@@ -358,5 +388,24 @@ export const sleepInstanceRelations = relations(sleepInstance, ({ one }) => ({
   user: one(user, {
     fields: [sleepInstance.userId],
     references: [user.id],
+  }),
+}));
+
+export const fuelRecommendationsRelations = relations(fuelRecommendations, ({ one, many }) => ({
+  user: one(user, {
+    fields: [fuelRecommendations.userId],
+    references: [user.id],
+  }),
+  daySummaries: many(fuelDaySummary),
+}));
+
+export const fuelDaySummaryRelations = relations(fuelDaySummary, ({ one }) => ({
+  user: one(user, {
+    fields: [fuelDaySummary.userId],
+    references: [user.id],
+  }),
+  fuelRecommendations: one(fuelRecommendations, {
+    fields: [fuelDaySummary.fuelRecommendationsId],
+    references: [fuelRecommendations.id],
   }),
 }));

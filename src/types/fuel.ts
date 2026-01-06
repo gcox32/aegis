@@ -42,8 +42,6 @@ export type Micros = {
 
 // `fuel` schema for supabase
 
-// starting here we are reconsidereing the schema and how we want to store the data
-
 export interface MealPlan {
     id:           string;
     userId:       User['id'];
@@ -168,8 +166,6 @@ export interface GroceryList {
     updatedAt:    Date;
 }
 
-// here onward is set
-
 export interface WaterIntake {
     id:         string;
     userId:     User['id'];
@@ -179,7 +175,6 @@ export interface WaterIntake {
     notes?:     string;
 }
 
-// supplements
 export interface SupplementSchedule {
     id:           string;
     userId:       User['id'];
@@ -207,7 +202,6 @@ export interface Supplement {
     imageUrl?:    string;
 }
 
-// sleep
 export interface SleepInstance {
     id:          string;
     userId:      User['id'];
@@ -219,4 +213,34 @@ export interface SleepInstance {
     wakeCount?:  number;
     timeAwake?:  TimeMeasurement; // in minutes
     notes?:      string;
+}
+
+export interface FuelRecommendations {
+    id: string;
+    userId: User['id'];
+    bmr?: number;
+    tdee?: number;
+    calorieTarget?: number;
+    macros?: Macros;
+    micros?: Micros;
+    sleepHours?: number; // default to 7, can be overridden by the user 
+    waterIntake?: LiquidMeasurement; // need a calculation for this based on user metrics; v0 is 3.7 liters for men, 2.7 liters for women
+    supplements?: Supplement[]; // tbd
+    notes?: string;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+export interface FuelDaySummary {
+    id: string;
+    userId: User['id'];
+    fuelRecommendationsId: FuelRecommendations['id'];
+    date: Date;
+    calories?: number;
+    macros?: Macros;
+    micros?: Micros;
+    sleepHours?: number;
+    waterIntake?: LiquidMeasurement;
+    supplements?: Supplement[];
+    notes?: string;
 }

@@ -1,7 +1,7 @@
 import { User } from "./user";
 
 export type MuscleGroupName =
-    'chest' | 'anterior delts' | 'lateral delts' | 'posterior delts' |
+    'chest' | 'anterior delts' | 'medial delts' | 'posterior delts' |
     'lats' | 'rhomboids' | 'traps' | 'spinal erectors' | 'quadratus lumborum' |
     'biceps' | 'triceps' | 'forearms' | 'anterior core' | 'obliques' | 'deep core' |
     'glutes' | 'hip flexors' | 'quadriceps' | 'hamstrings' | 'adductors' | 'abductors' | 
