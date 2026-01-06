@@ -1,4 +1,4 @@
-import { eq, and, desc, inArray, sql, ilike, notInArray } from 'drizzle-orm';
+import { eq, and, desc, inArray, sql, ilike, notInArray, ne } from 'drizzle-orm';
 import { db } from '../index';
 import { calculateOutput } from '@/lib/stats/performance/work-power';
 import { getLatestUserStats } from './user';
@@ -1673,6 +1673,89 @@ export async function deleteWorkoutBlockInstance(
 // ============================================================================
 // WORKOUT BLOCK EXERCISE INSTANCE CRUD
 // ============================================================================
+
+/**
+ * Check if a projected 1RM is a personal best by comparing with all historical values
+ * for the same exercise and user.
+ * @param excludeInstanceId Optional instance ID to exclude from comparison (useful when updating an existing instance)
+ */
+export async function isPersonalBest(
+  userId: string,
+  workoutBlockExerciseId: string,
+  newProjected1RM: { value: { value: number; unit: 'kg' | 'lbs' }; confidence: number } | undefined,
+  excludeInstanceId?: string
+): Promise<boolean> {
+  // If no projected1RM, it can't be a personal best
+  if (!newProjected1RM?.value) {
+    return false;
+  }
+
+  // Convert new value to kg for comparison
+  const newValueKg = newProjected1RM.value.unit === 'kg' 
+    ? newProjected1RM.value.value 
+    : newProjected1RM.value.value * 0.453592;
+
+  // Get the exerciseId from workoutBlockExerciseId
+  const workoutBlockExerciseData = await db.query.workoutBlockExercise.findFirst({
+    where: eq(workoutBlockExercise.id, workoutBlockExerciseId),
+    columns: { exerciseId: true },
+  });
+
+  if (!workoutBlockExerciseData) {
+    return false;
+  }
+
+  const exerciseId = workoutBlockExerciseData.exerciseId;
+
+  // Build where clause - exclude the current instance if provided
+  const whereConditions = [
+    eq(workoutBlockExerciseInstance.userId, userId),
+    eq(workoutBlockExercise.exerciseId, exerciseId),
+    sql`${workoutBlockExerciseInstance.projected1RM} IS NOT NULL`
+  ];
+
+  if (excludeInstanceId) {
+    whereConditions.push(ne(workoutBlockExerciseInstance.id, excludeInstanceId));
+  }
+
+  // Query all historical instances for this exercise and user
+  const historicalInstances = await db
+    .select({
+      instance: workoutBlockExerciseInstance,
+      wbe: workoutBlockExercise,
+    })
+    .from(workoutBlockExerciseInstance)
+    .innerJoin(
+      workoutBlockExercise,
+      eq(workoutBlockExerciseInstance.workoutBlockExerciseId, workoutBlockExercise.id)
+    )
+    .where(and(...whereConditions));
+
+  // Extract and compare all historical projected1RM values
+  for (const { instance } of historicalInstances) {
+    if (!instance.projected1RM) continue;
+
+    const historicalProjected1RM = instance.projected1RM as {
+      value: { value: number; unit: 'kg' | 'lbs' };
+      confidence: number;
+    };
+
+    if (!historicalProjected1RM?.value) continue;
+
+    // Convert historical value to kg for comparison
+    const historicalValueKg = historicalProjected1RM.value.unit === 'kg'
+      ? historicalProjected1RM.value.value
+      : historicalProjected1RM.value.value * 0.453592;
+
+    // If any historical value is greater than or equal to the new value, it's not a new PR
+    if (historicalValueKg >= newValueKg) {
+      return false;
+    }
+  }
+
+  // If we get here, the new value is higher than all historical values
+  return true;
+}
 
 export async function createWorkoutBlockExerciseInstance(
   userId: string,
