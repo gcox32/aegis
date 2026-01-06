@@ -19,10 +19,8 @@ import {
   userGoal,
   userGoalComponent,
   userGoalCriteria,
-  userStatsLog,
   userStats,
   tapeMeasurement,
-  userImageLog,
   userImage,
   userProfileKeyExercise,
   exercise, // Added to import exercise
@@ -550,46 +548,10 @@ export async function deleteUserGoal(goalId: string, userId: string): Promise<bo
 // USER STATS CRUD
 // ============================================================================
 
-export async function getOrCreateUserStatsLog(userId: string): Promise<string> {
-  // Check if stats log exists
-  const [existing] = await db
-    .select()
-    .from(userStatsLog)
-    .where(eq(userStatsLog.userId, userId))
-    .limit(1);
-
-  if (existing) {
-    return existing.id;
-  }
-
-  // Create new stats log, handle race condition
-  try {
-    const [newLog] = await db
-      .insert(userStatsLog)
-      .values({ userId })
-      .returning();
-
-    return newLog.id;
-  } catch (e: any) {
-    if (e.code === '23505') {
-      const [retry] = await db
-        .select()
-        .from(userStatsLog)
-        .where(eq(userStatsLog.userId, userId))
-        .limit(1);
-      
-      if (retry) return retry.id;
-    }
-    throw e;
-  }
-}
-
 export async function createUserStats(
   userId: string,
-  statsData: Omit<UserStats, 'id' | 'statsLogId'>
+  statsData: Omit<UserStats, 'id' | 'userId'>
 ): Promise<UserStats> {
-  const statsLogId = await getOrCreateUserStatsLog(userId);
-  
   // Extract date components from local Date to avoid timezone issues
   // When Date objects are converted to ISO strings, they represent UTC time
   // We need to extract year/month/day from the local Date to preserve the intended date
@@ -599,13 +561,13 @@ export async function createUserStats(
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
   };
-  
+
   const dateStr = statsData.date ? formatDateForDB(statsData.date) : formatDateForDB(new Date());
-  
+
   const [newStats] = await db
     .insert(userStats)
     .values({
-      statsLogId,
+      userId,
       height: statsData.height,
       weight: statsData.weight,
       armLength: statsData.armLength,
@@ -645,12 +607,10 @@ export async function createUserStats(
 }
 
 export async function getUserStats(userId: string): Promise<UserStats[]> {
-  const statsLogId = await getOrCreateUserStatsLog(userId);
-
   const results = await db
     .select()
     .from(userStats)
-    .where(eq(userStats.statsLogId, statsLogId))
+    .where(eq(userStats.userId, userId))
     .orderBy(desc(userStats.date));
 
   // Fetch tape measurements for all stats
@@ -680,12 +640,10 @@ export async function getUserStatsById(
   statsId: string,
   userId: string
 ): Promise<(UserStats & { tapeMeasurements?: TapeMeasurement }) | null> {
-  const statsLogId = await getOrCreateUserStatsLog(userId);
-
   const [stat] = await db
     .select()
     .from(userStats)
-    .where(and(eq(userStats.id, statsId), eq(userStats.statsLogId, statsLogId)))
+    .where(and(eq(userStats.id, statsId), eq(userStats.userId, userId)))
     .limit(1);
 
   if (!stat) {
@@ -734,8 +692,6 @@ export async function getLatestUserStats(
 }
 
 export async function getLatestTapeMeasurements(userId: string): Promise<TapeMeasurement | null> {
-  const statsLogId = await getOrCreateUserStatsLog(userId);
-
   // Get the latest tape measurement by joining with user_stats
   const [latest] = await db
     .select({
@@ -757,7 +713,7 @@ export async function getLatestTapeMeasurements(userId: string): Promise<TapeMea
     })
     .from(tapeMeasurement)
     .innerJoin(userStats, eq(tapeMeasurement.userStatsId, userStats.id))
-    .where(eq(userStats.statsLogId, statsLogId))
+    .where(eq(userStats.userId, userId))
     .orderBy(desc(tapeMeasurement.date))
     .limit(1);
 
@@ -772,12 +728,10 @@ export async function getLatestTapeMeasurements(userId: string): Promise<TapeMea
 }
 
 export async function deleteUserStats(statsId: string, userId: string): Promise<boolean> {
-  const statsLogId = await getOrCreateUserStatsLog(userId);
-
   // Delete will cascade to tape_measurement
   const result = await db
     .delete(userStats)
-    .where(and(eq(userStats.id, statsId), eq(userStats.statsLogId, statsLogId)));
+    .where(and(eq(userStats.id, statsId), eq(userStats.userId, userId)));
 
   return true;
 }
@@ -786,48 +740,14 @@ export async function deleteUserStats(statsId: string, userId: string): Promise<
 // USER IMAGE CRUD
 // ============================================================================
 
-export async function getOrCreateUserImageLog(userId: string): Promise<string> {
-  const [existing] = await db
-    .select()
-    .from(userImageLog)
-    .where(eq(userImageLog.userId, userId))
-    .limit(1);
-
-  if (existing) {
-    return existing.id;
-  }
-
-  try {
-    const [newLog] = await db
-      .insert(userImageLog)
-      .values({ userId })
-      .returning();
-
-    return newLog.id;
-  } catch (e: any) {
-    if (e.code === '23505') {
-      const [retry] = await db
-        .select()
-        .from(userImageLog)
-        .where(eq(userImageLog.userId, userId))
-        .limit(1);
-      
-      if (retry) return retry.id;
-    }
-    throw e;
-  }
-}
-
 export async function createUserImage(
   userId: string,
-  imageData: Omit<UserImage, 'id' | 'imageLogId'>
+  imageData: Omit<UserImage, 'id' | 'userId'>
 ): Promise<UserImage> {
-  const imageLogId = await getOrCreateUserImageLog(userId);
-
   const [newImage] = await db
     .insert(userImage)
     .values({
-      imageLogId,
+      userId,
       date: imageData.date ? imageData.date.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
       imageUrl: imageData.imageUrl,
       notes: imageData.notes ?? null,
@@ -841,14 +761,12 @@ export async function createUserImage(
 }
 
 export async function getUserImages(userId: string): Promise<UserImage[]> {
-  const imageLogId = await getOrCreateUserImageLog(userId);
-
   const results = await db
     .select()
     .from(userImage)
-    .where(eq(userImage.imageLogId, imageLogId))
+    .where(eq(userImage.userId, userId))
     .orderBy(desc(userImage.date));
-  
+
   return results.map((r) => ({
     ...nullToUndefined(r),
     date: new Date(r.date),
@@ -859,12 +777,10 @@ export async function getUserImageById(
   imageId: string,
   userId: string
 ): Promise<UserImage | null> {
-  const imageLogId = await getOrCreateUserImageLog(userId);
-
   const [image] = await db
     .select()
     .from(userImage)
-    .where(and(eq(userImage.id, imageId), eq(userImage.imageLogId, imageLogId)))
+    .where(and(eq(userImage.id, imageId), eq(userImage.userId, userId)))
     .limit(1);
 
   if (!image) return null;
@@ -881,11 +797,9 @@ export async function getLatestUserImage(userId: string): Promise<UserImage | nu
 }
 
 export async function deleteUserImage(imageId: string, userId: string): Promise<boolean> {
-  const imageLogId = await getOrCreateUserImageLog(userId);
-
   const result = await db
     .delete(userImage)
-    .where(and(eq(userImage.id, imageId), eq(userImage.imageLogId, imageLogId)));
+    .where(and(eq(userImage.id, imageId), eq(userImage.userId, userId)));
 
   return true;
 }

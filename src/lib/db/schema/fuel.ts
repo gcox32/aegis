@@ -187,14 +187,8 @@ export const supplementInstance = fuelSchema.table('supplement_instance', {
 });
 
 // Water & Sleep
-export const waterIntakeLog = fuelSchema.table('water_intake_log', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id').notNull().unique().references(() => user.id),
-});
-
 export const waterIntake = fuelSchema.table('water_intake', {
   id: uuid('id').defaultRandom().primaryKey(),
-  waterIntakeLogId: uuid('water_intake_log_id').notNull().references(() => waterIntakeLog.id),
   userId: uuid('user_id').notNull().references(() => user.id),
   date: date('date').notNull(),
   timestamp: timestamp('timestamp', { withTimezone: true }),
@@ -202,14 +196,8 @@ export const waterIntake = fuelSchema.table('water_intake', {
   notes: text('notes'),
 });
 
-export const sleepLog = fuelSchema.table('sleep_log', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id').notNull().unique().references(() => user.id),
-});
-
 export const sleepInstance = fuelSchema.table('sleep_instance', {
   id: uuid('id').defaultRandom().primaryKey(),
-  sleepLogId: uuid('sleep_log_id').notNull().references(() => sleepLog.id),
   userId: uuid('user_id').notNull().references(() => user.id),
   date: timestamp('date', { withTimezone: true }).notNull(),
   timeAsleep: jsonb('time_asleep'),
@@ -359,38 +347,14 @@ export const supplementInstanceRelations = relations(supplementInstance, ({ one 
   }),
 }));
 
-export const waterIntakeLogRelations = relations(waterIntakeLog, ({ one, many }) => ({
-  user: one(user, {
-    fields: [waterIntakeLog.userId],
-    references: [user.id],
-  }),
-  waterIntakes: many(waterIntake),
-}));
-
 export const waterIntakeRelations = relations(waterIntake, ({ one }) => ({
-  waterIntakeLog: one(waterIntakeLog, {
-    fields: [waterIntake.waterIntakeLogId],
-    references: [waterIntakeLog.id],
-  }),
   user: one(user, {
     fields: [waterIntake.userId],
     references: [user.id],
   }),
 }));
 
-export const sleepLogRelations = relations(sleepLog, ({ one, many }) => ({
-  user: one(user, {
-    fields: [sleepLog.userId],
-    references: [user.id],
-  }),
-  sleepInstances: many(sleepInstance),
-}));
-
 export const sleepInstanceRelations = relations(sleepInstance, ({ one }) => ({
-  sleepLog: one(sleepLog, {
-    fields: [sleepInstance.sleepLogId],
-    references: [sleepLog.id],
-  }),
   user: one(user, {
     fields: [sleepInstance.userId],
     references: [user.id],

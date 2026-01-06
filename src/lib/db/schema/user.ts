@@ -100,14 +100,9 @@ export const userGoalCriteria = pgTable('user_goal_criteria', {
   measurementSite: text('measurement_site'), // For tape measurements
 });
 
-export const userStatsLog = pgTable('user_stats_log', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id').notNull().unique().references(() => user.id),
-});
-
 export const userStats = pgTable('user_stats', {
   id: uuid('id').defaultRandom().primaryKey(),
-  statsLogId: uuid('stats_log_id').notNull().references(() => userStatsLog.id),
+  userId: uuid('user_id').notNull().references(() => user.id),
   height: jsonb('height'),
   weight: jsonb('weight'),
   armLength: jsonb('arm_length'),
@@ -136,14 +131,9 @@ export const tapeMeasurement = pgTable('tape_measurement', {
   rightCalf: jsonb('right_calf'),
 });
 
-export const userImageLog = pgTable('user_image_log', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id').notNull().unique().references(() => user.id),
-});
-
 export const userImage = pgTable('user_image', {
   id: uuid('id').defaultRandom().primaryKey(),
-  imageLogId: uuid('image_log_id').notNull().references(() => userImageLog.id),
+  userId: uuid('user_id').notNull().references(() => user.id),
   date: date('date').notNull(),
   imageUrl: text('image_url').notNull(),
   notes: text('notes'),
@@ -162,8 +152,6 @@ export const userRelations = relations(user, ({ one, many }) => ({
   preferences: one(userPreferences),
   settings: one(userSettings),
   goals: many(userGoal),
-  statsLog: one(userStatsLog),
-  imageLog: one(userImageLog),
 }));
 
 export const userProfileRelations = relations(userProfile, ({ one, many }) => ({
@@ -215,18 +203,10 @@ export const userGoalCriteriaRelations = relations(userGoalCriteria, ({ one }) =
   }),
 }));
 
-export const userStatsLogRelations = relations(userStatsLog, ({ one, many }) => ({
-  user: one(user, {
-    fields: [userStatsLog.userId],
-    references: [user.id],
-  }),
-  stats: many(userStats),
-}));
-
 export const userStatsRelations = relations(userStats, ({ one }) => ({
-  statsLog: one(userStatsLog, {
-    fields: [userStats.statsLogId],
-    references: [userStatsLog.id],
+  user: one(user, {
+    fields: [userStats.userId],
+    references: [user.id],
   }),
   tapeMeasurement: one(tapeMeasurement),
 }));
@@ -238,17 +218,9 @@ export const tapeMeasurementRelations = relations(tapeMeasurement, ({ one }) => 
   }),
 }));
 
-export const userImageLogRelations = relations(userImageLog, ({ one, many }) => ({
-  user: one(user, {
-    fields: [userImageLog.userId],
-    references: [user.id],
-  }),
-  images: many(userImage),
-}));
-
 export const userImageRelations = relations(userImage, ({ one }) => ({
-  imageLog: one(userImageLog, {
-    fields: [userImage.imageLogId],
-    references: [userImageLog.id],
+  user: one(user, {
+    fields: [userImage.userId],
+    references: [user.id],
   }),
 }));

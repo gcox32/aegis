@@ -184,23 +184,6 @@ export const workoutBlockExerciseInstance = trainSchema.table('workout_block_exe
   notes: text('notes'),
 });
 
-// Logs
-export const performanceLog = trainSchema.table('performance_log', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id').notNull().unique().references(() => user.id),
-});
-
-export const performance = trainSchema.table('performance', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  performanceLogId: uuid('performance_log_id').notNull().references(() => performanceLog.id),
-  date: timestamp('date', { withTimezone: true }).notNull(),
-  duration: jsonb('duration').notNull(),
-  volume: jsonb('volume').notNull(),
-  work: jsonb('work').notNull(),
-  power: jsonb('power').notNull(),
-  notes: text('notes'),
-});
-
 // Relations
 export const protocolRelations = relations(protocol, ({ many }) => ({
   phases: many(phase),
@@ -328,19 +311,4 @@ export const workoutBlockExerciseInstanceRelations = relations(
     }),
   }),
 );
-
-export const performanceLogRelations = relations(performanceLog, ({ one, many }) => ({
-  user: one(user, {
-    fields: [performanceLog.userId],
-    references: [user.id],
-  }),
-  performances: many(performance),
-}));
-
-export const performanceRelations = relations(performance, ({ one }) => ({
-  performanceLog: one(performanceLog, {
-    fields: [performance.performanceLogId],
-    references: [performanceLog.id],
-  }),
-}));
 

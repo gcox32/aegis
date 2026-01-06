@@ -26,8 +26,6 @@ import {
   workoutInstance,
   workoutBlockInstance,
   workoutBlockExerciseInstance,
-  performanceLog,
-  performance,
 } from '../schema';
 import type {
   Protocol,
@@ -41,7 +39,6 @@ import type {
   WorkoutInstance,
   WorkoutBlockInstance,
   WorkoutBlockExerciseInstance,
-  Performance,
 } from '@/types/train';
 
 // ============================================================================
@@ -1803,76 +1800,4 @@ export async function deleteWorkoutBlockExerciseInstance(
     );
 
   return true;
-}
-
-// ============================================================================
-// PERFORMANCE LOG CRUD
-// ============================================================================
-
-export async function getOrCreatePerformanceLog(userId: string): Promise<string> {
-  const [existing] = await db
-    .select()
-    .from(performanceLog)
-    .where(eq(performanceLog.userId, userId))
-    .limit(1);
-
-  if (existing) {
-    return existing.id;
-  }
-
-  try {
-    const [newLog] = await db.insert(performanceLog).values({ userId }).returning();
-    return newLog.id;
-  } catch (e: any) {
-    if (e.code === '23505') {
-      const [retry] = await db
-        .select()
-        .from(performanceLog)
-        .where(eq(performanceLog.userId, userId))
-        .limit(1);
-      
-      if (retry) return retry.id;
-    }
-    throw e;
-  }
-}
-
-export async function createPerformance(
-  userId: string,
-  performanceData: Omit<Performance, 'id' | 'performanceLogId'>
-): Promise<Performance> {
-  const performanceLogId = await getOrCreatePerformanceLog(userId);
-
-  const [newPerformance] = await db
-    .insert(performance)
-    .values({
-      performanceLogId,
-      date: performanceData.date,
-      duration: performanceData.duration,
-      volume: performanceData.volume,
-      work: performanceData.work,
-      power: performanceData.power,
-      notes: performanceData.notes ?? null,
-    } as any)
-    .returning();
-
-  return {
-    ...newPerformance,
-    date: new Date(newPerformance.date),
-  } as Performance;
-}
-
-export async function getUserPerformances(userId: string): Promise<Performance[]> {
-  const performanceLogId = await getOrCreatePerformanceLog(userId);
-
-  const results = await db
-    .select()
-    .from(performance)
-    .where(eq(performance.performanceLogId, performanceLogId))
-    .orderBy(desc(performance.date));
-  
-  return results.map((r) => ({
-    ...r,
-    date: new Date(r.date),
-  })) as Performance[];
 }

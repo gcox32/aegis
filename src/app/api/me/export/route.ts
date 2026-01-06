@@ -1,14 +1,14 @@
 import { createClient } from '@/lib/supabase/server';
 import { db } from '@/lib/db';
 import { eq } from 'drizzle-orm';
-import { 
-  userProfile, userPreferences, userSettings, userGoal, userStatsLog, userImageLog,
+import {
+  userProfile, userPreferences, userSettings, userGoal, userStats, userImage,
 } from '@/lib/db/schema/user';
-import { 
+import {
   workout, workoutInstance, protocolInstance,
 } from '@/lib/db/schema/train';
-import { 
-  mealPlan, mealInstance, groceryList, waterIntakeLog, sleepLog,
+import {
+  mealPlan, mealInstance, groceryList, waterIntake, sleepInstance,
   supplementSchedule,
 } from '@/lib/db/schema/fuel';
 import { NextResponse } from 'next/server';
@@ -64,22 +64,14 @@ export async function GET() {
       }),
 
       // 3. Body Stats
-      db.query.userStatsLog.findFirst({
-        where: eq(userStatsLog.userId, userId),
-        with: {
-          stats: {
-            with: { tapeMeasurement: true },
-            orderBy: (stats, { desc }) => [desc(stats.date)]
-          }
-        }
+      db.query.userStats.findMany({
+        where: eq(userStats.userId, userId),
+        with: { tapeMeasurement: true },
+        orderBy: (stats, { desc }) => [desc(stats.date)]
       }),
-      db.query.userImageLog.findFirst({
-        where: eq(userImageLog.userId, userId),
-        with: {
-          images: {
-            orderBy: (img, { desc }) => [desc(img.date)]
-          }
-        }
+      db.query.userImage.findMany({
+        where: eq(userImage.userId, userId),
+        orderBy: (img, { desc }) => [desc(img.date)]
       }),
 
       // 4. Training - Created Content
@@ -147,21 +139,13 @@ export async function GET() {
       }),
 
       // 10. Water & Sleep
-      db.query.waterIntakeLog.findFirst({
-        where: eq(waterIntakeLog.userId, userId),
-        with: {
-          waterIntakes: {
-            orderBy: (wi, { desc }) => [desc(wi.date)]
-          }
-        }
+      db.query.waterIntake.findMany({
+        where: eq(waterIntake.userId, userId),
+        orderBy: (wi, { desc }) => [desc(wi.date)]
       }),
-      db.query.sleepLog.findFirst({
-        where: eq(sleepLog.userId, userId),
-        with: {
-          sleepInstances: {
-            orderBy: (si, { desc }) => [desc(si.date)]
-          }
-        }
+      db.query.sleepInstance.findMany({
+        where: eq(sleepInstance.userId, userId),
+        orderBy: (si, { desc }) => [desc(si.date)]
       }),
     ]);
 
@@ -175,8 +159,8 @@ export async function GET() {
       preferences,
       settings,
       goals,
-      bodyStats: stats?.stats || [],
-      bodyImages: images?.images || [],
+      bodyStats: stats || [],
+      bodyImages: images || [],
       training: {
         workouts,
         history: workoutHistory,
@@ -187,8 +171,8 @@ export async function GET() {
         history: nutritionHistory,
         groceryLists,
         supplements,
-        water: waterLog?.waterIntakes || [],
-        sleep: sleepHistory?.sleepInstances || [],
+        water: waterLog || [],
+        sleep: sleepHistory || [],
       }
     };
 

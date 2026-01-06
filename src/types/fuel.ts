@@ -170,13 +170,6 @@ export interface GroceryList {
 
 // here onward is set
 
-// future proofing for tracking water
-export interface WaterIntakeLog {
-    id: string;
-    userId: User['id'];
-    waterIntake: WaterIntake[];
-}
-
 export interface WaterIntake {
     id:         string;
     userId:     User['id'];
@@ -215,15 +208,8 @@ export interface Supplement {
 }
 
 // sleep
-export interface SleepLog {
-    id:     string;
-    userId: User['id'];
-    sleep:  SleepInstance[]; // hydrated in UI
-}
-
 export interface SleepInstance {
     id:          string;
-    sleepLogId:  SleepLog['id'];
     userId:      User['id'];
     date:        Date;
     timeAsleep?: TimeMeasurement; // in hours

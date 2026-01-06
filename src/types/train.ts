@@ -223,24 +223,6 @@ export interface WorkoutBlockExerciseInstance {
     notes?:                 string;
 }
 
-// training logs
-export interface PerformanceLog {
-    id:           string;
-    userId:       User['id'];
-    performances: Performance[];
-}
-
-export interface Performance {
-    id:               string;
-    performanceLogId: PerformanceLog['id'];
-    date:             Date;
-    duration:         TimeMeasurement; // workout duration
-    volume:           WeightMeasurement; // workout volume
-    work:             WorkMeasurement; // using work calculation formula
-    power:            PowerMeasurement; // using power calculation formula
-    notes?:           string;
-}
-
 // Session execution
 export interface SessionStep {
     uniqueId: string;

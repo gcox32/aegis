@@ -1,15 +1,15 @@
-import { 
-    LiquidMeasurement, 
-    HeightMeasurement, 
-    WeightMeasurement, 
-    PercentageMeasurement, 
-    DistanceMeasurement, 
-    LongTimeMeasurement, 
-    TimeMeasurement, 
+import {
+    LiquidMeasurement,
+    HeightMeasurement,
+    WeightMeasurement,
+    PercentageMeasurement,
+    DistanceMeasurement,
+    LongTimeMeasurement,
+    TimeMeasurement,
     RepetitionsMeasurement
-} from "./measures"; 
-import { Exercise, ExerciseMeasureType, PerformanceLog } from "./train";
-import { SleepLog, SupplementSchedule, WaterIntakeLog } from "./fuel";
+} from "./measures";
+import { Exercise, ExerciseMeasureType } from "./train";
+import { SupplementSchedule } from "./fuel";
 // Ratio targets are stored as a simple mapping of ratio label to target value
 // The ratio definitions (labels, calculation logic) are fixed per gender in ratiosConfig
 export type TargetRatios = Record<string, number>;
@@ -53,11 +53,7 @@ export interface UserProfile {
     // logs
     goals?:                    UserGoal[]; // hydrated on frontend
     statsLog?:                 UserStatsLog; // hydrated on frontend
-    imageLog?:                 UserImageLog; // hydrated on frontend
-    performanceLog?:           PerformanceLog; // hydrated on frontend
-    waterIntakeLog?:           WaterIntakeLog; // hydrated on frontend
     supplementSchedule?:       SupplementSchedule; // hydrated on frontend
-    sleepLog?:                 SleepLog; // hydrated on frontend
     createdAt:                 Date;
     updatedAt:                 Date;
 }
@@ -109,7 +105,7 @@ export interface UserStatsLog {
 
 export interface UserStats {
     id:                 string;
-    statsLogId:         UserStatsLog['id'];
+    userId:             User['id'];
     height?:            HeightMeasurement;
     weight?:            WeightMeasurement;
     armLength?:         HeightMeasurement;
@@ -140,18 +136,12 @@ export interface TapeMeasurement {
 }
 
 // image logs
-export interface UserImageLog {
-    id:     string;
-    userId: User['id'];
-    images: UserImage[];
-}
-
 export interface UserImage {
-    id:         string;
-    imageLogId: UserImageLog['id'];
-    date:       Date;
-    imageUrl:   string;
-    notes?:     string;
+    id:       string;
+    userId:   User['id'];
+    date:     Date;
+    imageUrl: string;
+    notes?:   string;
 }
 
 

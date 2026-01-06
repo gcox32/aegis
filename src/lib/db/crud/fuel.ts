@@ -15,9 +15,7 @@ import {
   supplement,
   supplementSchedule,
   supplementInstance,
-  waterIntakeLog,
   waterIntake,
-  sleepLog,
   sleepInstance,
 } from '../schema';
 import type {
@@ -1131,44 +1129,13 @@ export async function deleteSupplementInstance(
 // WATER INTAKE CRUD
 // ============================================================================
 
-export async function getOrCreateWaterIntakeLog(userId: string): Promise<string> {
-  const [existing] = await db
-    .select()
-    .from(waterIntakeLog)
-    .where(eq(waterIntakeLog.userId, userId))
-    .limit(1);
-
-  if (existing) {
-    return existing.id;
-  }
-
-  try {
-    const [newLog] = await db.insert(waterIntakeLog).values({ userId }).returning();
-    return newLog.id;
-  } catch (e: any) {
-    if (e.code === '23505') {
-      const [retry] = await db
-        .select()
-        .from(waterIntakeLog)
-        .where(eq(waterIntakeLog.userId, userId))
-        .limit(1);
-      
-      if (retry) return retry.id;
-    }
-    throw e;
-  }
-}
-
 export async function createWaterIntake(
   userId: string,
   intakeData: Omit<WaterIntake, 'id' | 'userId'>
 ): Promise<WaterIntake> {
-  const waterIntakeLogId = await getOrCreateWaterIntakeLog(userId);
-
   const [newIntake] = await db
     .insert(waterIntake)
     .values({
-      waterIntakeLogId,
       userId,
       date: intakeData.date,
       timestamp: intakeData.timestamp ?? null,
@@ -1184,12 +1151,10 @@ export async function getUserWaterIntakes(
   userId: string,
   options?: { dateFrom?: Date; dateTo?: Date }
 ): Promise<WaterIntake[]> {
-  const waterIntakeLogId = await getOrCreateWaterIntakeLog(userId);
-
   const results = await db
     .select()
     .from(waterIntake)
-    .where(eq(waterIntake.waterIntakeLogId, waterIntakeLogId))
+    .where(eq(waterIntake.userId, userId))
     .orderBy(desc(waterIntake.date));
 
   const converted = results.map((r) => ({
@@ -1264,44 +1229,13 @@ export async function deleteWaterIntake(
 // SLEEP CRUD
 // ============================================================================
 
-export async function getOrCreateSleepLog(userId: string): Promise<string> {
-  const [existing] = await db
-    .select()
-    .from(sleepLog)
-    .where(eq(sleepLog.userId, userId))
-    .limit(1);
-
-  if (existing) {
-    return existing.id;
-  }
-
-  try {
-    const [newLog] = await db.insert(sleepLog).values({ userId }).returning();
-    return newLog.id;
-  } catch (e: any) {
-    if (e.code === '23505') {
-      const [retry] = await db
-        .select()
-        .from(sleepLog)
-        .where(eq(sleepLog.userId, userId))
-        .limit(1);
-      
-      if (retry) return retry.id;
-    }
-    throw e;
-  }
-}
-
 export async function createSleepInstance(
   userId: string,
   sleepData: Omit<SleepInstance, 'id' | 'userId'>
 ): Promise<SleepInstance> {
-  const sleepLogId = await getOrCreateSleepLog(userId);
-
   const [newSleep] = await db
     .insert(sleepInstance)
     .values({
-      sleepLogId,
       userId,
       date: sleepData.date,
       timeAsleep: sleepData.timeAsleep ?? null,
@@ -1314,8 +1248,8 @@ export async function createSleepInstance(
     } as any)
     .returning();
 
-  return { 
-    ...newSleep, 
+  return {
+    ...newSleep,
     date: new Date(newSleep.date),
     sleepScore: newSleep.sleepScore ? Number(newSleep.sleepScore) : undefined,
   } as unknown as SleepInstance;
@@ -1325,12 +1259,10 @@ export async function getUserSleepInstances(
   userId: string,
   options?: { dateFrom?: Date; dateTo?: Date }
 ): Promise<SleepInstance[]> {
-  const sleepLogId = await getOrCreateSleepLog(userId);
-
   const results = await db
     .select()
     .from(sleepInstance)
-    .where(eq(sleepInstance.sleepLogId, sleepLogId))
+    .where(eq(sleepInstance.userId, userId))
     .orderBy(desc(sleepInstance.date));
 
   const converted = results.map((r) => ({
