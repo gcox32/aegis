@@ -72,13 +72,22 @@ export default function RecentPRsCard({ prs, keyExercises }: RecentPRsCardProps)
       <div className="mb-2 font-medium text-muted-foreground text-xs uppercase tracking-wide">
         Key Lifts
       </div>
-      <div className="space-y-2">
+      <div className="space-y-3">
         {prs.map((pr, i) => (
-          <div key={i} className="flex justify-between items-center">
-            <span className="flex-1 mr-2 font-medium text-foreground text-sm truncate">
+          <div key={i} className="relative pl-4">
+            <div className="mb-1 font-medium text-foreground text-sm">
               {pr.exerciseName}
-            </span>
-            <div className="flex items-center gap-2 text-sm">
+            </div>
+            {/* Tree connector */}
+            <div className="top-5 left-0 absolute w-4 h-full">
+              {/* Vertical line from exercise name down */}
+              <div className="top-0 bottom-4 left-1.5 absolute bg-white/10 w-px" />
+              {/* Horizontal line pointing right */}
+              <div className="bottom-4 left-1.5 absolute bg-white/10 w-3 h-px" />
+              {/* Arrow head pointing right */}
+              <div className="bottom-[calc(1rem-3px)] left-[14px] absolute border-transparent border-t-[3px] border-b-[3px] border-l-4 border-l-white/20 w-0 h-0" />
+            </div>
+            <div className="flex justify-end items-center gap-2 text-sm">
               <span className="font-semibold text-success">
                 {pr.weight?.value || 0} {pr.weight?.unit || 'lbs'} for {pr.reps}
               </span>

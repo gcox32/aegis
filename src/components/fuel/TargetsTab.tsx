@@ -182,7 +182,7 @@ export default function TargetsTab() {
 
       {/* Macro Breakdown Cards */}
       <div className="gap-3 grid grid-cols-3">
-        <div className="bg-card p-4 !border-blue-500/20 text-center">
+        <div className="bg-card p-4 border-blue-500/20! text-center">
           <div className="inline-flex justify-center items-center bg-blue-500/15 mb-2 rounded-full w-10 h-10">
             <div className="rounded-full w-4 h-4" style={{ backgroundColor: COLORS.protein }} />
           </div>
@@ -191,7 +191,7 @@ export default function TargetsTab() {
           <p className="mt-0.5 text-blue-400 text-xs">{((proteinCalories / calorieTarget) * 100).toFixed(0)}%</p>
         </div>
 
-        <div className="bg-card p-4 !border-emerald-500/20 text-center">
+        <div className="bg-card p-4 border-emerald-500/20! text-center">
           <div className="inline-flex justify-center items-center bg-emerald-500/15 mb-2 rounded-full w-10 h-10">
             <div className="rounded-full w-4 h-4" style={{ backgroundColor: COLORS.carbs }} />
           </div>
@@ -200,7 +200,7 @@ export default function TargetsTab() {
           <p className="mt-0.5 text-emerald-400 text-xs">{((carbsCalories / calorieTarget) * 100).toFixed(0)}%</p>
         </div>
 
-        <div className="bg-card p-4 !border-amber-500/20 text-center">
+        <div className="bg-card p-4 border-amber-500/20! text-center">
           <div className="inline-flex justify-center items-center bg-amber-500/15 mb-2 rounded-full w-10 h-10">
             <div className="rounded-full w-4 h-4" style={{ backgroundColor: COLORS.fat }} />
           </div>

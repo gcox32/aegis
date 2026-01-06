@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { Activity, TrendingUp, TrendingDown, ChevronDown, ChevronUp } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Activity, ChevronDown, ChevronUp } from 'lucide-react';
 import type { MuscleGroupWork } from '@/app/train/actions';
 
 interface MuscleGroupsCardProps {
@@ -18,6 +18,22 @@ function formatMuscleGroupName(name: string): string {
 
 export default function MuscleGroupsCard({ muscleGroups }: MuscleGroupsCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [height, setHeight] = useState<number | 'auto'>('auto');
+
+  useEffect(() => {
+    // Reset to auto first to allow content to render at natural height
+    setHeight('auto');
+    
+    // Then measure and set explicit height for smooth transition
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (contentRef.current) {
+          setHeight(contentRef.current.scrollHeight);
+        }
+      });
+    });
+  }, [isExpanded, muscleGroups]);
 
   if (muscleGroups.length === 0) {
     return (
@@ -77,80 +93,71 @@ export default function MuscleGroupsCard({ muscleGroups }: MuscleGroupsCardProps
         Muscle Focus (30 days)
       </div>
 
-      {isExpanded ? (
-        /* All Groups - Expanded View */
-        <div className="space-y-2">
-          {muscleGroups.map((mg) => {
-            const percentage = (mg.score / maxScore) * 100;
-            const isTopGroup = topGroups.some(tg => tg.name === mg.name);
-            const isBottomGroup = bottomGroups.some(bg => bg.name === mg.name);
-            const barColor = isTopGroup 
-              ? 'bg-success' 
-              : isBottomGroup 
-                ? 'bg-warning/60' 
-                : 'bg-muted-foreground/40';
-            
-            return (
-              <div key={mg.name}>
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-foreground text-sm">
-                    {formatMuscleGroupName(mg.name)}
-                  </span>
-                  <span className="text-muted-foreground text-xs">
-                    {mg.setCount} sets
-                  </span>
-                </div>
-                <div className="bg-white/5 rounded-full h-1.5 overflow-hidden">
-                  <div
-                    className={`${barColor} h-full rounded-full transition-all duration-500`}
-                    style={{ width: `${percentage}%` }}
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <>
-          {/* Most Worked */}
-          <div className="mb-4">
-            <div className="flex items-center gap-1.5 mb-2">
-              <TrendingUp className="w-3 h-3 text-success" />
-              <span className="font-medium text-success text-xs">Most Worked</span>
-            </div>
-            <div className="space-y-2">
-              {topGroups.map((mg) => {
-                const percentage = (mg.score / maxScore) * 100;
-                return (
-                  <div key={mg.name}>
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-foreground text-sm">
-                        {formatMuscleGroupName(mg.name)}
-                      </span>
-                      <span className="text-muted-foreground text-xs">
-                        {mg.setCount} sets
-                      </span>
-                    </div>
-                    <div className="bg-white/5 rounded-full h-1.5 overflow-hidden">
-                      <div
-                        className="bg-success rounded-full h-full transition-all duration-500"
-                        style={{ width: `${percentage}%` }}
-                      />
-                    </div>
+      <div 
+        className="overflow-hidden transition-all duration-300 ease-in-out"
+        style={{ height: typeof height === 'number' ? `${height}px` : height }}
+      >
+        <div ref={contentRef}>
+          {isExpanded ? (
+          /* All Groups - Expanded View */
+          <div className="space-y-2">
+            {muscleGroups.map((mg) => {
+              const percentage = (mg.score / maxScore) * 100;
+              const isTopGroup = topGroups.some(tg => tg.name === mg.name);
+              const isBottomGroup = bottomGroups.some(bg => bg.name === mg.name);
+              const barColor = isTopGroup 
+                ? 'bg-success' 
+                : isBottomGroup 
+                  ? 'bg-warning/60' 
+                  : 'bg-muted-foreground/40';
+              
+              return (
+                <div key={mg.name}>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-foreground text-sm">
+                      {formatMuscleGroupName(mg.name)}
+                    </span>
+                    <span className="text-muted-foreground text-xs">
+                      {mg.setCount} sets
+                    </span>
                   </div>
-                );
-              })}
-            </div>
+                  <div className="bg-white/5 rounded-full h-1.5 overflow-hidden">
+                    <div
+                      className={`${barColor} h-full rounded-full transition-all duration-500`}
+                      style={{ width: `${percentage}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
           </div>
-
-          {/* Least Worked */}
-          {bottomGroups.length > 0 && (
-            <div>
-              <div className="flex items-center gap-1.5 mb-2">
-                <TrendingDown className="w-3 h-3 text-warning" />
-                <span className="font-medium text-warning text-xs">Least Worked</span>
-              </div>
-              <div className="space-y-2">
+        ) : (
+          <div className="space-y-2">
+            {topGroups.map((mg) => {
+              const percentage = (mg.score / maxScore) * 100;
+              return (
+                <div key={mg.name}>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-foreground text-sm">
+                      {formatMuscleGroupName(mg.name)}
+                    </span>
+                    <span className="text-muted-foreground text-xs">
+                      {mg.setCount} sets
+                    </span>
+                  </div>
+                  <div className="bg-white/5 rounded-full h-1.5 overflow-hidden">
+                    <div
+                      className="bg-success rounded-full h-full transition-all duration-500"
+                      style={{ width: `${percentage}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+            
+            {bottomGroups.length > 0 && (
+              <>
+                <div className="my-3 border-white/5 border-t" />
                 {bottomGroups.map((mg) => {
                   const percentage = (mg.score / maxScore) * 100;
                   return (
@@ -172,11 +179,12 @@ export default function MuscleGroupsCard({ muscleGroups }: MuscleGroupsCardProps
                     </div>
                   );
                 })}
-              </div>
-            </div>
-          )}
-        </>
-      )}
+              </>
+            )}
+          </div>
+        )}
+        </div>
+      </div>
     </div>
   );
 }

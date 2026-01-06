@@ -123,6 +123,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
   /* Subtle letter spacing for body text */
   letter-spacing: -0.01em;
+  transition: background-color 0.3s ease;
 }
 
 /* Display headings use Outfit font */
