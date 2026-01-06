@@ -56,10 +56,12 @@ export default function MuscleGroupsCard({ muscleGroups }: MuscleGroupsCardProps
     );
   }
 
+  const withheldGroups = ['other', 'jaw', 'rotator cuff', 'spinal erectors'];
+  muscleGroups = muscleGroups.filter(mg => !withheldGroups.includes(mg.name));
   const maxScore = muscleGroups[0]?.score || 1;
   const topGroups = muscleGroups.slice(0, 3);
   const bottomGroups = muscleGroups.length > 3
-    ? muscleGroups.slice(-3).reverse()
+    ? muscleGroups.slice(-3)
     : [];
 
   const displayGroups = isExpanded ? muscleGroups : [...topGroups, ...bottomGroups];

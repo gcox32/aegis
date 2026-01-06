@@ -81,11 +81,11 @@ export default function RecentPRsCard({ prs, keyExercises }: RecentPRsCardProps)
             {/* Tree connector */}
             <div className="top-5 left-0 absolute w-4 h-full">
               {/* Vertical line from exercise name down */}
-              <div className="top-0 bottom-4 left-1.5 absolute bg-white/10 w-px" />
+              <div className="top-1 bottom-7 left-28 absolute bg-white/10 w-px" />
               {/* Horizontal line pointing right */}
-              <div className="bottom-4 left-1.5 absolute bg-white/10 w-3 h-px" />
+              <div className="bottom-7 left-28 absolute bg-white/10 w-3 h-px" />
               {/* Arrow head pointing right */}
-              <div className="bottom-[calc(1rem-3px)] left-[14px] absolute border-transparent border-t-[3px] border-b-[3px] border-l-4 border-l-white/20 w-0 h-0" />
+              <div className="bottom-[1.6rem] left-[124px] absolute border-transparent border-t-[3px] border-b-[3px] border-l-4 border-l-white/20 w-0 h-0" />
             </div>
             <div className="flex justify-end items-center gap-2 text-sm">
               <span className="font-semibold text-success">
