@@ -214,6 +214,7 @@ export interface WorkoutBlockExerciseInstance {
     workoutBlockInstanceId: WorkoutBlockInstance['id'];
     workoutBlockExerciseId: WorkoutBlockExercise['id'];
     workoutBlockExercise?:  WorkoutBlockExercise; // hydrated on frontend
+    workoutBlockInstance?:  WorkoutBlockInstance; // hydrated on frontend
     created_at:             Date;
     complete:               boolean;
     personalBest?:          boolean;

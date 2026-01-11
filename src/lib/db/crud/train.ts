@@ -1810,6 +1810,8 @@ export async function getWorkoutBlockExerciseInstancesByExerciseIds(
       instance: workoutBlockExerciseInstance,
       wbe: workoutBlockExercise,
       ex: exercise,
+      wbi: workoutBlockInstance,
+      wb: workoutBlock,
     })
     .from(workoutBlockExerciseInstance)
     .innerJoin(
@@ -1819,6 +1821,14 @@ export async function getWorkoutBlockExerciseInstancesByExerciseIds(
     .innerJoin(
       exercise,
       eq(workoutBlockExercise.exerciseId, exercise.id)
+    )
+    .innerJoin(
+      workoutBlockInstance,
+      eq(workoutBlockExerciseInstance.workoutBlockInstanceId, workoutBlockInstance.id)
+    )
+    .innerJoin(
+      workoutBlock,
+      eq(workoutBlockInstance.workoutBlockId, workoutBlock.id)
     )
     .where(
       and(
@@ -1834,6 +1844,11 @@ export async function getWorkoutBlockExerciseInstancesByExerciseIds(
     workoutBlockExercise: {
         ...nullToUndefined(r.wbe),
         exercise: nullToUndefined(r.ex),
+    },
+    workoutBlockInstance: {
+      ...nullToUndefined(r.wbi),
+      date: new Date(r.wbi.date),
+      workoutBlock: nullToUndefined(r.wb),
     },
   })) as WorkoutBlockExerciseInstance[];
 }

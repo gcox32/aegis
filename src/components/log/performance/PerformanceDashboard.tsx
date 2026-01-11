@@ -199,8 +199,14 @@ export default function PerformanceDashboard({ workoutStats, keyExerciseStats }:
           ) : (
             <div className="gap-6 grid md:grid-cols-1 lg:grid-cols-2">
               {keyExerciseStats.map(({ exercise, instances }) => {
+                // Filter out instances from 'prep' or 'warm-up' workout blocks
+                const filteredInstances = instances.filter(inst => {
+                  const blockType = inst.workoutBlockInstance?.workoutBlock?.workoutBlockType;
+                  return blockType !== 'prep' && blockType !== 'warm-up';
+                });
+
                 // Group by date and find max projected1RM per date
-                const maxByDate = instances.reduce((acc, curr) => {
+                const maxByDate = filteredInstances.reduce((acc, curr) => {
                   if (!curr.projected1RM?.value) return acc;
                   
                   const dateKey = format(new Date(curr.created_at), 'yyyy-MM-dd');

@@ -17,59 +17,60 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
 
 interface DailyTotals {
     date: Date;
-    calories: number;
-    protein: number;
-    carbs: number;
-    fat: number;
+    calories: number | null;
+    protein: number | null;
+    carbs: number | null;
+    fat: number | null;
 }
 
 interface Averages {
-    calories: number;
-    protein: number;
-    carbs: number;
-    fat: number;
+    calories: number | null;
+    protein: number | null;
+    carbs: number | null;
+    fat: number | null;
 }
 
-function getPercentageDifference(actual: number, target: number): string | null {
-    if (!target || target === 0) return null;
+function getPercentageDifference(actual: number | null, target: number): string | null {
+    if (!target || target === 0 || actual === null) return null;
 
     const diff = ((actual - target) / target) * 100;
     const sign = diff >= 0 ? '+' : '';
     return `${sign}${diff.toFixed(1)}%`;
 }
 
+function formatValue(value: number | null, suffix: string = ''): string {
+    if (value === null) return '—';
+    return `${value.toLocaleString()}${suffix}`;
+}
+
 function convertSummariesToDailyTotals(summaries: FuelDaySummary[]): DailyTotals[] {
     return summaries
         .map(summary => ({
             date: normalizeToLocalMidnight(summary.date),
-            calories: summary.calories || 0,
-            protein: summary.macros?.protein || 0,
-            carbs: summary.macros?.carbs || 0,
-            fat: summary.macros?.fat || 0,
+            calories: summary.calories ?? null,
+            protein: summary.macros?.protein ?? null,
+            carbs: summary.macros?.carbs ?? null,
+            fat: summary.macros?.fat ?? null,
         }))
         .sort((a, b) => a.date.getTime() - b.date.getTime());
 }
 
 function calculateAverage(dailyTotals: DailyTotals[]): Averages {
     if (dailyTotals.length === 0) {
-        return { calories: 0, protein: 0, carbs: 0, fat: 0 };
+        return { calories: null, protein: null, carbs: null, fat: null };
     }
 
-    const sum = dailyTotals.reduce(
-        (acc, daily) => ({
-            calories: acc.calories + daily.calories,
-            protein: acc.protein + daily.protein,
-            carbs: acc.carbs + daily.carbs,
-            fat: acc.fat + daily.fat,
-        }),
-        { calories: 0, protein: 0, carbs: 0, fat: 0 }
-    );
+    // Filter out null values for each metric and calculate averages
+    const caloriesValues = dailyTotals.map(d => d.calories).filter((v): v is number => v !== null);
+    const proteinValues = dailyTotals.map(d => d.protein).filter((v): v is number => v !== null);
+    const carbsValues = dailyTotals.map(d => d.carbs).filter((v): v is number => v !== null);
+    const fatValues = dailyTotals.map(d => d.fat).filter((v): v is number => v !== null);
 
     return {
-        calories: Math.round(sum.calories / dailyTotals.length),
-        protein: Math.round(sum.protein / dailyTotals.length),
-        carbs: Math.round(sum.carbs / dailyTotals.length),
-        fat: Math.round(sum.fat / dailyTotals.length),
+        calories: caloriesValues.length > 0 ? Math.round(caloriesValues.reduce((a, b) => a + b, 0) / caloriesValues.length) : null,
+        protein: proteinValues.length > 0 ? Math.round(proteinValues.reduce((a, b) => a + b, 0) / proteinValues.length) : null,
+        carbs: carbsValues.length > 0 ? Math.round(carbsValues.reduce((a, b) => a + b, 0) / carbsValues.length) : null,
+        fat: fatValues.length > 0 ? Math.round(fatValues.reduce((a, b) => a + b, 0) / fatValues.length) : null,
     };
 }
 
@@ -181,9 +182,9 @@ function AdherenceTab() {
                             <div className="flex-1">
                                 <div className="flex items-baseline gap-2">
                                     <p className="font-bold text-foreground text-2xl">
-                                        {sevenDayAverage.calories.toLocaleString()}
+                                        {formatValue(sevenDayAverage.calories)}
                                     </p>
-                                    {calorieTarget && (
+                                    {calorieTarget && sevenDayAverage.calories !== null && (
                                         <span className="text-muted-foreground text-xs">
                                             {getPercentageDifference(sevenDayAverage.calories, calorieTarget)}
                                         </span>
@@ -195,9 +196,9 @@ function AdherenceTab() {
                             <div className="flex-1">
                                 <div className="flex items-baseline gap-2">
                                     <p className="font-bold text-foreground text-2xl">
-                                        {thirtyDayAverage.calories.toLocaleString()}
+                                        {formatValue(thirtyDayAverage.calories)}
                                     </p>
-                                    {calorieTarget && (
+                                    {calorieTarget && thirtyDayAverage.calories !== null && (
                                         <span className="text-muted-foreground text-xs">
                                             {getPercentageDifference(thirtyDayAverage.calories, calorieTarget)}
                                         </span>
@@ -221,9 +222,9 @@ function AdherenceTab() {
                             <div className="flex-1">
                                 <div className="flex items-baseline gap-2">
                                     <p className="font-bold text-foreground text-2xl">
-                                        {sevenDayAverage.protein}g
+                                        {formatValue(sevenDayAverage.protein, 'g')}
                                     </p>
-                                    {targets?.protein && (
+                                    {targets?.protein && sevenDayAverage.protein !== null && (
                                         <span className="text-muted-foreground text-xs">
                                             {getPercentageDifference(sevenDayAverage.protein, targets.protein)}
                                         </span>
@@ -235,9 +236,9 @@ function AdherenceTab() {
                             <div className="flex-1">
                                 <div className="flex items-baseline gap-2">
                                     <p className="font-bold text-foreground text-2xl">
-                                        {thirtyDayAverage.protein}g
+                                        {formatValue(thirtyDayAverage.protein, 'g')}
                                     </p>
-                                    {targets?.protein && (
+                                    {targets?.protein && thirtyDayAverage.protein !== null && (
                                         <span className="text-muted-foreground text-xs">
                                             {getPercentageDifference(thirtyDayAverage.protein, targets.protein)}
                                         </span>
@@ -261,9 +262,9 @@ function AdherenceTab() {
                             <div className="flex-1">
                                 <div className="flex items-baseline gap-2">
                                     <p className="font-bold text-foreground text-2xl">
-                                        {sevenDayAverage.carbs}g
+                                        {formatValue(sevenDayAverage.carbs, 'g')}
                                     </p>
-                                    {targets?.carbs && (
+                                    {targets?.carbs && sevenDayAverage.carbs !== null && (
                                         <span className="text-muted-foreground text-xs">
                                             {getPercentageDifference(sevenDayAverage.carbs, targets.carbs)}
                                         </span>
@@ -275,9 +276,9 @@ function AdherenceTab() {
                             <div className="flex-1">
                                 <div className="flex items-baseline gap-2">
                                     <p className="font-bold text-foreground text-2xl">
-                                        {thirtyDayAverage.carbs}g
+                                        {formatValue(thirtyDayAverage.carbs, 'g')}
                                     </p>
-                                    {targets?.carbs && (
+                                    {targets?.carbs && thirtyDayAverage.carbs !== null && (
                                         <span className="text-muted-foreground text-xs">
                                             {getPercentageDifference(thirtyDayAverage.carbs, targets.carbs)}
                                         </span>
@@ -301,9 +302,9 @@ function AdherenceTab() {
                             <div className="flex-1">
                                 <div className="flex items-baseline gap-2">
                                     <p className="font-bold text-foreground text-2xl">
-                                        {sevenDayAverage.fat}g
+                                        {formatValue(sevenDayAverage.fat, 'g')}
                                     </p>
-                                    {targets?.fat && (
+                                    {targets?.fat && sevenDayAverage.fat !== null && (
                                         <span className="text-muted-foreground text-xs">
                                             {getPercentageDifference(sevenDayAverage.fat, targets.fat)}
                                         </span>
@@ -315,9 +316,9 @@ function AdherenceTab() {
                             <div className="flex-1">
                                 <div className="flex items-baseline gap-2">
                                     <p className="font-bold text-foreground text-2xl">
-                                        {thirtyDayAverage.fat}g
+                                        {formatValue(thirtyDayAverage.fat, 'g')}
                                     </p>
-                                    {targets?.fat && (
+                                    {targets?.fat && thirtyDayAverage.fat !== null && (
                                         <span className="text-muted-foreground text-xs">
                                             {getPercentageDifference(thirtyDayAverage.fat, targets.fat)}
                                         </span>
@@ -443,24 +444,24 @@ function TrackingTab() {
                 const dateKey = getLocalDateKey(summary.date);
                 const normalizedDate = normalizeToLocalMidnight(summary.date);
                 
-                // Get daily totals from summary
+                // Get daily totals from summary (preserve null values)
                 const dailyTotal = {
-                    calories: summary.calories || 0,
-                    protein: summary.macros?.protein || 0,
-                    carbs: summary.macros?.carbs || 0,
-                    fat: summary.macros?.fat || 0,
+                    calories: summary.calories ?? null,
+                    protein: summary.macros?.protein ?? null,
+                    carbs: summary.macros?.carbs ?? null,
+                    fat: summary.macros?.fat ?? null,
                 };
 
-                // Calculate calories from each macro
-                const proteinCalories = dailyTotal.protein * 4;
-                const carbsCalories = dailyTotal.carbs * 4;
-                const fatCalories = dailyTotal.fat * 9;
-                const totalCalories = dailyTotal.calories || (proteinCalories + carbsCalories + fatCalories);
+                // Calculate calories from each macro (only if macros are available)
+                const proteinCalories = dailyTotal.protein !== null ? dailyTotal.protein * 4 : 0;
+                const carbsCalories = dailyTotal.carbs !== null ? dailyTotal.carbs * 4 : 0;
+                const fatCalories = dailyTotal.fat !== null ? dailyTotal.fat * 9 : 0;
+                const totalCalories = dailyTotal.calories ?? (proteinCalories + carbsCalories + fatCalories || null);
                 
-                // Calculate percentages
-                const proteinPercent = totalCalories > 0 ? (proteinCalories / totalCalories) * 100 : 0;
-                const carbsPercent = totalCalories > 0 ? (carbsCalories / totalCalories) * 100 : 0;
-                const fatPercent = totalCalories > 0 ? (fatCalories / totalCalories) * 100 : 0;
+                // Calculate percentages (only if we have calories)
+                const proteinPercent = totalCalories !== null && totalCalories > 0 ? (proteinCalories / totalCalories) * 100 : 0;
+                const carbsPercent = totalCalories !== null && totalCalories > 0 ? (carbsCalories / totalCalories) * 100 : 0;
+                const fatPercent = totalCalories !== null && totalCalories > 0 ? (fatCalories / totalCalories) * 100 : 0;
 
                 return (
                     <div
@@ -473,18 +474,24 @@ function TrackingTab() {
                                     {dateKey}
                                 </h3>
                                 <span className="w-[40%] text-right">
-                                    {Math.round(dailyTotal.calories)} cal
+                                    {dailyTotal.calories !== null ? `${Math.round(dailyTotal.calories)} cal` : '—'}
                                 </span>
                             </div>
                             <div className="flex w-full text-right">
                                 <span className="pr-1 border-border border-r w-[33%] text-muted-foreground text-xs text-center">
-                                    {Math.round(dailyTotal.protein)}g P ({proteinPercent.toFixed(0)}%)
+                                    {dailyTotal.protein !== null 
+                                        ? `${Math.round(dailyTotal.protein)}g P (${proteinPercent.toFixed(0)}%)`
+                                        : '—'}
                                 </span>
                                 <span className="pr-1 border-border border-r w-[33%] text-muted-foreground text-xs text-center">
-                                    {Math.round(dailyTotal.carbs)}g C ({carbsPercent.toFixed(0)}%)
+                                    {dailyTotal.carbs !== null 
+                                        ? `${Math.round(dailyTotal.carbs)}g C (${carbsPercent.toFixed(0)}%)`
+                                        : '—'}
                                 </span>
                                 <span className="pl-1 w-[33%] text-muted-foreground text-xs text-center">
-                                    {Math.round(dailyTotal.fat)}g F ({fatPercent.toFixed(0)}%)
+                                    {dailyTotal.fat !== null 
+                                        ? `${Math.round(dailyTotal.fat)}g F (${fatPercent.toFixed(0)}%)`
+                                        : '—'}
                                 </span>
                             </div>
                         </div>

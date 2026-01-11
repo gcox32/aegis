@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { Loader2, Trash2 } from 'lucide-react';
+import { Loader2, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import type { UserStats } from '@/types/user';
 import { useToast } from '@/components/ui/Toast';
 
@@ -90,53 +90,197 @@ export default function HistoryTab() {
   return (
     <div className="space-y-3">
       {stats.map((entry) => (
-        <div
+        <StatsEntryCard
           key={entry.id}
-          className="flex justify-between items-start bg-card px-4 py-3 border border-border rounded-xl text-sm"
-        >
-          <div className="flex-1 space-y-1 px-2">
-            <div className="text-muted-foreground text-xs">
-              {new Date(entry.date).toLocaleDateString()}
-            </div>
-            <div className="space-y-0.5">
-              {entry.weight && (
-                <div className="font-medium">
-                  Weight: {entry.weight.value} {entry.weight.unit}
-                </div>
-              )}
-              {entry.bodyFatPercentage && (
-                <div className="text-muted-foreground text-xs">
-                  Body fat: {entry.bodyFatPercentage.value}%
-                </div>
-              )}
-              {entry.muscleMass && (
-                <div className="text-muted-foreground text-xs">
-                  Muscle mass: {entry.muscleMass.value} {entry.muscleMass.unit}
-                </div>
-              )}
-              {entry.tapeMeasurements && (
-                <div className="mt-1 text-muted-foreground text-xs">
-                  {Object.entries(entry.tapeMeasurements)
-                    .filter(([_, val]) => val && typeof val === 'object' && 'value' in val)
-                    .map(([key, val]: [string, any]) => (
-                      <span key={key} className="mr-3">
-                        {key.replace(/([A-Z])/g, ' $1').trim()}: {val.value} {val.unit}
-                      </span>
-                    ))}
-                </div>
-              )}
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => handleDelete(entry.id)}
-            className="flex hover:bg-zinc-800 my-auto ml-3 p-1.5 rounded-full h-full text-muted-foreground hover:text-red-400 text-xs"
-            aria-label="Delete entry"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
+          entry={entry}
+          onDelete={handleDelete}
+        />
       ))}
+    </div>
+  );
+}
+
+function StatsEntryCard({ entry, onDelete }: { entry: UserStats; onDelete: (id: string) => void }) {
+  const [showTapeMeasurements, setShowTapeMeasurements] = useState(false);
+
+  const hasTapeMeasurements = entry.tapeMeasurements && 
+    Object.entries(entry.tapeMeasurements).some(
+      ([_, val]) => val && typeof val === 'object' && 'value' in val
+    );
+
+  const tapeMeasurementCount = hasTapeMeasurements
+    ? Object.entries(entry.tapeMeasurements!).filter(
+        ([_, val]) => val && typeof val === 'object' && 'value' in val
+      ).length
+    : 0;
+
+  // Group tape measurements by category
+  const tapeGroups = hasTapeMeasurements ? {
+    core: [
+      { key: 'neck', label: 'Neck' },
+      { key: 'shoulders', label: 'Shoulders' },
+      { key: 'chest', label: 'Chest' },
+      { key: 'waist', label: 'Waist' },
+      { key: 'hips', label: 'Hips' },
+    ],
+    arms: [
+      { key: 'leftArm', label: 'Left Arm' },
+      { key: 'rightArm', label: 'Right Arm' },
+      { key: 'leftForearm', label: 'Left Forearm' },
+      { key: 'rightForearm', label: 'Right Forearm' },
+    ],
+    legs: [
+      { key: 'leftLeg', label: 'Left Leg' },
+      { key: 'rightLeg', label: 'Right Leg' },
+      { key: 'leftCalf', label: 'Left Calf' },
+      { key: 'rightCalf', label: 'Right Calf' },
+    ],
+  } : null;
+
+  return (
+    <div className="bg-card px-4 py-3 border border-border rounded-xl text-sm">
+      <div className="flex justify-between items-start gap-3">
+        <div className="flex-1 min-w-0 space-y-2">
+          {/* Date */}
+          <div className="text-muted-foreground text-xs font-medium">
+            {new Date(entry.date).toLocaleDateString(undefined, {
+              weekday: 'short',
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric'
+            })}
+          </div>
+
+          {/* Body Composition Section */}
+          {(entry.weight || entry.bodyFatPercentage || entry.muscleMass) && (
+            <div className="space-y-1">
+              <div className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                Body Composition
+              </div>
+              <div className="flex flex-wrap gap-x-4 gap-y-1">
+                {entry.weight && (
+                  <div className="text-foreground text-sm">
+                    <span className="text-muted-foreground text-xs">Weight: </span>
+                    <span className="font-medium">{entry.weight.value} {entry.weight.unit}</span>
+                  </div>
+                )}
+                {entry.bodyFatPercentage && (
+                  <div className="text-foreground text-sm">
+                    <span className="text-muted-foreground text-xs">Body Fat: </span>
+                    <span className="font-medium">{entry.bodyFatPercentage.value}%</span>
+                  </div>
+                )}
+                {entry.muscleMass && (
+                  <div className="text-foreground text-sm">
+                    <span className="text-muted-foreground text-xs">Muscle Mass: </span>
+                    <span className="font-medium">{entry.muscleMass.value} {entry.muscleMass.unit}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Tape Measurements Section */}
+          {hasTapeMeasurements && (
+            <div className="space-y-1">
+              <button
+                type="button"
+                onClick={() => setShowTapeMeasurements(!showTapeMeasurements)}
+                className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground text-xs font-medium uppercase tracking-wide transition-colors"
+              >
+                Tape Measurements
+                <span className="text-muted-foreground/60 text-xs normal-case">
+                  ({tapeMeasurementCount})
+                </span>
+                {showTapeMeasurements ? (
+                  <ChevronUp className="w-3.5 h-3.5" />
+                ) : (
+                  <ChevronDown className="w-3.5 h-3.5" />
+                )}
+              </button>
+
+              {showTapeMeasurements && tapeGroups && (
+                <div className="pt-1 space-y-3">
+                  {/* Core Measurements */}
+                  {tapeGroups.core.some(item => {
+                    const val = entry.tapeMeasurements![item.key as keyof typeof entry.tapeMeasurements];
+                    return val && typeof val === 'object' && 'value' in val;
+                  }) && (
+                    <div>
+                      <div className="mb-1.5 text-muted-foreground text-xs font-medium">Core</div>
+                      <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+                        {tapeGroups.core.map(item => {
+                          const val = entry.tapeMeasurements![item.key as keyof typeof entry.tapeMeasurements] as any;
+                          if (!val || typeof val !== 'object' || !('value' in val)) return null;
+                          return (
+                            <div key={item.key} className="text-foreground text-sm">
+                              <span className="text-muted-foreground text-xs">{item.label}: </span>
+                              <span className="font-medium">{val.value} {val.unit}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Arms */}
+                  {tapeGroups.arms.some(item => {
+                    const val = entry.tapeMeasurements![item.key as keyof typeof entry.tapeMeasurements];
+                    return val && typeof val === 'object' && 'value' in val;
+                  }) && (
+                    <div>
+                      <div className="mb-1.5 text-muted-foreground text-xs font-medium">Arms</div>
+                      <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+                        {tapeGroups.arms.map(item => {
+                          const val = entry.tapeMeasurements![item.key as keyof typeof entry.tapeMeasurements] as any;
+                          if (!val || typeof val !== 'object' || !('value' in val)) return null;
+                          return (
+                            <div key={item.key} className="text-foreground text-sm">
+                              <span className="text-muted-foreground text-xs">{item.label}: </span>
+                              <span className="font-medium">{val.value} {val.unit}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Legs */}
+                  {tapeGroups.legs.some(item => {
+                    const val = entry.tapeMeasurements![item.key as keyof typeof entry.tapeMeasurements];
+                    return val && typeof val === 'object' && 'value' in val;
+                  }) && (
+                    <div>
+                      <div className="mb-1.5 text-muted-foreground text-xs font-medium">Legs</div>
+                      <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+                        {tapeGroups.legs.map(item => {
+                          const val = entry.tapeMeasurements![item.key as keyof typeof entry.tapeMeasurements] as any;
+                          if (!val || typeof val !== 'object' || !('value' in val)) return null;
+                          return (
+                            <div key={item.key} className="text-foreground text-sm">
+                              <span className="text-muted-foreground text-xs">{item.label}: </span>
+                              <span className="font-medium">{val.value} {val.unit}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => onDelete(entry.id)}
+          className="flex hover:bg-zinc-800 shrink-0 p-1.5 rounded-full text-muted-foreground hover:text-red-400 text-xs transition-colors"
+          aria-label="Delete entry"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      </div>
     </div>
   );
 }
