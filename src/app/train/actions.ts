@@ -7,6 +7,7 @@ import {
   workoutBlockInstance,
   workoutBlockExerciseInstance,
   workoutBlockExercise,
+  workoutBlock,
   exercise,
   protocolInstance,
   protocol,
@@ -16,7 +17,7 @@ import {
   userProfile,
   userProfileKeyExercise,
 } from '@/lib/db/schema';
-import { eq, and, desc, gte, sql, inArray } from 'drizzle-orm';
+import { eq, and, desc, gte, sql, inArray, notInArray } from 'drizzle-orm';
 import { startOfWeek, subWeeks, subDays } from 'date-fns';
 import type {
   WorkoutInstance,
@@ -138,19 +139,44 @@ export async function getTrainPageData(): Promise<TrainPageData | { error: strin
       }),
 
       // 7. Recent exercise instances (last 30 days) for muscle group analysis
-      db.query.workoutBlockExerciseInstance.findMany({
-        where: and(
-          eq(workoutBlockExerciseInstance.userId, user.id),
-          gte(workoutBlockExerciseInstance.created_at, thirtyDaysAgo)
-        ),
-        with: {
+      (async () => {
+        const results = await db
+          .select({
+            instance: workoutBlockExerciseInstance,
+            wbe: workoutBlockExercise,
+            ex: exercise,
+            wb: workoutBlock,
+          })
+          .from(workoutBlockExerciseInstance)
+          .innerJoin(
+            workoutBlockExercise,
+            eq(workoutBlockExerciseInstance.workoutBlockExerciseId, workoutBlockExercise.id)
+          )
+          .innerJoin(
+            exercise,
+            eq(workoutBlockExercise.exerciseId, exercise.id)
+          )
+          .innerJoin(
+            workoutBlock,
+            eq(workoutBlockExercise.workoutBlockId, workoutBlock.id)
+          )
+          .where(
+            and(
+              eq(workoutBlockExerciseInstance.userId, user.id),
+              gte(workoutBlockExerciseInstance.created_at, thirtyDaysAgo),
+              notInArray(workoutBlock.workoutBlockType, ['warm-up', 'prep'])
+            )
+          );
+
+        return results.map((r) => ({
+          ...r.instance,
           workoutBlockExercise: {
-            with: {
-              exercise: true,
-            },
+            ...r.wbe,
+            exercise: r.ex,
+            workoutBlock: r.wb,
           },
-        },
-      }),
+        }));
+      })(),
     ]);
 
     // Get key exercises details from the join table
@@ -210,6 +236,8 @@ export async function getTrainPageData(): Promise<TrainPageData | { error: strin
 
     for (const inst of recentExerciseInstances) {
       const exerciseData = inst.workoutBlockExercise?.exercise;
+
+      
       if (!exerciseData) continue;
 
       const muscleGroups = exerciseData.muscleGroups as {
