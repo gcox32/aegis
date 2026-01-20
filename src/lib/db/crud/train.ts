@@ -300,6 +300,11 @@ export async function createFullWorkout(
 
       // 3. Create Block Exercises
       for (const exerciseData of blockData.exercises) {
+        // Validate exerciseId is not empty
+        if (!exerciseData.exerciseId || exerciseData.exerciseId.trim() === '') {
+          throw new Error(`Exercise ID is required for exercise at order ${exerciseData.order} in block "${blockData.name}"`);
+        }
+
         const [newExercise] = await tx
           .insert(workoutBlockExercise)
           .values({
@@ -477,6 +482,11 @@ export async function updateFullWorkout(
         const savedExercises: WorkoutBlockExercise[] = [];
 
         for (const exerciseData of blockData.exercises) {
+            // Validate exerciseId is not empty
+            if (!exerciseData.exerciseId || exerciseData.exerciseId.trim() === '') {
+              throw new Error(`Exercise ID is required for exercise at order ${exerciseData.order} in block "${blockData.name}"`);
+            }
+
             let savedExercise;
             if (exerciseData.id) {
                 // Update

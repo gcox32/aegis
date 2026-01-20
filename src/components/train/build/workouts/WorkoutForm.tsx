@@ -335,6 +335,22 @@ export default function WorkoutForm({ workoutId, isEditing = false }: WorkoutFor
     e.preventDefault();
     setLoading(true);
 
+    // Validate that all exercises have an exerciseId selected
+    const incompleteExercises: string[] = [];
+    blocks.forEach((block, blockIndex) => {
+      block.exercises.forEach((exercise, exerciseIndex) => {
+        if (!exercise.exerciseId || exercise.exerciseId.trim() === '') {
+          incompleteExercises.push(`Block "${block.name || `Block ${blockIndex + 1}`}", Exercise ${exerciseIndex + 1}`);
+        }
+      });
+    });
+
+    if (incompleteExercises.length > 0) {
+      alert(`Please select an exercise for:\n${incompleteExercises.join('\n')}\n\nOr remove the incomplete exercise rows.`);
+      setLoading(false);
+      return;
+    }
+
     const workoutData: CreateWorkoutInput = {
       name,
       description,
