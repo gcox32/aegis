@@ -56,7 +56,7 @@ export default function FloatingMenu() {
         />
       )}
 
-      <div className="top-4 right-4 z-30 fixed flex flex-col items-end">
+      <div className="top-8 right-4 z-30 fixed flex flex-col items-end">
         {/* FAB Button */}
         <button
           onClick={() => setIsOpen(!isOpen)}

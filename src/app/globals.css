@@ -124,6 +124,7 @@ body {
   /* Subtle letter spacing for body text */
   letter-spacing: -0.01em;
   transition: background-color 0.3s ease;
+  padding-top: 1rem;
 }
 
 /* Display headings use Outfit font */
