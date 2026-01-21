@@ -89,7 +89,7 @@
 
 /* Base HTML/Body styles */
 html {
-  overscroll-behavior-y: none;
+  overscroll-behavior: none;
   scroll-behavior: smooth;
 }
 
@@ -125,6 +125,7 @@ body {
   letter-spacing: -0.01em;
   transition: background-color 0.3s ease;
   padding-top: 2rem;
+  overscroll-behavior: none;
 }
 
 /* Display headings use Outfit font */
